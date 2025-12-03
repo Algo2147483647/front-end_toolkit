@@ -142,197 +142,59 @@ function openPreview() {
   updateSchema();
 
   const previewContainer = document.getElementById('previewContainer');
-  const schema = state.formSchema;
+  const components = state.components;
 
-  // 直接渲染表单而不需要依赖 Formily 库
-  const renderFormField = (key, prop) => {
-    const fieldName = prop.name || key;
-    const fieldTitle = prop.title || '';
-    const fieldPlaceholder = prop["x-component-props"]?.placeholder || '';
-    const isRequired = prop.required || false;
+  // 使用与主画布相同的渲染方式来保证一致性
+  let previewHTML = '';
+  
+  if (components.length === 0) {
+    previewHTML = '<div style="text-align: center; color: #999; padding: 40px;">表单为空，请添加组件</div>';
+  } else {
+    // 为预览创建一个临时状态对象，去除编辑相关的UI元素
+    const previewState = JSON.parse(JSON.stringify(state));
+    previewState.selectedItem = null;
     
-    const label = React.createElement('label', { 
-      htmlFor: fieldName,
-      style: { display: 'block', marginBottom: '5px', fontWeight: 'bold' }
-    }, fieldTitle + (isRequired ? ' *' : ''));
-    
-    let inputElement;
-    
-    switch(prop["x-component"]) {
-      case 'Input':
-        inputElement = React.createElement('input', {
-          type: 'text',
-          id: fieldName,
-          name: fieldName,
-          placeholder: fieldPlaceholder,
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        });
-        break;
-        
-      case 'Textarea':
-        inputElement = React.createElement('textarea', {
-          id: fieldName,
-          name: fieldName,
-          placeholder: fieldPlaceholder,
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px', minHeight: '80px' }
-        });
-        break;
-        
-      case 'InputNumber':
-        inputElement = React.createElement('input', {
-          type: 'number',
-          id: fieldName,
-          name: fieldName,
-          placeholder: fieldPlaceholder,
-          defaultValue: prop.default || '',
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        });
-        break;
-        
-      case 'Select':
-        const options = prop["x-component-props"]?.options || [];
-        const optionElements = options.map((opt, idx) => 
-          React.createElement('option', { key: idx, value: opt.value || opt.label || opt }, opt.label || opt)
-        );
-        inputElement = React.createElement('select', {
-          id: fieldName,
-          name: fieldName,
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        }, ...optionElements);
-        break;
-        
-      case 'DatePicker':
-        inputElement = React.createElement('input', {
-          type: 'date',
-          id: fieldName,
-          name: fieldName,
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        });
-        break;
-        
-      case 'TimePicker':
-        inputElement = React.createElement('input', {
-          type: 'time',
-          id: fieldName,
-          name: fieldName,
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        });
-        break;
-        
-      case 'Switch':
-        inputElement = React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
-          React.createElement('input', {
-            type: 'checkbox',
-            id: fieldName,
-            name: fieldName,
-            defaultChecked: prop.default || false
-          }),
-          React.createElement('label', { 
-            htmlFor: fieldName,
-            style: { marginLeft: '8px' }
-          }, 'ON')
-        );
-        break;
-        
-      case 'Slider':
-        inputElement = React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
-          React.createElement('input', {
-            type: 'range',
-            id: fieldName,
-            name: fieldName,
-            min: prop["x-component-props"]?.min || 0,
-            max: prop["x-component-props"]?.max || 100,
-            defaultValue: prop.default || 0,
-            style: { flexGrow: 1 }
-          }),
-          React.createElement('span', { 
-            style: { marginLeft: '10px' } 
-          }, prop.default || 0)
-        );
-        break;
-        
-      case 'Radio':
-        const radioOptions = prop["x-component-props"]?.options || ['Option 1', 'Option 2'];
-        const radioElements = radioOptions.map((opt, idx) => 
-          React.createElement('div', { key: idx, style: { display: 'flex', alignItems: 'center', marginBottom: '5px' } },
-            React.createElement('input', {
-              type: 'radio',
-              id: `${fieldName}_${idx}`,
-              name: fieldName,
-              value: opt.value || opt.label || opt,
-              defaultChecked: idx === 0
-            }),
-            React.createElement('label', { 
-              htmlFor: `${fieldName}_${idx}`,
-              style: { marginLeft: '5px' }
-            }, opt.label || opt)
-          )
-        );
-        inputElement = React.createElement('div', null, ...radioElements);
-        break;
-        
-      case 'Checkbox':
-        const checkboxOptions = prop["x-component-props"]?.options || ['Option 1', 'Option 2', 'Option 3'];
-        const checkboxElements = checkboxOptions.map((opt, idx) => 
-          React.createElement('div', { key: idx, style: { display: 'flex', alignItems: 'center', marginBottom: '5px' } },
-            React.createElement('input', {
-              type: 'checkbox',
-              id: `${fieldName}_${idx}`,
-              name: fieldName,
-              value: opt.value || opt.label || opt
-            }),
-            React.createElement('label', { 
-              htmlFor: `${fieldName}_${idx}`,
-              style: { marginLeft: '5px' }
-            }, opt.label || opt)
-          )
-        );
-        inputElement = React.createElement('div', null, ...checkboxElements);
-        break;
-        
-      default:
-        inputElement = React.createElement('input', {
-          type: 'text',
-          id: fieldName,
-          name: fieldName,
-          placeholder: 'Unsupported component: ' + prop["x-component"],
-          style: { width: '100%', padding: '8px', border: '1px solid #d9d9d9', borderRadius: '4px' }
-        });
-    }
-    
-    return React.createElement('div', { 
-      className: 'form-field',
-      style: { marginBottom: '15px' }
-    }, label, inputElement);
-  };
-
-  // 创建表单元素
-  const formFields = Object.entries(schema.schema.properties || {}).map(([key, prop]) => 
-    renderFormField(key, prop)
-  );
-
-  const formElement = React.createElement('form', {
-    onSubmit: (e) => {
+    previewHTML = components.map(comp => `
+      <div class="form-item" data-id="${comp.id}" style="margin-bottom: 15px;">
+        <span class="form-item-label" style="display: block; margin-bottom: 5px; font-weight: bold;">
+          ${comp.config.title}${comp.config.required ? ' *' : ''}
+        </span>
+        <div class="form-item-content">
+          ${renderComponentPreview(comp)}
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // 包装在一个简单的表单容器中
+  const formHTML = `
+    <form id="previewForm" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      ${previewHTML}
+      ${components.length > 0 ? `
+        <div style="margin-top: 20px; text-align: center;">
+          <button type="submit" style=" 
+            background-color: #1890ff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer;
+          ">提交</button>
+        </div>
+      ` : ''}
+    </form>
+  `;
+  
+  previewContainer.innerHTML = formHTML;
+  
+  // 添加表单提交事件处理
+  const previewForm = document.getElementById('previewForm');
+  if (previewForm) {
+    previewForm.addEventListener('submit', function(e) {
       e.preventDefault();
       alert('表单提交功能仅在预览模式下展示');
-    },
-    style: { maxWidth: '600px', margin: '0 auto', padding: '20px' }
-  }, ...formFields, 
-     React.createElement('button', { 
-       type: 'submit',
-       style: { 
-         backgroundColor: '#1890ff', 
-         color: 'white', 
-         border: 'none', 
-         padding: '10px 20px', 
-         borderRadius: '4px', 
-         cursor: 'pointer' 
-       }
-     }, '提交')
-  );
-
-  // 渲染表单
-  ReactDOM.render(formElement, previewContainer);
+    });
+  }
   
   // 显示预览模态框
   document.getElementById('previewModal').style.display = 'flex';
