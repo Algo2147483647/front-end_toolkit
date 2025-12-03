@@ -35,14 +35,15 @@ function renderComponentPreview(component) {
                         `<div class="form-item ${state.selectedItem?.id === child.id ? 'selected' : ''}" 
                              data-id="${child.id}"
                              draggable="true"
-                             style="margin-bottom: 10px;">
+                             style="margin-bottom: 10px;"
+                             onclick="event.stopPropagation(); const component = findComponentById('${child.id}'); if(component) selectComponent(component);">
                            <span class="form-item-label">${child.config.title}</span>
                            <div class="form-item-content">
                                ${renderComponentPreview(child)}
                            </div>
                            <div class="form-item-actions">
-                               <i class="fas fa-edit form-item-action" onclick="editComponent('${child.id}')"></i>
-                               <i class="fas fa-trash form-item-action" onclick="deleteChildComponent('${component.id}', '${child.id}')"></i>
+                               <i class="fas fa-edit form-item-action" onclick="event.stopPropagation(); editComponent('${child.id}')"></i>
+                               <i class="fas fa-trash form-item-action" onclick="event.stopPropagation(); deleteChildComponent('${component.id}', '${child.id}')"></i>
                            </div>
                         </div>`
                       ).join('')
@@ -67,14 +68,15 @@ function renderComponentPreview(component) {
                         ? colChildren.map(child => 
                             `<div class="form-item ${state.selectedItem?.id === child.id ? 'selected' : ''}" 
                                  data-id="${child.id}"
-                                 draggable="true">
+                                 draggable="true"
+                                 onclick="event.stopPropagation(); const component = findComponentById('${child.id}'); if(component) selectComponent(component);">
                               <span class="form-item-label">${child.config.title}</span>
                               <div class="form-item-content">
                                   ${renderComponentPreview(child)}
                               </div>
                               <div class="form-item-actions">
-                                  <i class="fas fa-edit form-item-action" onclick="editComponent('${child.id}')"></i>
-                                  <i class="fas fa-trash form-item-action" onclick="deleteChildComponent('${component.id}', '${child.id}')"></i>
+                                  <i class="fas fa-edit form-item-action" onclick="event.stopPropagation(); editComponent('${child.id}')"></i>
+                                  <i class="fas fa-trash form-item-action" onclick="event.stopPropagation(); deleteChildComponent('${component.id}', '${child.id}')"></i>
                               </div>
                             </div>`)
                         : ''}

@@ -187,7 +187,7 @@ function addComponentToContainer(containerId, type) {
   }
 
   container.children.push(childComponent);
-  selectComponent(container);
+  selectComponent(childComponent);
   renderFormItems();
   renderComponentTree(); // 更新组件树
   updateSchema();
@@ -214,8 +214,8 @@ function renderFormItems() {
                       ${renderComponentPreview(comp)}
                   </div>
                   <div class="form-item-actions">
-                      <i class="fas fa-edit form-item-action" onclick="editComponent('${comp.id}')"></i>
-                      <i class="fas fa-trash form-item-action" onclick="deleteComponent('${comp.id}')"></i>
+                      <i class="fas fa-edit form-item-action" onclick="event.stopPropagation(); editComponent('${comp.id}')"></i>
+                      <i class="fas fa-trash form-item-action" onclick="event.stopPropagation(); deleteComponent('${comp.id}')"></i>
                       <i class="fas fa-arrows-alt form-item-action"
                          onmousedown="startDrag(event, '${comp.id}')"></i>
                   </div>
@@ -227,7 +227,19 @@ function renderFormItems() {
     item.addEventListener('click', function(e) {
       if (!e.target.closest('.form-item-action')) {
         const id = this.dataset.id;
-        const component = state.components.find(c => c.id === id);
+        const component = findComponentById(id);
+        selectComponent(component);
+      }
+    });
+  });
+  
+  // 为容器内的组件添加点击事件监听器
+  container.querySelectorAll('.card-preview > .form-item, .grid-column > .form-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      if (!e.target.closest('.form-item-action')) {
+        e.stopPropagation();
+        const id = this.dataset.id;
+        const component = findComponentById(id);
         selectComponent(component);
       }
     });
@@ -291,7 +303,7 @@ function deleteChildComponent(containerId, childId) {
 
 // 编辑组件
 function editComponent(id) {
-  const component = state.components.find(c => c.id === id);
+  const component = findComponentById(id);
   selectComponent(component);
 }
 
