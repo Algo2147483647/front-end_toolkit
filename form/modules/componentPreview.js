@@ -100,34 +100,63 @@ function renderComponentPreview(component) {
       const panels = component.config.panels || [];
       if (direction === 'horizontal') {
         // 水平模式下显示为标签页(tab)形式
-        const collapseTabs = panels.map((panel, index) => `
-          <div class="collapse-tab ${index === 0 ? 'active' : ''}">
-            <div class="collapse-tab-header">
-              <span class="collapse-tab-title">${panel.title}</span>
-            </div>
-            <div class="collapse-tab-content">
-              <div class="collapse-content-inner">${panel.content}</div>
-            </div>
-          </div>`).join('');
+        let collapseTabsHeader = '';
+        let collapseTabsContent = '';
         
-        return `<div class="collapse-preview horizontal-tab" onclick="event.stopPropagation();">
-                  ${collapseTabs}
+        panels.forEach((panel, index) => {
+          // 标签页头部
+          const isActiveTab = index === 0 ? 'active' : '';
+          collapseTabsHeader += `
+            <div class="collapse-tab-header ${isActiveTab}" data-index="${index}">
+              <span class="collapse-tab-title">${panel.title}</span>
+              <div class="collapse-tab-actions">
+                <i class="fas fa-plus add-panel" onclick="event.stopPropagation(); addCollapsePanel('${component.id}', ${index})"></i>
+                <i class="fas fa-minus remove-panel" onclick="event.stopPropagation(); removeCollapsePanel('${component.id}', ${index})"></i>
+              </div>
+            </div>`;
+          
+          // 标签页内容
+          const isActiveContent = index === 0 ? 'active' : '';
+          const contentStyle = index === 0 ? 'style="display: block;"' : '';
+          collapseTabsContent += `
+            <div class="collapse-tab-content ${isActiveContent}" data-index="${index}" ${contentStyle}>
+              <div class="collapse-content-inner">${panel.content}</div>
+            </div>`;
+        });
+        
+        return `<div class="collapse-preview horizontal-tab" onclick="event.stopPropagation();" data-component-id="${component.id}">
+                  <div class="collapse-tabs-headers">
+                    ${collapseTabsHeader}
+                  </div>
+                  <div class="collapse-tabs-contents">
+                    ${collapseTabsContent}
+                  </div>
+                  <div class="collapse-global-actions">
+                    <i class="fas fa-plus add-panel" onclick="event.stopPropagation(); addCollapsePanel('${component.id}', -1)"></i>
+                  </div>
                 </div>`;
       } else {
         // 垂直模式保持原有样式
         const collapsePanels = panels.map((panel, index) => `
-          <div class="collapse-panel">
+          <div class="collapse-panel" data-index="${index}">
             <div class="collapse-header">
               <i class="fas fa-chevron-right collapse-arrow"></i>
               <span class="collapse-title">${panel.title}</span>
+              <div class="collapse-panel-actions">
+                <i class="fas fa-plus add-panel" onclick="event.stopPropagation(); addCollapsePanel('${component.id}', ${index})"></i>
+                <i class="fas fa-minus remove-panel" onclick="event.stopPropagation(); removeCollapsePanel('${component.id}', ${index})"></i>
+              </div>
             </div>
             <div class="collapse-content">
               <div class="collapse-content-inner">${panel.content}</div>
             </div>
           </div>`).join('');
         
-        return `<div class="collapse-preview vertical" onclick="event.stopPropagation();">
+        return `<div class="collapse-preview vertical" onclick="event.stopPropagation();" data-component-id="${component.id}">
                   ${collapsePanels}
+                  <div class="collapse-global-actions">
+                    <i class="fas fa-plus add-panel" onclick="event.stopPropagation(); addCollapsePanel('${component.id}', -1)"></i>
+                  </div>
                 </div>`;
       }
     case 'Switch':

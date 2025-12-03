@@ -207,7 +207,6 @@ function initDragAndDrop() {
     }
   });
   
-  // Add support for dragging and sorting components within containers
   document.addEventListener('dragstart', function(e) {
     if (e.target.classList.contains('form-item') && e.target.parentNode.classList.contains('card-preview')) {
       e.dataTransfer.setData('text/plain', e.target.dataset.id);
@@ -255,6 +254,41 @@ function addComponentAtPosition(type, position) {
   renderFormItems();
   renderComponentTree(); // Update component tree
   updateSchema();
+}
+
+// Add panel to Collapse component
+function addCollapsePanel(componentId, index) {
+  const component = findComponentById(componentId);
+  if (component && component.type === 'Collapse') {
+    const newPanel = {
+      key: 'panel' + (component.config.panels.length + 1),
+      title: 'New Panel ' + (component.config.panels.length + 1),
+      content: 'Content of New Panel ' + (component.config.panels.length + 1)
+    };
+
+    if (index === -1) {
+      // Add to the end
+      component.config.panels.push(newPanel);
+    } else {
+      // Add after the specified index
+      component.config.panels.splice(index + 1, 0, newPanel);
+    }
+
+    renderFormItems();
+    renderComponentTree();
+    updateSchema();
+  }
+}
+
+// Remove panel from Collapse component
+function removeCollapsePanel(componentId, index) {
+  const component = findComponentById(componentId);
+  if (component && component.type === 'Collapse' && component.config.panels.length > 1) {
+    component.config.panels.splice(index, 1);
+    renderFormItems();
+    renderComponentTree();
+    updateSchema();
+  }
 }
 
 // Add component (keeping for backward compatibility)
@@ -359,20 +393,49 @@ function renderFormItems() {
   });
   
   // Add click event listeners for collapse panels
-  container.querySelectorAll('.collapse-header').forEach(header => {
+  container.querySelectorAll('.collapse-header, .collapse-tab-header').forEach(header => {
     header.addEventListener('click', function(e) {
+      // Check if the click was on an action button
+      if (e.target.classList.contains('add-panel') || e.target.classList.contains('remove-panel')) {
+        return;
+      }
+      
       e.stopPropagation();
-      const panel = this.parentElement;
-      const arrow = this.querySelector('.collapse-arrow');
-      const content = panel.querySelector('.collapse-content');
       
-      panel.classList.toggle('active');
-      arrow.classList.toggle('rotated');
-      
-      if (panel.classList.contains('active')) {
-        content.style.maxHeight = content.scrollHeight + 'px';
+      // Handle tab mode differently
+      if (this.classList.contains('collapse-tab-header')) {
+        // For tab mode, switch active tab
+        const tabIndex = this.dataset.index;
+        const tabContainer = this.closest('.collapse-preview');
+        
+        // Update active tab header
+        const tabHeaders = tabContainer.querySelectorAll('.collapse-tab-header');
+        tabHeaders.forEach(header => header.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update active tab content
+        const tabContents = tabContainer.querySelectorAll('.collapse-tab-content');
+        tabContents.forEach(content => content.style.display = 'none');
+        const activeContent = tabContainer.querySelector(`.collapse-tab-content[data-index="${tabIndex}"]`);
+        if (activeContent) {
+          activeContent.style.display = 'block';
+        }
       } else {
-        content.style.maxHeight = null;
+        // For accordion mode, toggle panel
+        const panel = this.parentElement;
+        const arrow = this.querySelector('.collapse-arrow');
+        const content = panel.querySelector('.collapse-content');
+        
+        panel.classList.toggle('active');
+        if (arrow) {
+          arrow.classList.toggle('rotated');
+        }
+        
+        if (panel.classList.contains('active')) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = null;
+        }
       }
     });
   });

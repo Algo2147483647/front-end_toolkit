@@ -857,11 +857,14 @@ body {
   flex-direction: column;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
+  overflow: hidden;
 }
 
-.collapse-preview.horizontal-tab .collapse-tab {
+.collapse-preview.horizontal-tab .collapse-tabs-headers {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  background: #f5f5f5;
+  border-bottom: 1px solid #d9d9d9;
 }
 
 .collapse-preview.horizontal-tab .collapse-tab-header {
@@ -869,16 +872,20 @@ body {
   background: #fafafa;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s;
-  border-bottom: 1px solid #d9d9d9;
+  border-right: 1px solid #d9d9d9;
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
 }
 
 .collapse-preview.horizontal-tab .collapse-tab-header:hover {
   background: #e6f7ff;
 }
 
-.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-header {
+.collapse-preview.horizontal-tab .collapse-tab-header.active {
   background: #1890ff;
   color: white;
 }
@@ -886,21 +893,28 @@ body {
 .collapse-preview.horizontal-tab .collapse-tab-title {
   font-weight: 500;
   color: #333;
+  flex: 1;
 }
 
-.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-title {
+.collapse-preview.horizontal-tab .collapse-tab-header.active .collapse-tab-title {
   color: white;
 }
 
-.collapse-preview.horizontal-tab .collapse-tab-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
+.collapse-preview.horizontal-tab .collapse-tabs-contents {
+  flex: 1;
+  position: relative;
 }
 
-.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-content {
-  max-height: 500px;
-  flex: 1;
+.collapse-preview.horizontal-tab .collapse-tab-content {
+  display: none;
+  padding: 16px;
+  color: #666;
+  background: #fff;
+  min-height: 100px;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab-content.active {
+  display: block;
 }
 
 .collapse-preview.horizontal-tab .collapse-content-inner {
@@ -918,6 +932,7 @@ body {
   background: #fafafa;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -940,6 +955,7 @@ body {
 .collapse-title {
   font-weight: 500;
   color: #333;
+  flex: 1;
 }
 
 .collapse-content {
@@ -956,6 +972,51 @@ body {
   padding: 16px;
   color: #666;
   background: #fff;
+}
+
+/* Collapse panel actions */
+.collapse-panel-actions,
+.collapse-tab-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 10px;
+}
+
+.collapse-panel-actions i,
+.collapse-tab-actions i {
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.collapse-panel-actions i:hover,
+.collapse-tab-actions i:hover {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+/* Global actions for adding panels */
+.collapse-global-actions {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-top: 1px solid #d9d9d9;
+  text-align: center;
+}
+
+.collapse-global-actions i {
+  font-size: 14px;
+  color: #1890ff;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.collapse-global-actions i:hover {
+  background-color: #e6f7ff;
 }
 
 .switch-track {
