@@ -244,11 +244,39 @@ function openPreview() {
       });
       
       // 显示JSON结果
-      alert('表单数据:\n' + JSON.stringify(formData, null, 2));
+      showResultModal(JSON.stringify(formData, null, 2));
       console.log('表单数据:', formData);
     });
   }
   
   // 显示预览模态框
   document.getElementById('previewModal').style.display = 'flex';
+}
+
+// 显示结果模态框
+function showResultModal(jsonResult) {
+  const resultModal = document.getElementById('resultModal');
+  const resultContent = document.getElementById('resultContent');
+  const copyStatus = document.getElementById('copyStatus');
+  
+  resultContent.value = jsonResult;
+  resultModal.style.display = 'flex';
+  copyStatus.style.display = 'none';
+  
+  // 绑定关闭事件
+  document.getElementById('closeResultBtn').onclick = function() {
+    resultModal.style.display = 'none';
+  };
+  
+  // 绑定复制事件
+  document.getElementById('copyResultBtn').onclick = function() {
+    resultContent.select();
+    document.execCommand('copy');
+    copyStatus.style.display = 'inline';
+    
+    // 3秒后隐藏提示
+    setTimeout(() => {
+      copyStatus.style.display = 'none';
+    }, 3000);
+  };
 }

@@ -188,6 +188,23 @@
   </div>
 </div>
 
+<!-- Result modal -->
+<div id="resultModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1001; align-items: center; justify-content: center;">
+  <div style="background: white; width: 80%; height: 80%; border-radius: 8px; padding: 24px; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3>Form Data Result</h3>
+      <button id="closeResultBtn" class="ant-btn ant-btn-default">Close</button>
+    </div>
+    <div style="flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column;">
+      <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+        <button id="copyResultBtn" class="ant-btn ant-btn-primary">Copy to Clipboard</button>
+        <span id="copyStatus" style="align-self: center; color: green; display: none;">Copied!</span>
+      </div>
+      <textarea id="resultContent" readonly style="flex: 1; font-family: monospace; padding: 15px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+    </div>
+  </div>
+</div>
+
 <!-- Import file input -->
 <input type="file" id="fileInput" accept=".json" style="display: none;">
 
