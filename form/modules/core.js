@@ -54,6 +54,8 @@ function initTabs() {
 function initDragAndDrop() {
   const components = document.querySelectorAll('.component-item');
   const canvas = document.getElementById('formCanvas');
+  let indicatorLine = null;
+  let insertIndex = -1; // Track where to insert the component
 
   components.forEach(component => {
     component.addEventListener('dragstart', function(e) {
@@ -63,26 +65,105 @@ function initDragAndDrop() {
 
     component.addEventListener('dragend', function() {
       this.classList.remove('dragging');
+      // Remove indicator line if exists
+      if (indicatorLine) {
+        indicatorLine.remove();
+        indicatorLine = null;
+      }
+      insertIndex = -1;
     });
   });
 
   canvas.addEventListener('dragover', function(e) {
     e.preventDefault();
     this.classList.add('active');
+    
+    // Create or update indicator line
+    if (!indicatorLine) {
+      indicatorLine = document.createElement('div');
+      indicatorLine.className = 'insert-indicator';
+      canvas.appendChild(indicatorLine);
+    }
+    
+    // Position the indicator line
+    const formItems = document.getElementById('formItems');
+    const items = Array.from(formItems.querySelectorAll('.form-item'));
+    let closestItem = null;
+    let closestDistance = Infinity;
+    insertIndex = -1; // Reset insert index
+    
+    // Find the closest item to insert position
+    items.forEach((item, index) => {
+      const rect = item.getBoundingClientRect();
+      const distance = Math.abs(e.clientY - (rect.top + rect.height / 2));
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestItem = item;
+        // Determine if inserting before or after
+        if (e.clientY < rect.top + rect.height / 2) {
+          insertIndex = index;
+        } else {
+          insertIndex = index + 1;
+        }
+      }
+    });
+    
+    // Position the indicator line based on closest item
+    if (closestItem) {
+      const rect = closestItem.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      
+      if (insertIndex <= items.indexOf(closestItem)) {
+        indicatorLine.style.top = (rect.top - canvasRect.top - 1) + 'px';
+      } else {
+        indicatorLine.style.top = (rect.bottom - canvasRect.top - 1) + 'px';
+      }
+    } else if (items.length > 0) {
+      // Position at the end if no close item but there are items
+      const lastItem = items[items.length - 1];
+      const rect = lastItem.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      indicatorLine.style.top = (rect.bottom - canvasRect.top - 1) + 'px';
+      insertIndex = items.length;
+    } else {
+      // Position at the beginning if no items
+      const canvasRect = canvas.getBoundingClientRect();
+      indicatorLine.style.top = '20px';
+      insertIndex = 0;
+    }
   });
 
-  canvas.addEventListener('dragleave', function() {
-    this.classList.remove('active');
+  canvas.addEventListener('dragleave', function(e) {
+    // Check if we're really leaving the canvas or just moving between elements
+    const rect = this.getBoundingClientRect();
+    if (e.clientY <= rect.top || e.clientY >= rect.bottom || 
+        e.clientX <= rect.left || e.clientX >= rect.right) {
+      this.classList.remove('active');
+      // Remove indicator line
+      if (indicatorLine) {
+        indicatorLine.remove();
+        indicatorLine = null;
+      }
+      insertIndex = -1;
+    }
   });
 
   canvas.addEventListener('drop', function(e) {
     e.preventDefault();
     this.classList.remove('active');
 
+    // Remove indicator line
+    if (indicatorLine) {
+      indicatorLine.remove();
+      indicatorLine = null;
+    }
+
     const componentType = e.dataTransfer.getData('componentType');
     if (componentType) {
-      addComponent(componentType);
+      addComponentAtPosition(componentType, insertIndex);
     }
+    
+    insertIndex = -1;
   });
   
   // Add support for dragging inside container components
@@ -127,8 +208,8 @@ function initDragAndDrop() {
   });
 }
 
-// Add component
-function addComponent(type) {
+// Add component at specific position
+function addComponentAtPosition(type, position) {
   const id = 'comp_' + state.nextId++;
   const config = JSON.parse(JSON.stringify(componentConfigs[type]));
 
@@ -139,15 +220,33 @@ function addComponent(type) {
       ...config,
       name: config.name + '_' + id
     },
-    position: state.components.length,
     children: (type === 'Card' || type === 'Grid') ? [] : undefined // Container components support child components
   };
 
-  state.components.push(component);
+  // If position is -1 or greater than array length, add to end
+  if (position === -1 || position >= state.components.length) {
+    component.position = state.components.length;
+    state.components.push(component);
+  } else {
+    // Insert at specific position
+    component.position = position;
+    state.components.splice(position, 0, component);
+    
+    // Update positions of subsequent components
+    for (let i = position + 1; i < state.components.length; i++) {
+      state.components[i].position = i;
+    }
+  }
+
   selectComponent(component);
   renderFormItems();
   renderComponentTree(); // Update component tree
   updateSchema();
+}
+
+// Add component (keeping for backward compatibility)
+function addComponent(type) {
+  addComponentAtPosition(type, -1); // -1 means add to end
 }
 
 // Add child component to container

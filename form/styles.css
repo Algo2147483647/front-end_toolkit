@@ -296,6 +296,16 @@ body {
   background: #e6f7ff;
 }
 
+/* Insert indicator line */
+.insert-indicator {
+  position: absolute;
+  height: 2px;
+  background: #1890ff;
+  width: 100%;
+  z-index: 1000;
+  pointer-events: none;
+}
+
 .container-drop-area {
   min-height: 50px;
   border: 2px dashed #1890ff;
