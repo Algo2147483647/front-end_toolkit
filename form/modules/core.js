@@ -1,12 +1,12 @@
-// 初始化
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
   initDragAndDrop();
   initEventListeners();
   renderFormItems();
-  initTabs(); // 初始化标签页
+  initTabs(); // Initialize tabs
 });
 
-// 初始化标签页
+// Initialize tabs
 function initTabs() {
   const tabButtons = document.querySelectorAll('.tab-button');
   const tabPanels = document.querySelectorAll('.panel-tab');
@@ -15,11 +15,11 @@ function initTabs() {
     button.addEventListener('click', () => {
       const tabName = button.dataset.tab;
 
-      // 更新激活的标签按钮
+      // Update active tab button
       tabButtons.forEach(btn => btn.classList.remove('active'));
       button.classList.add('active');
 
-      // 显示对应的面板
+      // Show corresponding panel
       tabPanels.forEach(panel => {
         panel.classList.remove('active');
         if (panel.id === tabName + 'Panel') {
@@ -27,30 +27,30 @@ function initTabs() {
         }
       });
 
-      // 如果是组件树面板，则更新树结构
+      // If it's the component tree panel, update the tree structure
       if (tabName === 'tree') {
         renderComponentTree();
       }
     });
   });
 
-  // 初始化边框切换按钮
+  // Initialize border toggle button
   const toggleButton = document.getElementById('toggleBorders');
   toggleButton.addEventListener('click', function() {
     state.showBorders = !state.showBorders;
     const icon = this.querySelector('i');
     if (state.showBorders) {
       icon.className = 'fas fa-border-none';
-      this.title = '隐藏边框';
+      this.title = 'Hide Borders';
     } else {
       icon.className = 'fas fa-border-all';
-      this.title = '显示边框';
+      this.title = 'Show Borders';
     }
     renderFormItems();
   });
 }
 
-// 初始化拖拽功能
+// Initialize drag and drop functionality
 function initDragAndDrop() {
   const components = document.querySelectorAll('.component-item');
   const canvas = document.getElementById('formCanvas');
@@ -85,7 +85,7 @@ function initDragAndDrop() {
     }
   });
   
-  // 添加对容器组件内部拖拽的支持
+  // Add support for dragging inside container components
   document.addEventListener('dragover', function(e) {
     if (e.target.classList.contains('container-drop-area')) {
       e.preventDefault();
@@ -113,7 +113,7 @@ function initDragAndDrop() {
     }
   });
   
-  // 添加对容器内组件拖拽排序的支持
+  // Add support for dragging and sorting components within containers
   document.addEventListener('dragstart', function(e) {
     if (e.target.classList.contains('form-item') && e.target.parentNode.classList.contains('card-preview')) {
       e.dataTransfer.setData('text/plain', e.target.dataset.id);
@@ -127,7 +127,7 @@ function initDragAndDrop() {
   });
 }
 
-// 添加组件
+// Add component
 function addComponent(type) {
   const id = 'comp_' + state.nextId++;
   const config = JSON.parse(JSON.stringify(componentConfigs[type]));
@@ -140,17 +140,17 @@ function addComponent(type) {
       name: config.name + '_' + id
     },
     position: state.components.length,
-    children: (type === 'Card' || type === 'Grid') ? [] : undefined // 容器组件支持子组件
+    children: (type === 'Card' || type === 'Grid') ? [] : undefined // Container components support child components
   };
 
   state.components.push(component);
   selectComponent(component);
   renderFormItems();
-  renderComponentTree(); // 更新组件树
+  renderComponentTree(); // Update component tree
   updateSchema();
 }
 
-// 向容器组件添加子组件
+// Add child component to container
 function addComponentToContainer(containerId, type) {
   const container = findComponentById(containerId);
   if (!container) return;
@@ -168,9 +168,9 @@ function addComponentToContainer(containerId, type) {
     position: container.children.length
   };
 
-  // 对于栅格组件，我们需要记录它属于哪一列
+  // For grid components, we need to record which column it belongs to
   if (container.type === 'Grid') {
-    // 查找最少元素的列
+    // Find the column with the least elements
     const columns = container.config.columns || 3;
     let minCount = Infinity;
     let targetColumn = 0;
@@ -189,11 +189,11 @@ function addComponentToContainer(containerId, type) {
   container.children.push(childComponent);
   selectComponent(childComponent);
   renderFormItems();
-  renderComponentTree(); // 更新组件树
+  renderComponentTree(); // Update component tree
   updateSchema();
 }
 
-// 渲染表单项目
+// Render form items
 function renderFormItems() {
   const container = document.getElementById('formItems');
   const emptyCanvas = document.getElementById('emptyCanvas');
@@ -222,7 +222,7 @@ function renderFormItems() {
               </div>
           `).join('');
 
-  // 添加点击选择事件
+  // Add click selection event
   container.querySelectorAll('.form-item').forEach(item => {
     item.addEventListener('click', function(e) {
       if (!e.target.closest('.form-item-action')) {
@@ -233,7 +233,7 @@ function renderFormItems() {
     });
   });
   
-  // 为容器内的组件添加点击事件监听器
+  // Add click event listeners for components within containers
   container.querySelectorAll('.card-preview > .form-item, .grid-column > .form-item').forEach(item => {
     item.addEventListener('click', function(e) {
       if (!e.target.closest('.form-item-action')) {
@@ -246,7 +246,7 @@ function renderFormItems() {
   });
 }
 
-// 获取组件图标
+// Get component icon
 function getComponentIcon(type) {
   const icons = {
     Input: 'font',
@@ -265,7 +265,7 @@ function getComponentIcon(type) {
   return icons[type] || 'cube';
 }
 
-// 删除组件
+// Delete component
 function deleteComponent(id) {
   const index = state.components.findIndex(c => c.id === id);
   if (index > -1) {
@@ -275,12 +275,12 @@ function deleteComponent(id) {
     }
     renderFormItems();
     renderProperties();
-    renderComponentTree(); // 更新组件树
+    renderComponentTree(); // Update component tree
     updateSchema();
   }
 }
 
-// 删除容器中的子组件
+// Delete child component from container
 function deleteChildComponent(containerId, childId) {
   const container = findComponentById(containerId);
   if (container && container.children) {
@@ -288,7 +288,7 @@ function deleteChildComponent(containerId, childId) {
     if (index > -1) {
       container.children.splice(index, 1);
       
-      // 更新选中状态
+      // Update selection state
       if (state.selectedItem?.id === childId) {
         state.selectedItem = null;
         renderProperties();
@@ -301,15 +301,15 @@ function deleteChildComponent(containerId, childId) {
   }
 }
 
-// 编辑组件
+// Edit component
 function editComponent(id) {
   const component = findComponentById(id);
   selectComponent(component);
 }
 
-// 拖拽排序
+// Drag to reorder
 function startDrag(e, id) {
-  // 简单的拖拽重新排序实现
+  // Simple drag and reorder implementation
   e.stopPropagation();
   const component = state.components.find(c => c.id === id);
   if (!component) return;
@@ -331,7 +331,7 @@ function startDrag(e, id) {
 
       state.components.sort((a, b) => a.position - b.position);
       renderFormItems();
-      renderComponentTree(); // 更新组件树
+      renderComponentTree(); // Update component tree
       updateSchema();
     }
   };

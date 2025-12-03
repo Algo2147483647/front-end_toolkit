@@ -1,4 +1,4 @@
-// 全局状态管理
+// Global state management
 const state = {
   formSchema: {
     form: {
@@ -13,48 +13,48 @@ const state = {
   selectedItem: null,
   components: [],
   nextId: 1,
-  showBorders: false  // 控制是否显示边框
+  showBorders: false  // Control whether to show borders
 };
 
-// 组件配置映射
+// Component configuration mapping
 const componentConfigs = {
   Input: {
     name: "input",
-    title: "输入框",
+    title: "Input",
     defaultValue: "",
-    placeholder: "请输入",
+    placeholder: "Please enter",
     required: false,
     type: "string"
   },
   Textarea: {
     name: "textarea",
-    title: "多行文本框",
+    title: "Textarea",
     defaultValue: "",
-    placeholder: "请输入",
+    placeholder: "Please enter",
     required: false,
     type: "string"
   },
   InputNumber: {
     name: "number",
-    title: "数字输入框",
+    title: "Number Input",
     defaultValue: 0,
     type: "number"
   },
   Select: {
     name: "select",
-    title: "选择器",
+    title: "Selector",
     defaultValue: "",
-    options: ["选项1", "选项2", "选项3"],
+    options: ["Option 1", "Option 2", "Option 3"],
     type: "string"
   },
   DatePicker: {
     name: "date",
-    title: "日期选择器",
+    title: "Date Picker",
     type: "string"
   },
   TimePicker: {
     name: "time",
-    title: "时间选择器",
+    title: "Time Picker",
     type: "string"
   },
   Card: {
@@ -67,23 +67,23 @@ const componentConfigs = {
     name: "divider",
     title: "",
     type: "void",
-    content: "", // 默认无文字
+    content: "", // Default no text
   },
   Grid: {
     name: "grid",
     title: "",
     type: "void",
-    columns: 3, // 默认3列
+    columns: 3, // Default 3 columns
   },
   Switch: {
     name: "switch",
-    title: "开关",
+    title: "Switch",
     defaultValue: false,
     type: "boolean"
   },
   Slider: {
     name: "slider",
-    title: "滑动输入条",
+    title: "Slider",
     defaultValue: 0,
     min: 0,
     max: 100,
@@ -91,29 +91,29 @@ const componentConfigs = {
   },
   Radio: {
     name: "radio",
-    title: "单选框",
+    title: "Radio",
     defaultValue: "",
-    options: ["选项1", "选项2"],
+    options: ["Option 1", "Option 2"],
     type: "string"
   },
   Checkbox: {
     name: "checkbox",
-    title: "多选框",
+    title: "Checkbox",
     defaultValue: [],
-    options: ["选项1", "选项2", "选项3"],
+    options: ["Option 1", "Option 2", "Option 3"],
     type: "array"
   }
 };
 
-// 根据ID查找组件（包括嵌套组件）
+// Find component by ID (including nested components)
 function findComponentById(id) {
-  // 在根级别查找
+  // Find at root level
   for (const component of state.components) {
     if (component.id === id) {
       return component;
     }
     
-    // 在容器组件的子组件中查找
+    // Find in container component's children
     if (component.children) {
       const found = findComponentInContainer(component.children, id);
       if (found) {
@@ -125,7 +125,7 @@ function findComponentById(id) {
   return null;
 }
 
-// 在容器中递归查找组件
+// Recursively find component in container
 function findComponentInContainer(children, id) {
   for (const child of children) {
     if (child.id === id) {
@@ -143,7 +143,7 @@ function findComponentInContainer(children, id) {
   return null;
 }
 
-// 更新 JSON Schema
+// Update JSON Schema
 function updateSchema() {
   const properties = {};
 
@@ -161,7 +161,7 @@ function updateSchema() {
       "x-validator": []
     };
 
-    // 添加特定属性
+    // Add specific properties
     if (comp.config.placeholder) {
       properties[fieldId]["x-component-props"].placeholder = comp.config.placeholder;
     }
@@ -179,7 +179,7 @@ function updateSchema() {
     
     if (comp.type === 'Card') {
       properties[fieldId]["x-component-props"].title = comp.config.showTitle ? comp.config.title : undefined;
-      // 处理子组件
+      // Handle child components
       if (comp.children && comp.children.length > 0) {
         properties[fieldId].properties = {};
         comp.children.forEach((child, childIndex) => {
@@ -219,7 +219,7 @@ function updateSchema() {
     if (comp.type === 'Grid') {
       properties[fieldId]["x-component-props"].columns = comp.config.columns;
       properties[fieldId]["x-component-props"].title = comp.config.showTitle ? comp.config.title : undefined;
-      // 处理子组件
+      // Handle child components
       if (comp.children && comp.children.length > 0) {
         properties[fieldId].properties = {};
         comp.children.forEach((child, childIndex) => {
@@ -267,15 +267,15 @@ function updateSchema() {
   state.formSchema.schema.properties = properties;
 }
 
-// 选择组件
+// Select component
 function selectComponent(component) {
   state.selectedItem = component;
   renderFormItems();
   renderProperties();
-  renderComponentTree(); // 更新组件树选中状态
+  renderComponentTree(); // Update component tree selection status
 }
 
-// 暴露到全局作用域
+// Expose to global scope
 window.state = state;
 window.componentConfigs = componentConfigs;
 window.findComponentById = findComponentById;

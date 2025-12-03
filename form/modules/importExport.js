@@ -1,6 +1,6 @@
-// 初始化事件监听器
+// Initialize event listeners
 function initEventListeners() {
-  // 导出按钮
+  // Export button
   document.getElementById('exportBtn').addEventListener('click', function() {
     const schemaStr = JSON.stringify(state.formSchema, null, 2);
     const blob = new Blob([schemaStr], { type: 'application/json' });
@@ -12,12 +12,12 @@ function initEventListeners() {
     URL.revokeObjectURL(url);
   });
 
-  // 导入按钮
+  // Import button
   document.getElementById('importBtn').addEventListener('click', function() {
     document.getElementById('fileInput').click();
   });
 
-  // 文件导入
+  // File import
   document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -27,14 +27,14 @@ function initEventListeners() {
           const importedSchema = JSON.parse(event.target.result);
           importSchema(importedSchema);
         } catch (error) {
-          alert('导入失败：JSON 格式错误');
+          alert('Import failed: JSON format error');
         }
       };
       reader.readAsText(file);
     }
   });
 
-  // 代码模式
+  // Code mode
   document.getElementById('codeBtn').addEventListener('click', function() {
     const editor = document.getElementById('codeEditor');
     const textarea = document.getElementById('schemaEditor');
@@ -42,40 +42,40 @@ function initEventListeners() {
     textarea.value = JSON.stringify(state.formSchema, null, 2);
   });
 
-  // 关闭代码编辑器
+  // Close code editor
   document.getElementById('closeCodeBtn').addEventListener('click', function() {
     document.getElementById('codeEditor').classList.remove('active');
   });
 
-  // 应用代码
+  // Apply code
   document.getElementById('applyCodeBtn').addEventListener('click', function() {
     try {
       const newSchema = JSON.parse(document.getElementById('schemaEditor').value);
       importSchema(newSchema);
       document.getElementById('codeEditor').classList.remove('active');
     } catch (error) {
-      alert('JSON 格式错误：' + error.message);
+      alert('JSON format error: ' + error.message);
     }
   });
 
-  // 预览按钮
+  // Preview button
   document.getElementById('previewBtn').addEventListener('click', function() {
     openPreview();
   });
 
-  // 关闭预览
+  // Close preview
   document.getElementById('closePreviewBtn').addEventListener('click', function() {
     document.getElementById('previewModal').style.display = 'none';
   });
 }
 
-// 导入 Schema
+// Import Schema
 function importSchema(schema) {
   state.formSchema = schema;
   state.components = [];
   state.selectedItem = null;
 
-  // 转换 Schema 到组件数据
+  // Convert Schema to component data
   const properties = schema.schema.properties || {};
   let index = 0;
 
@@ -98,10 +98,10 @@ function importSchema(schema) {
           columns: prop["x-component-props"]?.columns || 3
         },
         position: index,
-        children: [] // 初始化容器组件的子组件数组
+        children: [] // Initialize container component's child array
       };
       
-      // 处理容器组件的子组件
+      // Handle container component's child components
       if ((componentType === 'Card' || componentType === 'Grid') && prop.properties) {
         let childIndex = 0;
         for (const [childKey, childProp] of Object.entries(prop.properties)) {
@@ -134,25 +134,25 @@ function importSchema(schema) {
 
   renderFormItems();
   renderProperties();
-  renderComponentTree(); // 更新组件树
+  renderComponentTree(); // Update component tree
 }
 
-// 打开预览
+// Open preview
 function openPreview() {
   updateSchema();
 
   const previewContainer = document.getElementById('previewContainer');
   const schema = state.formSchema;
 
-  // 使用 Formily 渲染表单
+  // Use Formily to render form
   const { createForm } = Formily.Core;
   const { FormProvider, Field } = Formily.React;
   const { Form, FormItem, Input, InputNumber, Select, DatePicker, TimePicker, Switch, Slider, Radio } = Formily.Antd;
 
-  // 创建表单实例
+  // Create form instance
   const form = createForm();
 
-  // 创建 React 组件
+  // Create React component
   const FormPreview = () => React.createElement(FormProvider, { form },
           React.createElement(Form, {
                     labelCol: schema.form?.labelCol || { span: 4 },
@@ -190,7 +190,7 @@ function openPreview() {
                         component = Radio.Group;
                         break;
                       case 'Checkbox':
-                        component = null; // 暂时不支持预览
+                        component = null; // Preview not supported for now
                         break;
                       default:
                         return null;
@@ -208,6 +208,6 @@ function openPreview() {
           )
   );
 
-  // 渲染预览
+  // Render preview
   ReactDOM.render(React.createElement(FormPreview), previewContainer);
 }

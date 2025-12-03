@@ -45,7 +45,7 @@ body {
   overflow: hidden;
 }
 
-/* 组件面板 */
+/* Component panel */
 .components-panel {
   width: 260px;
   background: #fff;
@@ -153,7 +153,7 @@ body {
   margin-top: 4px;
 }
 
-/* 组件树样式 */
+/* Component tree styles */
 .tree-content {
   padding: 12px;
 }
@@ -236,7 +236,7 @@ body {
   transform: rotate(90deg);
 }
 
-/* 设计画布 */
+/* Design canvas */
 .design-canvas {
   flex: 1;
   padding: 24px;
@@ -297,7 +297,7 @@ body {
 .form-item {
   padding: 16px;
   margin-bottom: 16px;
-  /* 移除默认边框 */
+  /* Remove default border */
   border: 1px solid transparent;
   border-radius: 4px;
   position: relative;
@@ -320,13 +320,13 @@ body {
   white-space: nowrap;
 }
 
-/* 特殊处理布局组件标签 */
+/* Special handling for layout component labels */
 .form-item.layout-component .form-item-label {
   color: #666;
   font-style: italic;
 }
 
-/* 日期选择器预览样式 */
+/* Date picker preview styles */
 .date-picker-preview {
   display: flex;
   align-items: center;
@@ -346,7 +346,7 @@ body {
   color: #666;
 }
 
-/* 数字输入框样式 */
+/* Number input styles */
 .number-input-wrapper {
   position: relative;
   display: inline-block;
@@ -402,7 +402,7 @@ body {
   border-radius: 0 0 4px 0;
 }
 
-/* 单选框预览样式 */
+/* Radio preview styles */
 .radio-preview {
   display: flex;
   flex-wrap: wrap;
@@ -424,7 +424,7 @@ body {
   color: #333;
 }
 
-/* 多选框预览样式 */
+/* Checkbox preview styles */
 .checkbox-preview {
   display: flex;
   flex-wrap: wrap;
@@ -494,7 +494,7 @@ body {
   color: #333;
 }
 
-/* 优化分割线组件预览 */
+/* Optimized divider component preview */
 .divider-preview {
   width: 100%;
   text-align: center;
@@ -532,12 +532,12 @@ body {
   display: none;
 }
 
-/* 卡片组件预览 */
+/* Card component preview */
 .card-preview {
   background: #fff;
   padding: 16px;
   border-radius: 4px;
-  /* 默认不显示边框 */
+  /* Do not show border by default */
   border: 1px solid transparent;
   width: 100%;
 }
@@ -547,7 +547,7 @@ body {
 }
 
 .card-preview.with-title::before {
-  content: "卡片标题";
+  content: "Card Title";
   display: block;
   font-weight: 500;
   color: #333;
@@ -618,10 +618,10 @@ body {
   opacity: 1;
 }
 
-/* 栅格布局组件预览 */
+/* Grid layout component preview */
 .grid-preview {
   width: 100%;
-  /* 默认不显示边框 */
+  /* Do not show border by default */
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.05);
   padding: 16px;
@@ -633,7 +633,7 @@ body {
 }
 
 .grid-preview::before {
-  content: "栅格布局";
+  content: "Grid Layout";
   display: block;
   font-weight: 500;
   color: #1890ff;
@@ -722,7 +722,7 @@ body {
   background: #e6f7ff;
 }
 
-/* 属性面板 */
+/* Properties panel */
 .properties-panel {
   width: 320px;
   background: #fff;
@@ -758,7 +758,7 @@ body {
   flex: 1;
 }
 
-/* 顶部按钮紧凑样式 */
+/* Top button compact style */
 .header-actions .ant-btn {
   margin-left: -1px;
   border-radius: 0;
@@ -780,7 +780,7 @@ body {
   z-index: 1;
 }
 
-/* 图标按钮样式 */
+/* Icon button styles */
 .header-actions .ant-btn {
   display: flex;
   align-items: center;
@@ -831,7 +831,7 @@ body {
   }
 }
 
-/* 代码编辑器 */
+/* Code editor */
 .code-editor {
   position: absolute;
   top: 0;
@@ -871,7 +871,7 @@ body {
   resize: none;
 }
 
-/* 响应式调整 */
+/* Responsive adjustments */
 @media (max-width: 1200px) {
   .components-panel {
     width: 240px;

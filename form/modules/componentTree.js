@@ -1,15 +1,15 @@
-// 渲染组件树
+// Render component tree
 function renderComponentTree() {
   const treeContainer = document.getElementById('componentTree');
   
   if (state.components.length === 0) {
-    treeContainer.innerHTML = '<li class="tree-empty">暂无组件</li>';
+    treeContainer.innerHTML = '<li class="tree-empty">No components</li>';
     return;
   }
 
   treeContainer.innerHTML = state.components.map(component => renderTreeNode(component, 0)).join('');
   
-  // 添加节点点击事件
+  // Add node click events
   treeContainer.querySelectorAll('.tree-node').forEach(node => {
     node.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -17,14 +17,14 @@ function renderComponentTree() {
       const component = findComponentById(id);
       if (component) {
         selectComponent(component);
-        // 不再切换到组件库面板，保持当前面板状态
-        // 只需要确保组件树面板是激活的即可
+        // No longer switch to the component library panel, keep current panel state
+        // Just need to ensure the component tree panel is active
       }
     });
   });
 }
 
-// 渲染树节点
+// Render tree node
 function renderTreeNode(component, level) {
   const isSelected = state.selectedItem?.id === component.id;
   const icon = getComponentIcon(component.type);
@@ -40,7 +40,7 @@ function renderTreeNode(component, level) {
       </div>
   `;
   
-  // 渲染子节点
+  // Render child nodes
   if (hasChildren) {
     html += `<ul>`;
     component.children.forEach(child => {

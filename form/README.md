@@ -1,46 +1,46 @@
-# Formily 表单设计器
+# Formily Form Designer
 
-这个项目是一个基于 Formily 的可视化表单设计器，允许用户通过拖拽方式创建和配置表单。
+This project is a visual form designer based on Formily that allows users to create and configure forms through drag and drop.
 
-## 项目结构
+## Project Structure
 
 ```
 creator/
-├── index.html           # 重定向文件
-├── README.md            # 项目说明文档
-└── assets/              # 资源文件夹
-    ├── index.html       # 主页面
-    ├── styles.css       # 样式文件
-    └── script.js        # JavaScript 逻辑文件
+├── index.html           # Redirect file
+├── README.md            # Project documentation
+└── assets/              # Resource folder
+    ├── index.html       # Main page
+    ├── styles.css       # Style file
+    └── script.js        # JavaScript logic file
 ```
 
-## 文件说明
+## File Description
 
 ### assets/index.html
-主页面文件，包含了整个表单设计器的 HTML 结构。
+Main page file containing the HTML structure of the entire form designer.
 
 ### assets/styles.css
-所有 CSS 样式都集中在这个文件中，便于维护和修改。
+All CSS styles are centralized in this file for easy maintenance and modification.
 
 ### assets/script.js
-包含了所有的 JavaScript 逻辑，包括：
-- 组件拖拽功能
-- 表单渲染逻辑
-- 属性配置面板
-- Schema 导入导出功能
-- 表单预览功能
+Contains all JavaScript logic, including:
+- Component drag and drop functionality
+- Form rendering logic
+- Property configuration panel
+- Schema import/export functionality
+- Form preview functionality
 
-## 功能特点
+## Features
 
-1. **可视化拖拽设计**：从左侧组件面板拖拽组件到画布区域
-2. **实时属性配置**：点击组件可在右侧属性面板中配置各项属性
-3. **Schema 导入导出**：支持以 JSON Schema 格式导入和导出表单配置
-4. **实时预览**：可随时预览表单效果
-5. **响应式设计**：适配不同屏幕尺寸
+1. **Visual Drag-and-Drop Design**: Drag components from the left panel to the canvas area
+2. **Real-time Property Configuration**: Click on components to configure properties in the right panel
+3. **Schema Import/Export**: Support importing and exporting form configurations in JSON Schema format
+4. **Real-time Preview**: Preview form effects anytime
+5. **Responsive Design**: Adapt to different screen sizes
 
-## 使用方法
+## Usage
 
-1. 在浏览器中打开 `index.html` 文件
-2. 从左侧组件面板中拖拽所需组件到中间画布区域
-3. 点击画布中的组件，在右侧属性面板中进行配置
-4. 使用顶部工具栏按钮进行预览、导入、导出等操作
+1. Open `index.html` file in browser
+2. Drag the required components from the left component panel to the middle canvas area
+3. Click on components in the canvas to configure properties in the right panel
+4. Use the top toolbar buttons for preview, import, export and other operations

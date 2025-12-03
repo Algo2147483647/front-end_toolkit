@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON工具箱 - 格式化与对比工具</title>
+  <title>JSON Toolbox - Formatting and Comparison Tool</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
@@ -138,7 +138,7 @@
       color: #0072ff;
     }
 
-    /* 格式化工具样式 */
+    /* Formatting tool styles */
     .json-input-container {
       display: flex;
       flex-wrap: wrap;
@@ -243,7 +243,7 @@
       margin-top: 30px;
     }
 
-    /* 对比工具样式 */
+    /* Comparison tool styles */
     .compare-container {
       display: flex;
       flex-direction: column;
@@ -468,43 +468,43 @@
 <div class="container">
   <header>
     <div class="header-content">
-      <h1><i class="fas fa-code"></i> JSON工具箱</h1>
-      <p class="subtitle">格式化、验证、对比和转换JSON数据 - 一站式JSON处理工具</p>
+      <h1><i class="fas fa-code"></i> JSON Toolbox</h1>
+      <p class="subtitle">Format, validate, compare and convert JSON data - One-stop JSON processing tool</p>
     </div>
 
     <div class="header-tabs">
       <div class="tabs">
         <button class="tab active" data-tab="format">
-          <i class="fas fa-indent"></i> JSON格式化
+          <i class="fas fa-indent"></i> JSON Formatter
         </button>
         <button class="tab" data-tab="compare">
-          <i class="fas fa-exchange-alt"></i> JSON对比
+          <i class="fas fa-exchange-alt"></i> JSON Compare
         </button>
       </div>
     </div>
   </header>
 
   <div class="content">
-    <!-- 格式化工具 -->
+    <!-- Formatting tool -->
     <div id="format" class="tab-content active">
-      <h3 class="section-title"><i class="fas fa-indent"></i> JSON格式化</h3>
+      <h3 class="section-title"><i class="fas fa-indent"></i> JSON Formatter</h3>
       
       <div class="option-group">
         <div class="option">
           <input type="checkbox" id="sortKeys" checked>
-          <label for="sortKeys">按键名排序</label>
+          <label for="sortKeys">Sort by Key</label>
         </div>
         <div class="option">
           <input type="checkbox" id="escapeOutput">
-          <label for="escapeOutput">转义输出</label>
+          <label for="escapeOutput">Escape Output</label>
         </div>
         <div class="indent-option">
-          <label for="indentSize">缩进:</label>
+          <label for="indentSize">Indent:</label>
           <select id="indentSize">
-            <option value="2">2 空格</option>
-            <option value="4" selected>4 空格</option>
-            <option value="8">8 空格</option>
-            <option value="tab">制表符</option>
+            <option value="2">2 Spaces</option>
+            <option value="4" selected>4 Spaces</option>
+            <option value="8">8 Spaces</option>
+            <option value="tab">Tab</option>
           </select>
         </div>
       </div>
@@ -512,98 +512,98 @@
       <div class="json-input-container">
         <div class="input-group">
           <div class="input-label">
-            <span>输入JSON</span>
-            <span class="char-count">字符数: <span id="inputCharCount">0</span></span>
+            <span>Input JSON</span>
+            <span class="char-count">Characters: <span id="inputCharCount">0</span></span>
           </div>
-          <textarea id="jsonInput" placeholder='在此处输入或粘贴JSON数据，例如：{"name":"John","age":30,"city":"New York"}'>{"name":"John Doe","age":30,"isStudent":false,"courses":["Math","Science","History"],"address":{"street":"123 Main St","city":"Anytown","zipcode":"12345"},"contact":{"email":"john@example.com","phone":"555-1234"},"metadata":{"created":"2023-01-15","modified":"2023-06-20","tags":["user","premium"]}}</textarea>
+          <textarea id="jsonInput" placeholder='Enter or paste JSON data here, e.g.: {"name":"John","age":30,"city":"New York"}'>{"name":"John Doe","age":30,"isStudent":false,"courses":["Math","Science","History"],"address":{"street":"123 Main St","city":"Anytown","zipcode":"12345"},"contact":{"email":"john@example.com","phone":"555-1234"},"metadata":{"created":"2023-01-15","modified":"2023-06-20","tags":["user","premium"]}}</textarea>
           
           <div class="controls">
             <button id="formatBtn" class="btn">
-              <i class="fas fa-indent"></i> 格式化
+              <i class="fas fa-indent"></i> Format
             </button>
             <button id="minifyBtn" class="btn">
-              <i class="fas fa-compress-alt"></i> 压缩
+              <i class="fas fa-compress-alt"></i> Minify
             </button>
             <button id="escapeBtn" class="btn">
-              <i class="fas fa-code"></i> 转义
+              <i class="fas fa-code"></i> Escape
             </button>
             <button id="unescapeBtn" class="btn">
-              <i class="fas fa-code"></i> 反转义
+              <i class="fas fa-code"></i> Unescape
             </button>
             <button id="validateBtn" class="btn btn-secondary">
-              <i class="fas fa-check-circle"></i> 验证
+              <i class="fas fa-check-circle"></i> Validate
             </button>
             <button id="clearBtn" class="btn btn-secondary">
-              <i class="fas fa-trash-alt"></i> 清空
+              <i class="fas fa-trash-alt"></i> Clear
             </button>
           </div>
         </div>
 
         <div class="input-group">
           <div class="input-label">
-            <span>输出结果</span>
-            <span class="char-count">字符数: <span id="outputCharCount">0</span></span>
+            <span>Output Result</span>
+            <span class="char-count">Characters: <span id="outputCharCount">0</span></span>
           </div>
-          <textarea id="jsonOutput" readonly placeholder='格式化后的JSON将显示在这里'></textarea>
+          <textarea id="jsonOutput" readonly placeholder='Formatted JSON will be displayed here'></textarea>
           
           <div class="controls">
             <button id="copyBtn" class="btn">
-              <i class="fas fa-copy"></i> 复制结果
+              <i class="fas fa-copy"></i> Copy Result
             </button>
             <button id="downloadBtn" class="btn">
-              <i class="fas fa-download"></i> 下载JSON
+              <i class="fas fa-download"></i> Download JSON
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 对比工具 -->
+    <!-- Comparison tool -->
     <div id="compare" class="tab-content">
-      <h3 class="section-title"><i class="fas fa-exchange-alt"></i> JSON对比</h3>
+      <h3 class="section-title"><i class="fas fa-exchange-alt"></i> JSON Compare</h3>
       
       <div class="compare-container">
         <div class="compare-inputs">
           <div class="input-group">
             <div class="input-label">
               <span>JSON 1</span>
-              <span class="char-count">字符数: <span id="compareLeftCharCount">0</span></span>
+              <span class="char-count">Characters: <span id="compareLeftCharCount">0</span></span>
             </div>
-            <textarea id="compareLeft" placeholder='在此输入第一个JSON'>{"name":"Alice","age":30,"city":"New York","hobbies":["reading","swimming"],"isStudent":false,"address":{"street":"123 Main St","zip":"10001"}}</textarea>
+            <textarea id="compareLeft" placeholder='Enter the first JSON here'>{"name":"Alice","age":30,"city":"New York","hobbies":["reading","swimming"],"isStudent":false,"address":{"street":"123 Main St","zip":"10001"}}</textarea>
           </div>
 
           <div class="input-group">
             <div class="input-label">
               <span>JSON 2</span>
-              <span class="char-count">字符数: <span id="compareRightCharCount">0</span></span>
+              <span class="char-count">Characters: <span id="compareRightCharCount">0</span></span>
             </div>
-            <textarea id="compareRight" placeholder='在此输入第二个JSON'>{"name":"Bob","age":35,"city":"Boston","hobbies":["reading","gaming","hiking"],"isStudent":true,"address":{"street":"456 Oak Ave","zip":"02101"},"employed":true}</textarea>
+            <textarea id="compareRight" placeholder='Enter the second JSON here'>{"name":"Bob","age":35,"city":"Boston","hobbies":["reading","gaming","hiking"],"isStudent":true,"address":{"street":"456 Oak Ave","zip":"02101"},"employed":true}</textarea>
           </div>
         </div>
 
         <div class="compare-controls">
           <button id="compareBtn" class="btn">
-            <i class="fas fa-exchange-alt"></i> 对比JSON
+            <i class="fas fa-exchange-alt"></i> Compare JSON
           </button>
         </div>
 
         <div class="diff-result">
           <div class="diff-header">
             <h3 class="section-title">
-              <i class="fas fa-difference"></i> JSON差异对比
+              <i class="fas fa-difference"></i> JSON Difference Comparison
             </h3>
             <div class="legend">
-              <span style="color:#00cc00"><i class="fas fa-plus"></i> 新增</span>
-              <span style="color:#ff3333; margin-left: 15px;"><i class="fas fa-minus"></i> 删除</span>
+              <span style="color:#00cc00"><i class="fas fa-plus"></i> Added</span>
+              <span style="color:#ff3333; margin-left: 15px;"><i class="fas fa-minus"></i> Removed</span>
             </div>
           </div>
 
           <div class="diff-body">
             <div class="diff-left" id="diffLeft">
-              <div class="diff-line unchanged">// 对比结果将显示在这里</div>
+              <div class="diff-line unchanged">// Comparison results will be displayed here</div>
             </div>
             <div class="diff-right" id="diffRight">
-              <div class="diff-line unchanged">// 对比结果将显示在这里</div>
+              <div class="diff-line unchanged">// Comparison results will be displayed here</div>
             </div>
           </div>
         </div>
@@ -614,16 +614,16 @@
 
 <div id="notification" class="notification">
   <i class="fas fa-check-circle"></i>
-  <span>操作成功完成！</span>
+  <span>Operation completed successfully!</span>
 </div>
 
 <script>
-  // 全局变量和DOM元素
+  // Global variables and DOM elements
   const tabs = document.querySelectorAll('.tab');
   const tabContents = document.querySelectorAll('.tab-content');
   const notification = document.getElementById('notification');
 
-  // 格式化工具相关元素
+  // Formatting tool related elements
   const jsonInput = document.getElementById('jsonInput');
   const jsonOutput = document.getElementById('jsonOutput');
   const formatBtn = document.getElementById('formatBtn');
@@ -640,7 +640,7 @@
   const escapeOutputCheckbox = document.getElementById('escapeOutput');
   const indentSizeSelect = document.getElementById('indentSize');
 
-  // 对比工具相关元素
+  // Comparison tool related elements
   const compareLeft = document.getElementById('compareLeft');
   const compareRight = document.getElementById('compareRight');
   const compareBtn = document.getElementById('compareBtn');
@@ -649,16 +649,16 @@
   const compareLeftCharCount = document.getElementById('compareLeftCharCount');
   const compareRightCharCount = document.getElementById('compareRightCharCount');
 
-  // 标签切换功能
+  // Tab switching functionality
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetTab = tab.getAttribute('data-tab');
 
-      // 更新标签状态
+      // Update tab status
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
-      // 显示对应内容
+      // Show corresponding content
       tabContents.forEach(content => {
         content.classList.remove('active');
         if (content.id === targetTab) {
@@ -668,20 +668,20 @@
     });
   });
 
-  // 更新字符计数
+  // Update character count
   function updateCharCount(textarea, countElement) {
     countElement.textContent = textarea.value.length;
   }
 
-  // 为所有文本区域添加字符计数更新
+  // Add character count update for all text areas
   [jsonInput, compareLeft, compareRight].forEach((textarea, index) => {
     const countElements = [inputCharCount, compareLeftCharCount, compareRightCharCount];
     textarea.addEventListener('input', () => updateCharCount(textarea, countElements[index]));
-    // 初始化字符计数
+    // Initialize character count
     updateCharCount(textarea, countElements[index]);
   });
 
-  // 显示通知
+  // Show notification
   function showNotification(message, isError = false) {
     const icon = notification.querySelector('i');
     const text = notification.querySelector('span');
@@ -705,7 +705,7 @@
     }, 3000);
   }
 
-  // 深度排序对象键
+  // Deep sort object keys
   function sortObjectKeys(obj) {
     if (typeof obj !== 'object' || obj === null) return obj;
 
@@ -721,7 +721,7 @@
     return sorted;
   }
 
-  // 格式化JSON
+  // Format JSON
   function formatJSON(jsonStr, sortKeys = true, indent = 4) {
     try {
       let parsed = JSON.parse(jsonStr);
@@ -736,21 +736,21 @@
         return JSON.stringify(parsed, null, parseInt(indent) || 4);
       }
     } catch (error) {
-      throw new Error(`无效的JSON: ${error.message}`);
+      throw new Error(`Invalid JSON: ${error.message}`);
     }
   }
 
-  // 压缩JSON
+  // Minify JSON
   function minifyJSON(jsonStr) {
     try {
       const parsed = JSON.parse(jsonStr);
       return JSON.stringify(parsed);
     } catch (error) {
-      throw new Error(`无效的JSON: ${error.message}`);
+      throw new Error(`Invalid JSON: ${error.message}`);
     }
   }
 
-  // 转义JSON字符串
+  // Escape JSON string
   function escapeJSON(jsonStr) {
     return jsonStr
             .replace(/\\/g, '\\\\')
@@ -760,7 +760,7 @@
             .replace(/\t/g, '\\t');
   }
 
-  // 反转义JSON字符串
+  // Unescape JSON string
   function unescapeJSON(jsonStr) {
     return jsonStr
             .replace(/\\\\/g, '\\')
@@ -770,22 +770,22 @@
             .replace(/\\t/g, '\t');
   }
 
-  // 验证JSON
+  // Validate JSON
   function validateJSON(jsonStr) {
     try {
       JSON.parse(jsonStr);
-      return { valid: true, message: '✅ JSON格式正确' };
+      return { valid: true, message: '✅ JSON format is correct' };
     } catch (error) {
-      return { valid: false, message: `❌ JSON格式错误: ${error.message}` };
+      return { valid: false, message: `❌ JSON format error: ${error.message}` };
     }
   }
 
-  // 格式化工具事件监听
+  // Formatting tool event listeners
   formatBtn.addEventListener('click', () => {
     try {
       const input = jsonInput.value.trim();
       if (!input) {
-        showNotification('请输入JSON数据', true);
+        showNotification('Please enter JSON data', true);
         return;
       }
 
@@ -801,7 +801,7 @@
 
       jsonOutput.value = formatted;
       updateCharCount(jsonOutput, outputCharCount);
-      showNotification('JSON格式化成功');
+      showNotification('JSON formatting successful');
     } catch (error) {
       showNotification(error.message, true);
     }
@@ -811,14 +811,14 @@
     try {
       const input = jsonInput.value.trim();
       if (!input) {
-        showNotification('请输入JSON数据', true);
+        showNotification('Please enter JSON data', true);
         return;
       }
 
       const minified = minifyJSON(input);
       jsonOutput.value = minified;
       updateCharCount(jsonOutput, outputCharCount);
-      showNotification('JSON压缩成功');
+      showNotification('JSON minification successful');
     } catch (error) {
       showNotification(error.message, true);
     }
@@ -827,45 +827,45 @@
   escapeBtn.addEventListener('click', () => {
     const input = jsonInput.value.trim();
     if (!input) {
-      showNotification('请输入JSON数据', true);
+      showNotification('Please enter JSON data', true);
       return;
     }
 
     try {
-      // 首先验证JSON格式
+      // First validate JSON format
       JSON.parse(input);
       const escaped = escapeJSON(input);
       jsonOutput.value = escaped;
       updateCharCount(jsonOutput, outputCharCount);
-      showNotification('JSON转义成功');
+      showNotification('JSON escaping successful');
     } catch (error) {
-      showNotification(`无效的JSON: ${error.message}`, true);
+      showNotification(`Invalid JSON: ${error.message}`, true);
     }
   });
 
   unescapeBtn.addEventListener('click', () => {
     const input = jsonInput.value.trim();
     if (!input) {
-      showNotification('请输入JSON数据', true);
+      showNotification('Please enter JSON data', true);
       return;
     }
 
     try {
       const unescaped = unescapeJSON(input);
-      // 尝试解析以验证格式
+      // Try to parse to validate format
       JSON.parse(unescaped);
       jsonOutput.value = unescaped;
       updateCharCount(jsonOutput, outputCharCount);
-      showNotification('JSON反转义成功');
+      showNotification('JSON unescaping successful');
     } catch (error) {
-      showNotification(`反转义后JSON无效: ${error.message}`, true);
+      showNotification(`Unescaped JSON is invalid: ${error.message}`, true);
     }
   });
 
   validateBtn.addEventListener('click', () => {
     const input = jsonInput.value.trim();
     if (!input) {
-      showNotification('请输入JSON数据', true);
+      showNotification('Please enter JSON data', true);
       return;
     }
 
@@ -873,10 +873,10 @@
     showNotification(result.message, !result.valid);
 
     if (result.valid) {
-      jsonOutput.value = '✅ JSON格式正确\n\n' + input;
+      jsonOutput.value = '✅ JSON format is correct\n\n' + input;
       updateCharCount(jsonOutput, outputCharCount);
     } else {
-      jsonOutput.value = '❌ JSON格式错误\n\n' + input;
+      jsonOutput.value = '❌ JSON format error\n\n' + input;
       updateCharCount(jsonOutput, outputCharCount);
     }
   });
@@ -886,29 +886,29 @@
     jsonOutput.value = '';
     updateCharCount(jsonInput, inputCharCount);
     updateCharCount(jsonOutput, outputCharCount);
-    showNotification('已清空输入和输出');
+    showNotification('Input and output cleared');
   });
 
   copyBtn.addEventListener('click', async () => {
     if (!jsonOutput.value.trim()) {
-      showNotification('没有可复制的内容', true);
+      showNotification('No content to copy', true);
       return;
     }
 
     try {
       await navigator.clipboard.writeText(jsonOutput.value);
-      showNotification('已复制到剪贴板');
+      showNotification('Copied to clipboard');
     } catch (error) {
-      // 备用方案
+      // Fallback method
       jsonOutput.select();
       document.execCommand('copy');
-      showNotification('已复制到剪贴板（使用备用方法）');
+      showNotification('Copied to clipboard (using fallback method)');
     }
   });
 
   downloadBtn.addEventListener('click', () => {
     if (!jsonOutput.value.trim()) {
-      showNotification('没有可下载的内容', true);
+      showNotification('No content to download', true);
       return;
     }
 
@@ -921,28 +921,28 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showNotification('JSON文件已下载');
+    showNotification('JSON file downloaded');
   });
 
-  // JSON对比功能
+  // JSON comparison function
   function compareJSON(json1, json2) {
     try {
-      // 解析并格式化两个JSON
+      // Parse and format both JSONs
       const obj1 = JSON.parse(json1);
       const obj2 = JSON.parse(json2);
 
-      // 排序键
+      // Sort keys
       const sorted1 = sortObjectKeys(obj1);
       const sorted2 = sortObjectKeys(obj2);
 
-      // 转换为字符串并分割成行
+      // Convert to strings and split into lines
       const str1 = JSON.stringify(sorted1, null, 2);
       const str2 = JSON.stringify(sorted2, null, 2);
 
       const lines1 = str1.split('\n');
       const lines2 = str2.split('\n');
 
-      // 简单的行对比算法
+      // Simple line comparison algorithm
       const maxLines = Math.max(lines1.length, lines2.length);
       const diff1 = [];
       const diff2 = [];
@@ -952,19 +952,19 @@
         const line2 = lines2[i];
 
         if (line1 === line2) {
-          // 相同行
+          // Same line
           diff1.push({ type: 'unchanged', content: line1 || '' });
           diff2.push({ type: 'unchanged', content: line2 || '' });
         } else if (!line1 && line2) {
-          // 行1不存在，行2存在（新增）
+          // Line1 doesn't exist, line2 exists (added)
           diff1.push({ type: 'removed', content: '' });
           diff2.push({ type: 'added', content: line2 });
         } else if (line1 && !line2) {
-          // 行1存在，行2不存在（删除）
+          // Line1 exists, line2 doesn't exist (removed)
           diff1.push({ type: 'removed', content: line1 });
           diff2.push({ type: 'added', content: '' });
         } else {
-          // 行内容不同
+          // Different line content
           diff1.push({ type: 'removed', content: line1 });
           diff2.push({ type: 'added', content: line2 });
         }
@@ -972,94 +972,66 @@
 
       return { diff1, diff2, str1, str2 };
     } catch (error) {
-      throw new Error(`JSON解析错误: ${error.message}`);
+      throw new Error(`JSON parsing error: ${error.message}`);
     }
   }
 
-  // 为JSON行添加语法高亮
+  // Add syntax highlighting to JSON lines
   function highlightJSON(line) {
     if (!line) return '';
 
-    // 处理键
+    // Process keys
     let highlighted = line.replace(/"([^"]+)":/g, '<span class="diff-key">"$1"</span>:');
 
-    // 处理字符串值
+    // Process string values
     highlighted = highlighted.replace(/:\s*"([^"]*)"/g, ': <span class="diff-string">"$1"</span>');
 
-    // 处理数字
+    // Process numbers
     highlighted = highlighted.replace(/:\s*(\d+\.?\d*)/g, ': <span class="diff-number">$1</span>');
 
-    // 处理布尔值
+    // Process booleans
     highlighted = highlighted.replace(/:\s*(true|false)/g, ': <span class="diff-boolean">$1</span>');
 
-    // 处理null
+    // Process null
     highlighted = highlighted.replace(/:\s*(null)/g, ': <span class="diff-null">$1</span>');
 
     return highlighted;
   }
 
-  // 渲染对比结果
-  function renderDiff(diff1, diff2) {
-    diffLeft.innerHTML = '';
-    diffRight.innerHTML = '';
-
-    diff1.forEach(item => {
-      const lineDiv = document.createElement('div');
-      lineDiv.className = `diff-line ${item.type}`;
-      lineDiv.innerHTML = highlightJSON(item.content);
-      diffLeft.appendChild(lineDiv);
-    });
-
-    diff2.forEach(item => {
-      const lineDiv = document.createElement('div');
-      lineDiv.className = `diff-line ${item.type}`;
-      lineDiv.innerHTML = highlightJSON(item.content);
-      diffRight.appendChild(lineDiv);
-    });
-  }
-
-  // 对比按钮事件监听
+  // Comparison tool event listener
   compareBtn.addEventListener('click', () => {
-    const left = compareLeft.value.trim();
-    const right = compareRight.value.trim();
+    const json1 = compareLeft.value.trim();
+    const json2 = compareRight.value.trim();
 
-    if (!left || !right) {
-      showNotification('请输入两个JSON进行对比', true);
+    if (!json1 || !json2) {
+      showNotification('Please enter both JSON data', true);
       return;
     }
 
     try {
-      const result = compareJSON(left, right);
-      renderDiff(result.diff1, result.diff2);
-      showNotification('JSON对比完成');
+      const result = compareJSON(json1, json2);
+
+      // Display results
+      diffLeft.innerHTML = result.diff1.map(diff => {
+        const className = `diff-line ${diff.type}`;
+        const content = diff.type === 'unchanged' ? diff.content : `- ${diff.content}`;
+        return `<div class="${className}">${highlightJSON(content)}</div>`;
+      }).join('');
+
+      diffRight.innerHTML = result.diff2.map(diff => {
+        const className = `diff-line ${diff.type}`;
+        const content = diff.type === 'unchanged' ? diff.content : `+ ${diff.content}`;
+        return `<div class="${className}">${highlightJSON(content)}</div>`;
+      }).join('');
+
+      showNotification('JSON comparison completed');
     } catch (error) {
-      showNotification(error.message, true);
+      showNotification(`Comparison failed: ${error.message}`, true);
     }
   });
 
-  // 初始化：显示格式化的示例JSON
-  window.addEventListener('DOMContentLoaded', () => {
-    // 格式化示例JSON
-    try {
-      const example = jsonInput.value;
-      const formatted = formatJSON(example, true, 4);
-      jsonOutput.value = formatted;
-      updateCharCount(jsonInput, inputCharCount);
-      updateCharCount(jsonOutput, outputCharCount);
-    } catch (error) {
-      console.error('初始化示例JSON时出错:', error);
-    }
-
-    // 为对比工具预加载示例对比
-    try {
-      const leftExample = compareLeft.value;
-      const rightExample = compareRight.value;
-      const result = compareJSON(leftExample, rightExample);
-      renderDiff(result.diff1, result.diff2);
-    } catch (error) {
-      console.error('初始化对比示例时出错:', error);
-    }
-  });
+  // Initialize escape output checkbox state
+  escapeOutputCheckbox.checked = false;
 </script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>表单设计器</title>
+  <title>Form Designer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@4/dist/antd.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
@@ -11,99 +11,99 @@
 <body>
 <div class="app-container">
   <header class="app-header">
-    <h1><i class="fas fa-wrench"></i> 表单设计器</h1>
+    <h1><i class="fas fa-wrench"></i> Form Designer</h1>
     <div class="header-actions">
       <button id="previewBtn" class="ant-btn ant-btn-default">
-        <i class="fas fa-eye"></i> <span>预览</span>
+        <i class="fas fa-eye"></i> <span>Preview</span>
       </button>
       <button id="exportBtn" class="ant-btn ant-btn-primary">
-        <i class="fas fa-file-export"></i> <span>导出 Schema</span>
+        <i class="fas fa-file-export"></i> <span>Export Schema</span>
       </button>
       <button id="importBtn" class="ant-btn ant-btn-default">
-        <i class="fas fa-file-import"></i> <span>导入 Schema</span>
+        <i class="fas fa-file-import"></i> <span>Import Schema</span>
       </button>
       <button id="codeBtn" class="ant-btn ant-btn-default">
-        <i class="fas fa-code"></i> <span>代码模式</span>
+        <i class="fas fa-code"></i> <span>Code Mode</span>
       </button>
     </div>
   </header>
 
   <div class="app-content">
-    <!-- 左侧组件面板 -->
+    <!-- Left component panel -->
     <div class="components-panel">
       <div class="panel-tabs">
-        <button class="tab-button active" data-tab="components">组件库</button>
-        <button class="tab-button" data-tab="tree">组件树</button>
+        <button class="tab-button active" data-tab="components">Component Library</button>
+        <button class="tab-button" data-tab="tree">Component Tree</button>
       </div>
       
       <div class="panel-content">
         <div class="components-content panel-tab active" id="componentsPanel">
           <div class="components-category">
-            <div class="category-title">基础字段</div>
+            <div class="category-title">Basic Fields</div>
             <div class="component-grid">
               <div class="component-item" draggable="true" data-type="Input">
                 <i class="fas fa-font component-icon"></i>
-                <span class="component-name">输入框</span>
+                <span class="component-name">Input</span>
               </div>
               <div class="component-item" draggable="true" data-type="Textarea">
                 <i class="fas fa-align-left component-icon"></i>
-                <span class="component-name">多行文本框</span>
+                <span class="component-name">Textarea</span>
               </div>
               <div class="component-item" draggable="true" data-type="InputNumber">
                 <i class="fas fa-sort-numeric-up component-icon"></i>
-                <span class="component-name">数字输入框</span>
+                <span class="component-name">Number Input</span>
               </div>
               <div class="component-item" draggable="true" data-type="Select">
                 <i class="fas fa-list component-icon"></i>
-                <span class="component-name">选择器</span>
+                <span class="component-name">Selector</span>
               </div>
               <div class="component-item" draggable="true" data-type="DatePicker">
                 <i class="fas fa-calendar-alt component-icon"></i>
-                <span class="component-name">日期选择器</span>
+                <span class="component-name">Date Picker</span>
               </div>
               <div class="component-item" draggable="true" data-type="TimePicker">
                 <i class="fas fa-clock component-icon"></i>
-                <span class="component-name">时间选择器</span>
+                <span class="component-name">Time Picker</span>
               </div>
             </div>
           </div>
 
           <div class="components-category">
-            <div class="category-title">布局组件</div>
+            <div class="category-title">Layout Components</div>
             <div class="component-grid">
               <div class="component-item" draggable="true" data-type="Card">
                 <i class="fas fa-square component-icon"></i>
-                <span class="component-name">卡片</span>
+                <span class="component-name">Card</span>
               </div>
               <div class="component-item" draggable="true" data-type="Divider">
                 <i class="fas fa-minus component-icon"></i>
-                <span class="component-name">分割线</span>
+                <span class="component-name">Divider</span>
               </div>
               <div class="component-item" draggable="true" data-type="Grid">
                 <i class="fas fa-th component-icon"></i>
-                <span class="component-name">栅格布局</span>
+                <span class="component-name">Grid Layout</span>
               </div>
             </div>
           </div>
 
           <div class="components-category">
-            <div class="category-title">其他组件</div>
+            <div class="category-title">Other Components</div>
             <div class="component-grid">
               <div class="component-item" draggable="true" data-type="Switch">
                 <i class="fas fa-toggle-on component-icon"></i>
-                <span class="component-name">开关</span>
+                <span class="component-name">Switch</span>
               </div>
               <div class="component-item" draggable="true" data-type="Slider">
                 <i class="fas fa-sliders-h component-icon"></i>
-                <span class="component-name">滑动输入条</span>
+                <span class="component-name">Slider</span>
               </div>
               <div class="component-item" draggable="true" data-type="Radio">
                 <i class="fas fa-dot-circle component-icon"></i>
-                <span class="component-name">单选框</span>
+                <span class="component-name">Radio</span>
               </div>
               <div class="component-item" draggable="true" data-type="Checkbox">
                 <i class="fas fa-check-square component-icon"></i>
-                <span class="component-name">多选框</span>
+                <span class="component-name">Checkbox</span>
               </div>
             </div>
           </div>
@@ -111,9 +111,9 @@
         
         <div class="tree-content panel-tab" id="treePanel">
           <div class="tree-header">
-            <h3>组件树</h3>
+            <h3>Component Tree</h3>
             <button id="toggleBorders" class="ant-btn ant-btn-default ant-btn-sm">
-              <i class="fas fa-border-all"></i> 边框
+              <i class="fas fa-border-all"></i> Borders
             </button>
           </div>
           <div class="tree-container">
@@ -123,40 +123,40 @@
       </div>
     </div>
 
-    <!-- 中间设计画布 -->
+    <!-- Middle design canvas -->
     <div class="design-canvas">
       <div class="canvas-container">
         <div class="droppable-area" id="formCanvas">
           <div class="empty-canvas" id="emptyCanvas">
             <i class="fas fa-mouse-pointer"></i>
-            <p>从左侧拖拽组件到这里开始设计</p>
-            <p style="font-size: 12px; margin-top: 8px;">或导入已有的 Schema 配置</p>
+            <p>Drag components from the left to start designing</p>
+            <p style="font-size: 12px; margin-top: 8px;">Or import an existing Schema configuration</p>
           </div>
           <div id="formItems"></div>
         </div>
       </div>
     </div>
 
-    <!-- 右侧属性面板 -->
+    <!-- Right properties panel -->
     <div class="properties-panel">
-      <div class="properties-title">属性配置</div>
+      <div class="properties-title">Property Configuration</div>
       <div id="propertiesContent">
         <div class="empty-properties">
-          <p style="color: #999; text-align: center;">请选择一个组件进行配置</p>
+          <p style="color: #999; text-align: center;">Please select a component to configure</p>
         </div>
       </div>
     </div>
 
-    <!-- 代码编辑器 -->
+    <!-- Code editor -->
     <div class="code-editor" id="codeEditor">
       <div class="editor-header">
-        <h3>JSON Schema 编辑器</h3>
+        <h3>JSON Schema Editor</h3>
         <div class="editor-actions">
           <button id="applyCodeBtn" class="ant-btn ant-btn-primary">
-            <i class="fas fa-check"></i> 应用
+            <i class="fas fa-check"></i> Apply
           </button>
           <button id="closeCodeBtn" class="ant-btn ant-btn-default">
-            <i class="fas fa-times"></i> 关闭
+            <i class="fas fa-times"></i> Close
           </button>
         </div>
       </div>
@@ -165,18 +165,18 @@
   </div>
 </div>
 
-<!-- 预览模态框 -->
+<!-- Preview modal -->
 <div id="previewModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
   <div style="background: white; width: 80%; height: 80%; border-radius: 8px; padding: 24px; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h3>表单预览</h3>
-      <button id="closePreviewBtn" class="ant-btn ant-btn-default">关闭</button>
+      <h3>Form Preview</h3>
+      <button id="closePreviewBtn" class="ant-btn ant-btn-default">Close</button>
     </div>
     <div id="previewContainer" style="flex: 1; overflow: auto; padding: 20px;"></div>
   </div>
 </div>
 
-<!-- 导入文件输入 -->
+<!-- Import file input -->
 <input type="file" id="fileInput" accept=".json" style="display: none;">
 
 <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js"></script>

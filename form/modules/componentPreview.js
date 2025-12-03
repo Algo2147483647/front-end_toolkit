@@ -1,4 +1,4 @@
-// 渲染组件预览
+// Render component preview
 function renderComponentPreview(component) {
   switch(component.type) {
     case 'Input':
@@ -21,12 +21,12 @@ function renderComponentPreview(component) {
     case 'DatePicker':
       return `<div class="date-picker-preview">
                   <i class="fas fa-calendar-alt"></i>
-                  <span>请选择日期</span>
+                  <span>Please select date</span>
               </div>`;
     case 'TimePicker':
       return `<div class="date-picker-preview">
                   <i class="fas fa-clock"></i>
-                  <span>请选择时间</span>
+                  <span>Please select time</span>
               </div>`;
     case 'Card':
       return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders ? 'with-borders' : ''}">
@@ -45,11 +45,10 @@ function renderComponentPreview(component) {
                                <i class="fas fa-edit form-item-action" onclick="event.stopPropagation(); editComponent('${child.id}')"></i>
                                <i class="fas fa-trash form-item-action" onclick="event.stopPropagation(); deleteChildComponent('${component.id}', '${child.id}')"></i>
                            </div>
-                        </div>`
-                      ).join('')
+                        </div>`)
                     : ''}
                   <div class="container-drop-area" data-container-id="${component.id}">
-                     拖拽组件到此处添加到卡片中
+                     Drag components here to add to card
                   </div>
               </div>`;
     case 'Divider':
@@ -81,7 +80,7 @@ function renderComponentPreview(component) {
                             </div>`)
                         : ''}
                       <div class="container-drop-area" data-container-id="${component.id}" data-column="${i}">
-                         拖拽组件到此列
+                         Drag components to this column
                       </div>
                     </div>`;
       }
@@ -91,7 +90,7 @@ function renderComponentPreview(component) {
     case 'Switch':
       return `<button class="ant-switch" style="vertical-align: middle;" disabled></button>`;
     case 'Radio':
-      const radioOptions = component.config.options || ['选项1', '选项2'];
+      const radioOptions = component.config.options || ['Option 1', 'Option 2'];
       return `<div class="radio-preview">
                 ${radioOptions.map((opt, idx) => `
                   <div class="radio-option">
@@ -101,7 +100,7 @@ function renderComponentPreview(component) {
                 `).join('')}
               </div>`;
     case 'Checkbox':
-      const checkboxOptions = component.config.options || ['选项1', '选项2', '选项3'];
+      const checkboxOptions = component.config.options || ['Option 1', 'Option 2', 'Option 3'];
       return `<div class="checkbox-preview">
                 ${checkboxOptions.map(opt => `
                   <div class="checkbox-option">
@@ -111,6 +110,6 @@ function renderComponentPreview(component) {
                 `).join('')}
               </div>`;
     default:
-      return `<span style="color: #999;">${component.type} 组件预览</span>`;
+      return `<span style="color: #999;">${component.type} component preview</span>`;
   }
 }
