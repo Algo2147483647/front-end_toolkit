@@ -47,6 +47,24 @@ const componentConfigs = {
     options: ["Option 1", "Option 2", "Option 3"],
     type: "string"
   },
+  Cascader: {
+    name: "cascader",
+    title: "Cascader",
+    defaultValue: [],
+    options: [
+      { 
+        value: 'zhejiang',
+        label: 'Zhejiang',
+        children: [
+          {
+            value: 'hangzhou',
+            label: 'Hangzhou'
+          }
+        ]
+      }
+    ],
+    type: "array"
+  },
   DatePicker: {
     name: "date",
     title: "Date Picker",
@@ -171,6 +189,10 @@ function updateSchema() {
         label: opt,
         value: opt
       }));
+    }
+    
+    if (comp.type === 'Cascader') {
+      properties[fieldId]["x-component-props"].options = comp.config.options;
     }
 
     if (comp.type === 'Divider') {

@@ -18,6 +18,13 @@ function renderComponentPreview(component) {
       return `<select class="ant-select" disabled>
                       ${component.config.options.map(opt => `<option>${opt}</option>`).join('')}
                   </select>`;
+    case 'Cascader':
+      return `<div class="cascader-preview">
+                  <div class="cascader-selection">
+                    <span class="cascader-placeholder">Please select</span>
+                    <i class="fas fa-chevron-down cascader-arrow"></i>
+                  </div>
+              </div>`;
     case 'DatePicker':
       return `<div class="date-picker-preview">
                   <i class="fas fa-calendar-alt"></i>

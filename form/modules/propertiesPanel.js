@@ -63,6 +63,16 @@ function renderProperties() {
                       <p style="font-size: 12px; color: #999; margin-top: 4px;">One option per line</p>
                   </div>`;
   }
+  
+  if (comp.type === 'Cascader') {
+    propertiesHTML += `
+                  <div class="property-field">
+                      <label class="property-label">Cascader Options</label>
+                      <textarea class="ant-input" style="height: 120px;"
+                                onchange="updateCascaderOptions(this.value, '${comp.id}')">${JSON.stringify(comp.config.options || [], null, 2)}</textarea>
+                      <p style="font-size: 12px; color: #999; margin-top: 4px;">Enter in JSON format</p>
+                  </div>`;
+  }
 
   if (comp.type === 'Checkbox') {
     propertiesHTML += `
@@ -137,5 +147,21 @@ function updateProperty(key, value) {
     renderFormItems();
     renderComponentTree(); // Update component tree
     updateSchema();
+  }
+}
+
+// Update cascader options
+function updateCascaderOptions(value, id) {
+  const component = findComponentById(id);
+  if (component && component.type === 'Cascader') {
+    try {
+      const options = JSON.parse(value);
+      component.config.options = options;
+      renderFormItems();
+      renderComponentTree();
+      updateSchema();
+    } catch (e) {
+      console.error('Invalid JSON for cascader options:', e);
+    }
   }
 }

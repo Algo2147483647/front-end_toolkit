@@ -795,6 +795,33 @@ body {
   gap: 12px;
 }
 
+/* Cascader component preview */
+.cascader-preview {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.cascader-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 11px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.cascader-placeholder {
+  color: #bfbfbf;
+}
+
+.cascader-arrow {
+  color: #666;
+  transition: transform 0.3s;
+}
+
 .switch-track {
   position: relative;
   width: 44px;
