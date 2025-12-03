@@ -567,11 +567,11 @@ body {
 }
 
 .card-preview .form-item {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
   background: #fff;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 10px;
+  padding: 16px;
 }
 
 .card-preview .form-item:hover {
@@ -585,9 +585,9 @@ body {
 }
 
 .card-preview .form-item .form-item-label {
-  font-weight: normal;
+  font-weight: 500;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 0;
 }
 
 /* 栅格布局组件预览 */
@@ -634,9 +634,9 @@ body {
 .grid-preview .grid-column > .form-item {
   background: #fff;
   border: 1px solid transparent;
-  border-radius: 2px;
-  padding: 8px;
-  margin-bottom: 5px;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
   cursor: move;
 }
 
@@ -651,10 +651,9 @@ body {
 }
 
 .grid-preview .grid-column > .form-item .form-item-label {
-  font-weight: normal;
+  font-weight: 500;
   color: #333;
-  margin-bottom: 5px;
-  font-size: 12px;
+  margin-bottom: 0;
 }
 
 .grid-preview .container-drop-area {
