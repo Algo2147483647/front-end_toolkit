@@ -219,6 +219,19 @@ function initDragAndDrop() {
       }
     }
   });
+  
+  // 添加对容器内组件拖拽排序的支持
+  document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('form-item') && e.target.parentNode.classList.contains('card-preview')) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.id);
+    }
+  });
+  
+  document.addEventListener('dragover', function(e) {
+    if (e.target.classList.contains('card-preview')) {
+      e.preventDefault();
+    }
+  });
 }
 
 // 添加组件
@@ -261,6 +274,24 @@ function addComponentToContainer(containerId, type) {
     },
     position: container.children.length
   };
+
+  // 对于栅格组件，我们需要记录它属于哪一列
+  if (container.type === 'Grid') {
+    // 查找最少元素的列
+    const columns = container.config.columns || 3;
+    let minCount = Infinity;
+    let targetColumn = 0;
+    
+    for (let i = 0; i < columns; i++) {
+      const count = container.children.filter(child => child.position === i).length;
+      if (count < minCount) {
+        minCount = count;
+        targetColumn = i;
+      }
+    }
+    
+    childComponent.position = targetColumn;
+  }
 
   container.children.push(childComponent);
   selectComponent(container);
@@ -399,20 +430,26 @@ function renderComponentPreview(component) {
               </div>`;
     case 'Card':
       return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders ? 'with-borders' : ''}">
-                  <div style="color: #999; text-align: center;">
-                    ${component.children && component.children.length > 0 
-                      ? component.children.map(child => 
-                          `<div style="padding: 5px; margin: 5px; border: 1px dashed #ccc;">
-                             ${child.config.title}
-                           </div>`
-                        ).join('')
-                      : '卡片内容区域'}
-                  </div>
-                  ${component.children && component.children.length < 3 ? 
-                    `<div class="container-drop-area" data-container-id="${component.id}" style="margin-top: 10px; padding: 10px; border: 2px dashed #1890ff; border-radius: 4px; text-align: center; color: #1890ff;">
-                       拖拽组件到此处添加到卡片中
-                     </div>` 
+                  ${component.children && component.children.length > 0 
+                    ? component.children.map(child => 
+                        `<div class="form-item ${state.selectedItem?.id === child.id ? 'selected' : ''}" 
+                             data-id="${child.id}"
+                             draggable="true"
+                             style="margin-bottom: 10px;">
+                           <span class="form-item-label">${child.config.title}</span>
+                           <div class="form-item-content">
+                               ${renderComponentPreview(child)}
+                           </div>
+                           <div class="form-item-actions">
+                               <i class="fas fa-edit form-item-action" onclick="editComponent('${child.id}')"></i>
+                               <i class="fas fa-trash form-item-action" onclick="deleteChildComponent('${component.id}', '${child.id}')"></i>
+                           </div>
+                        </div>`
+                      ).join('')
                     : ''}
+                  <div class="container-drop-area" data-container-id="${component.id}">
+                     拖拽组件到此处添加到卡片中
+                  </div>
               </div>`;
     case 'Divider':
       if (component.config.content) {
@@ -427,22 +464,27 @@ function renderComponentPreview(component) {
         const colChildren = component.children ? component.children.filter(child => child.position === i) : [];
         gridCols += `<div class="grid-column">
                       ${colChildren.length > 0 
-                        ? colChildren.map(child => `<div>${child.config.title}</div>`).join('')
-                        : `列 ${i+1}`}
+                        ? colChildren.map(child => 
+                            `<div class="form-item ${state.selectedItem?.id === child.id ? 'selected' : ''}" 
+                                 data-id="${child.id}"
+                                 draggable="true">
+                              <span class="form-item-label">${child.config.title}</span>
+                              <div class="form-item-content">
+                                  ${renderComponentPreview(child)}
+                              </div>
+                              <div class="form-item-actions">
+                                  <i class="fas fa-edit form-item-action" onclick="editComponent('${child.id}')"></i>
+                                  <i class="fas fa-trash form-item-action" onclick="deleteChildComponent('${component.id}', '${child.id}')"></i>
+                              </div>
+                            </div>`)
+                        : ''}
+                      <div class="container-drop-area" data-container-id="${component.id}" data-column="${i}">
+                         拖拽组件到此列
+                      </div>
                     </div>`;
       }
       return `<div class="grid-preview ${state.showBorders ? 'with-borders' : ''}">
                   <div class="grid-columns">${gridCols}</div>
-                  ${component.children && component.children.length < columns * 2 ?
-                    `<div class="container-drop-area" data-container-id="${component.id}" style="margin-top: 10px; padding: 10px; border: 2px dashed #1890ff; border-radius: 4px; text-align: center; color: #1890ff;">
-                       拖拽组件到此处添加到栅格中
-                     </div>`
-                    : ''}
-              </div>`;
-    case 'DatePicker':
-      return `<div class="date-picker-preview">
-                <i class="fas fa-calendar-alt"></i>
-                <span>请选择日期</span>
               </div>`;
     case 'Switch':
       return `<button class="ant-switch" style="vertical-align: middle;" disabled></button>`;
@@ -675,6 +717,27 @@ function deleteComponent(id) {
     renderProperties();
     renderComponentTree(); // 更新组件树
     updateSchema();
+  }
+}
+
+// 删除容器中的子组件
+function deleteChildComponent(containerId, childId) {
+  const container = findComponentById(containerId);
+  if (container && container.children) {
+    const index = container.children.findIndex(c => c.id === childId);
+    if (index > -1) {
+      container.children.splice(index, 1);
+      
+      // 更新选中状态
+      if (state.selectedItem?.id === childId) {
+        state.selectedItem = null;
+        renderProperties();
+      }
+      
+      renderFormItems();
+      renderComponentTree();
+      updateSchema();
+    }
   }
 }
 
@@ -1019,6 +1082,7 @@ function openPreview() {
 // 暴露函数到全局
 window.editComponent = editComponent;
 window.deleteComponent = deleteComponent;
+window.deleteChildComponent = deleteChildComponent;
 window.updateProperty = updateProperty;
 window.startDrag = function(e, id) {
   // 简单的拖拽重新排序实现
