@@ -93,6 +93,19 @@ const componentConfigs = {
     type: "void",
     columns: 3, // Default 3 columns
   },
+  Collapse: {
+    name: "collapse",
+    title: "Collapse Panel",
+    type: "void",
+    direction: "vertical", // 默认方向为垂直
+    panels: [
+      {
+        key: "panel1",
+        title: "Panel 1",
+        content: "Content of Panel 1"
+      }
+    ]
+  },
   Switch: {
     name: "switch",
     title: "Switch",
@@ -222,6 +235,11 @@ function updateSchema() {
       }
     }
 
+    if (comp.type === 'Collapse') {
+      properties[fieldId]["x-component-props"].panels = comp.config.panels;
+      properties[fieldId]["x-component-props"].direction = comp.config.direction;
+    }
+
     if (comp.config.required) {
       properties[fieldId].required = true;
       properties[fieldId]["x-validator"].push({
@@ -291,6 +309,11 @@ function generateComponentSchema(component, index) {
         Object.assign(schema[fieldId].properties, generateComponentSchema(child, childIndex));
       });
     }
+  }
+  
+  if (component.type === 'Collapse') {
+    schema[fieldId]["x-component-props"].panels = component.config.panels;
+    schema[fieldId]["x-component-props"].direction = component.config.direction;
   }
   
   if (component.config.required) {

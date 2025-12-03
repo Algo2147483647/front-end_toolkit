@@ -35,6 +35,24 @@ function renderProperties() {
                     </label>
                 </div>`;
   }
+  
+  if (comp.type === 'Collapse') {
+    const panels = comp.config.panels || [];
+    propertiesHTML += `
+                <div class="property-field">
+                    <label class="property-label">Direction</label>
+                    <select class="ant-input" onchange="updateProperty('direction', this.value)">
+                      <option value="vertical" ${comp.config.direction === 'vertical' ? 'selected' : ''}>Vertical</option>
+                      <option value="horizontal" ${comp.config.direction === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+                    </select>
+                </div>
+                <div class="property-field vertical">
+                    <label class="property-label">Collapse Panels</label>
+                    <textarea class="ant-input" style="height: 120px;"
+                              onchange="updateCollapsePanels(this.value, '${comp.id}')">${JSON.stringify(panels, null, 2)}</textarea>
+                    <p style="font-size: 12px; color: #999; margin-top: 4px;">Enter in JSON format</p>
+                </div>`;
+  }
 
   if (comp.type === 'Input') {
     propertiesHTML += `
@@ -162,6 +180,22 @@ function updateCascaderOptions(value, id) {
       updateSchema();
     } catch (e) {
       console.error('Invalid JSON for cascader options:', e);
+    }
+  }
+}
+
+// Update collapse panels
+function updateCollapsePanels(value, id) {
+  const component = findComponentById(id);
+  if (component && component.type === 'Collapse') {
+    try {
+      const panels = JSON.parse(value);
+      component.config.panels = panels;
+      renderFormItems();
+      renderComponentTree();
+      updateSchema();
+    } catch (e) {
+      console.error('Invalid JSON for collapse panels:', e);
     }
   }
 }

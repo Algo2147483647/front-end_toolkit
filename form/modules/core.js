@@ -233,7 +233,7 @@ function addComponentAtPosition(type, position) {
       ...config,
       name: config.name + '_' + id
     },
-    children: (type === 'Card' || type === 'Grid') ? [] : undefined // Container components support child components
+    children: (type === 'Card' || type === 'Grid' || type === 'Collapse') ? [] : undefined // Container components support child components
   };
 
   // If position is -1 or greater than array length, add to end
@@ -277,7 +277,7 @@ function addComponentToContainer(containerId, type) {
       ...config,
       name: config.name + '_' + id
     },
-    children: (type === 'Card' || type === 'Grid') ? [] : undefined, // 容器组件支持子组件
+    children: (type === 'Card' || type === 'Grid' || type === 'Collapse') ? [] : undefined, // 容器组件支持子组件
     position: container.children.length
   };
 

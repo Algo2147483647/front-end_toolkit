@@ -95,6 +95,23 @@ function renderComponentPreview(component) {
       return `<div class="grid-preview ${state.showBorders ? 'with-borders' : ''}">
                   <div class="grid-columns">${gridCols}</div>
               </div>`;
+    case 'Collapse':
+      const direction = component.config.direction || 'vertical';
+      const panels = component.config.panels || [];
+      const collapsePanels = panels.map((panel, index) => `
+        <div class="collapse-panel">
+          <div class="collapse-header">
+            <i class="fas fa-chevron-right collapse-arrow"></i>
+            <span class="collapse-title">${panel.title}</span>
+          </div>
+          <div class="collapse-content">
+            <div class="collapse-content-inner">${panel.content}</div>
+          </div>
+        </div>`).join('');
+      
+      return `<div class="collapse-preview ${direction}">
+                ${collapsePanels}
+              </div>`;
     case 'Switch':
       return `
         <div class="switch-preview">
