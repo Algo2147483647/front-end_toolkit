@@ -357,6 +357,25 @@ function renderFormItems() {
       }
     });
   });
+  
+  // Add click event listeners for collapse panels
+  container.querySelectorAll('.collapse-header').forEach(header => {
+    header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const panel = this.parentElement;
+      const arrow = this.querySelector('.collapse-arrow');
+      const content = panel.querySelector('.collapse-content');
+      
+      panel.classList.toggle('active');
+      arrow.classList.toggle('rotated');
+      
+      if (panel.classList.contains('active')) {
+        content.style.maxHeight = content.scrollHeight + 'px';
+      } else {
+        content.style.maxHeight = null;
+      }
+    });
+  });
 }
 
 // Get component icon

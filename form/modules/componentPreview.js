@@ -109,7 +109,7 @@ function renderComponentPreview(component) {
           </div>
         </div>`).join('');
       
-      return `<div class="collapse-preview ${direction}">
+      return `<div class="collapse-preview ${direction}" onclick="event.stopPropagation();">
                 ${collapsePanels}
               </div>`;
     case 'Switch':
