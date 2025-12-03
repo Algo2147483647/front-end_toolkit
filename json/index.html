@@ -32,13 +32,16 @@
 
     header {
       background: linear-gradient(to right, #2a2a3e, #1c1c2e);
-      padding: 20px 30px;
+      padding: 15px 30px;
       border-bottom: 1px solid #44445a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     h1 {
-      font-size: 2.2rem;
-      margin-bottom: 5px;
+      font-size: 1.8rem;
       background: linear-gradient(to right, #00c6ff, #0072ff);
       -webkit-background-clip: text;
       background-clip: text;
@@ -46,31 +49,42 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      margin: 0;
     }
 
     .subtitle {
       color: #a0a0c0;
-      font-size: 1rem;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .header-content {
+      flex: 1;
+    }
+
+    .header-tabs {
+      display: flex;
+      align-items: center;
     }
 
     .tabs {
       display: flex;
-      margin-top: 20px;
-      border-bottom: 1px solid #44445a;
+      margin-top: 0;
+      border-bottom: none;
     }
 
     .tab {
-      padding: 15px 30px;
+      padding: 12px 20px;
       background: none;
       border: none;
       color: #a0a0c0;
-      font-size: 1.1rem;
+      font-size: 1rem;
       cursor: pointer;
       transition: all 0.3s ease;
       position: relative;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .tab:hover {
@@ -94,7 +108,7 @@
     }
 
     .content {
-      padding: 30px;
+      padding: 20px;
     }
 
     .tab-content {
@@ -127,8 +141,25 @@
     /* 格式化工具样式 */
     .json-input-container {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .input-group {
+        flex: 1;
+        min-width: 300px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .json-input-container {
+        flex-direction: column;
+      }
+      
+      .input-group {
+        width: 100%;
+      }
     }
 
     .input-group {
@@ -228,6 +259,40 @@
     @media (max-width: 768px) {
       .compare-inputs {
         grid-template-columns: 1fr;
+      }
+      
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        padding: 15px 20px;
+      }
+      
+      .header-tabs {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .tab {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .content {
+        padding: 15px;
+      }
+      
+      .controls {
+        gap: 10px;
+      }
+      
+      .btn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
       }
     }
 
@@ -398,22 +463,48 @@
 <body>
 <div class="container">
   <header>
-    <h1><i class="fas fa-code"></i> JSON工具箱</h1>
-    <p class="subtitle">格式化、验证、对比和转换JSON数据 - 一站式JSON处理工具</p>
+    <div class="header-content">
+      <h1><i class="fas fa-code"></i> JSON工具箱</h1>
+      <p class="subtitle">格式化、验证、对比和转换JSON数据 - 一站式JSON处理工具</p>
+    </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="format">
-        <i class="fas fa-indent"></i> JSON格式化
-      </button>
-      <button class="tab" data-tab="compare">
-        <i class="fas fa-exchange-alt"></i> JSON对比
-      </button>
+    <div class="header-tabs">
+      <div class="tabs">
+        <button class="tab active" data-tab="format">
+          <i class="fas fa-indent"></i> JSON格式化
+        </button>
+        <button class="tab" data-tab="compare">
+          <i class="fas fa-exchange-alt"></i> JSON对比
+        </button>
+      </div>
     </div>
   </header>
 
   <div class="content">
     <!-- 格式化工具 -->
     <div id="format" class="tab-content active">
+      <h3 class="section-title"><i class="fas fa-indent"></i> JSON格式化</h3>
+      
+      <div class="option-group">
+        <div class="option">
+          <input type="checkbox" id="sortKeys" checked>
+          <label for="sortKeys">按键名排序</label>
+        </div>
+        <div class="option">
+          <input type="checkbox" id="escapeOutput" checked>
+          <label for="escapeOutput">转义输出</label>
+        </div>
+        <div class="indent-option">
+          <label for="indentSize">缩进:</label>
+          <select id="indentSize">
+            <option value="2">2 空格</option>
+            <option value="4" selected>4 空格</option>
+            <option value="8">8 空格</option>
+            <option value="tab">制表符</option>
+          </select>
+        </div>
+      </div>
+
       <div class="json-input-container">
         <div class="input-group">
           <div class="input-label">
@@ -421,47 +512,27 @@
             <span class="char-count">字符数: <span id="inputCharCount">0</span></span>
           </div>
           <textarea id="jsonInput" placeholder='在此处输入或粘贴JSON数据，例如：{"name":"John","age":30,"city":"New York"}'>{"name":"John Doe","age":30,"isStudent":false,"courses":["Math","Science","History"],"address":{"street":"123 Main St","city":"Anytown","zipcode":"12345"},"contact":{"email":"john@example.com","phone":"555-1234"},"metadata":{"created":"2023-01-15","modified":"2023-06-20","tags":["user","premium"]}}</textarea>
-        </div>
-
-        <div class="option-group">
-          <div class="option">
-            <input type="checkbox" id="sortKeys" checked>
-            <label for="sortKeys">按键名排序</label>
+          
+          <div class="controls">
+            <button id="formatBtn" class="btn">
+              <i class="fas fa-indent"></i> 格式化
+            </button>
+            <button id="minifyBtn" class="btn">
+              <i class="fas fa-compress-alt"></i> 压缩
+            </button>
+            <button id="escapeBtn" class="btn">
+              <i class="fas fa-code"></i> 转义
+            </button>
+            <button id="unescapeBtn" class="btn">
+              <i class="fas fa-code"></i> 反转义
+            </button>
+            <button id="validateBtn" class="btn btn-secondary">
+              <i class="fas fa-check-circle"></i> 验证
+            </button>
+            <button id="clearBtn" class="btn btn-secondary">
+              <i class="fas fa-trash-alt"></i> 清空
+            </button>
           </div>
-          <div class="option">
-            <input type="checkbox" id="escapeOutput" checked>
-            <label for="escapeOutput">转义输出</label>
-          </div>
-          <div class="indent-option">
-            <label for="indentSize">缩进:</label>
-            <select id="indentSize">
-              <option value="2">2 空格</option>
-              <option value="4" selected>4 空格</option>
-              <option value="8">8 空格</option>
-              <option value="tab">制表符</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button id="formatBtn" class="btn">
-            <i class="fas fa-indent"></i> 格式化
-          </button>
-          <button id="minifyBtn" class="btn">
-            <i class="fas fa-compress-alt"></i> 压缩
-          </button>
-          <button id="escapeBtn" class="btn">
-            <i class="fas fa-code"></i> 转义
-          </button>
-          <button id="unescapeBtn" class="btn">
-            <i class="fas fa-code"></i> 反转义
-          </button>
-          <button id="validateBtn" class="btn btn-secondary">
-            <i class="fas fa-check-circle"></i> 验证
-          </button>
-          <button id="clearBtn" class="btn btn-secondary">
-            <i class="fas fa-trash-alt"></i> 清空
-          </button>
         </div>
 
         <div class="input-group">
@@ -470,21 +541,23 @@
             <span class="char-count">字符数: <span id="outputCharCount">0</span></span>
           </div>
           <textarea id="jsonOutput" readonly placeholder='格式化后的JSON将显示在这里'></textarea>
-        </div>
-
-        <div class="controls">
-          <button id="copyBtn" class="btn">
-            <i class="fas fa-copy"></i> 复制结果
-          </button>
-          <button id="downloadBtn" class="btn">
-            <i class="fas fa-download"></i> 下载JSON
-          </button>
+          
+          <div class="controls">
+            <button id="copyBtn" class="btn">
+              <i class="fas fa-copy"></i> 复制结果
+            </button>
+            <button id="downloadBtn" class="btn">
+              <i class="fas fa-download"></i> 下载JSON
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 对比工具 -->
     <div id="compare" class="tab-content">
+      <h3 class="section-title"><i class="fas fa-exchange-alt"></i> JSON对比</h3>
+      
       <div class="compare-container">
         <div class="compare-inputs">
           <div class="input-group">
@@ -532,11 +605,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="footer">
-    <p>JSON工具箱 &copy; 2023 | 使用安全的本地处理，数据不会上传到服务器</p>
-    <p>支持JSON格式化、压缩、转义、验证和对比功能</p>
   </div>
 </div>
 

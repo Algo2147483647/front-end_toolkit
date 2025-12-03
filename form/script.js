@@ -490,13 +490,8 @@ function renderComponentTree() {
       const component = findComponentById(id);
       if (component) {
         selectComponent(component);
-        
-        // 切换到组件库面板
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const componentsTab = Array.from(tabButtons).find(btn => btn.dataset.tab === 'components');
-        if (componentsTab) {
-          componentsTab.click();
-        }
+        // 不再切换到组件库面板，保持当前面板状态
+        // 只需要确保组件树面板是激活的即可
       }
     });
   });
