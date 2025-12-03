@@ -526,7 +526,7 @@ body {
 
 /* 卡片组件预览 */
 .card-preview {
-  background: #fafafa;
+  background: #fff;
   padding: 16px;
   border-radius: 4px;
   /* 默认不显示边框 */
@@ -569,7 +569,7 @@ body {
 .card-preview .form-item {
   margin-bottom: 10px;
   background: #fff;
-  border: 1px solid #d9d9d9;
+  border: 1px solid transparent;
   border-radius: 4px;
   padding: 10px;
 }
@@ -595,7 +595,7 @@ body {
   width: 100%;
   /* 默认不显示边框 */
   border: 1px solid transparent;
-  background: rgba(24, 144, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
   padding: 16px;
   border-radius: 4px;
 }
@@ -622,7 +622,7 @@ body {
 .grid-preview .grid-column {
   flex: 1;
   min-height: 80px;
-  background: rgba(24, 144, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px dashed #1890ff;
   border-radius: 2px;
   display: flex;
@@ -633,7 +633,7 @@ body {
 
 .grid-preview .grid-column > .form-item {
   background: #fff;
-  border: 1px solid #d9d9d9;
+  border: 1px solid transparent;
   border-radius: 2px;
   padding: 8px;
   margin-bottom: 5px;
