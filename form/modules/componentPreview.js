@@ -98,20 +98,38 @@ function renderComponentPreview(component) {
     case 'Collapse':
       const direction = component.config.direction || 'vertical';
       const panels = component.config.panels || [];
-      const collapsePanels = panels.map((panel, index) => `
-        <div class="collapse-panel">
-          <div class="collapse-header">
-            <i class="fas fa-chevron-right collapse-arrow"></i>
-            <span class="collapse-title">${panel.title}</span>
-          </div>
-          <div class="collapse-content">
-            <div class="collapse-content-inner">${panel.content}</div>
-          </div>
-        </div>`).join('');
-      
-      return `<div class="collapse-preview ${direction}" onclick="event.stopPropagation();">
-                ${collapsePanels}
-              </div>`;
+      if (direction === 'horizontal') {
+        // 水平模式下显示为标签页(tab)形式
+        const collapseTabs = panels.map((panel, index) => `
+          <div class="collapse-tab ${index === 0 ? 'active' : ''}">
+            <div class="collapse-tab-header">
+              <span class="collapse-tab-title">${panel.title}</span>
+            </div>
+            <div class="collapse-tab-content">
+              <div class="collapse-content-inner">${panel.content}</div>
+            </div>
+          </div>`).join('');
+        
+        return `<div class="collapse-preview horizontal-tab" onclick="event.stopPropagation();">
+                  ${collapseTabs}
+                </div>`;
+      } else {
+        // 垂直模式保持原有样式
+        const collapsePanels = panels.map((panel, index) => `
+          <div class="collapse-panel">
+            <div class="collapse-header">
+              <i class="fas fa-chevron-right collapse-arrow"></i>
+              <span class="collapse-title">${panel.title}</span>
+            </div>
+            <div class="collapse-content">
+              <div class="collapse-content-inner">${panel.content}</div>
+            </div>
+          </div>`).join('');
+        
+        return `<div class="collapse-preview vertical" onclick="event.stopPropagation();">
+                  ${collapsePanels}
+                </div>`;
+      }
     case 'Switch':
       return `
         <div class="switch-preview">

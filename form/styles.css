@@ -851,6 +851,64 @@ body {
   border-right: none;
 }
 
+/* Collapse component in horizontal tab mode */
+.collapse-preview.horizontal-tab {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab-header {
+  padding: 12px 16px;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab-header:hover {
+  background: #e6f7ff;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-header {
+  background: #1890ff;
+  color: white;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab-title {
+  font-weight: 500;
+  color: #333;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-title {
+  color: white;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.collapse-preview.horizontal-tab .collapse-tab.active .collapse-tab-content {
+  max-height: 500px;
+  flex: 1;
+}
+
+.collapse-preview.horizontal-tab .collapse-content-inner {
+  padding: 16px;
+  color: #666;
+  background: #fff;
+}
+
 .collapse-panel {
   transition: all 0.3s;
 }
