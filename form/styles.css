@@ -754,6 +754,40 @@ body {
   background: #e6f7ff;
 }
 
+/* Slider component preview */
+.slider-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-preview .ant-slider {
+  flex: 1;
+  height: 6px;
+  background: #f5f5f5;
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider-preview .ant-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1890ff;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-preview .slider-value {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 500;
+  color: #333;
+}
+
 /* Properties panel */
 .properties-panel {
   width: 320px;

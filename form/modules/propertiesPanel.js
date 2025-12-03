@@ -92,6 +92,25 @@ function renderProperties() {
                   </div>`;
   }
 
+  if (comp.type === 'Slider') {
+    propertiesHTML += `
+                  <div class="property-field">
+                      <label class="property-label">Min Value</label>
+                      <input type="number" class="ant-input" value="${comp.config.min || 0}"
+                             onchange="updateProperty('min', parseInt(this.value))">
+                  </div>
+                  <div class="property-field">
+                      <label class="property-label">Max Value</label>
+                      <input type="number" class="ant-input" value="${comp.config.max || 100}"
+                             onchange="updateProperty('max', parseInt(this.value))">
+                  </div>
+                  <div class="property-field">
+                      <label class="property-label">Default Value</label>
+                      <input type="number" class="ant-input" value="${comp.config.defaultValue || 0}"
+                             onchange="updateProperty('defaultValue', parseInt(this.value))">
+                  </div>`;
+  }
+
   if (comp.type !== 'Divider' && comp.type !== 'Card' && comp.type !== 'Grid') {
     propertiesHTML += `
                   <div class="property-field">

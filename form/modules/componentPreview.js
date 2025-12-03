@@ -89,6 +89,16 @@ function renderComponentPreview(component) {
               </div>`;
     case 'Switch':
       return `<button class="ant-switch" style="vertical-align: middle;" disabled></button>`;
+    case 'Slider':
+      return `<div class="slider-preview">
+                <input type="range" 
+                       min="${component.config.min || 0}" 
+                       max="${component.config.max || 100}" 
+                       value="${component.config.defaultValue || 0}" 
+                       disabled
+                       class="ant-slider">
+                <div class="slider-value">${component.config.defaultValue || 0}</div>
+              </div>`;
     case 'Radio':
       const radioOptions = component.config.options || ['Option 1', 'Option 2'];
       return `<div class="radio-preview">
