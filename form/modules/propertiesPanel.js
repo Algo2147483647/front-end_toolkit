@@ -120,6 +120,17 @@ function renderProperties() {
                   </div>`;
   }
 
+  if (comp.type === 'ColorPicker') {
+    propertiesHTML += `
+                  <div class="property-field">
+                      <label class="property-label">Default Color</label>
+                      <input type="color" class="ant-input" value="${comp.config.defaultValue || '#1890ff'}"
+                             onchange="updateProperty('defaultValue', this.value)">
+                      <input class="ant-input" value="${comp.config.defaultValue || '#1890ff'}"
+                             onchange="updateProperty('defaultValue', this.value)" style="margin-top: 5px;">
+                  </div>`;
+  }
+
   if (comp.type === 'Slider') {
     propertiesHTML += `
                   <div class="property-field">

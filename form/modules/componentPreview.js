@@ -150,6 +150,11 @@ function renderComponentPreview(component) {
                   </div>
                 `).join('')}
               </div>`;
+    case 'ColorPicker':
+      return `<div class="color-picker-preview">
+                <div class="color-picker-display" style="background-color: ${component.config.defaultValue};"></div>
+                <span class="color-picker-value">${component.config.defaultValue}</span>
+              </div>`;
     default:
       return `<span style="color: #999;">${component.type} component preview</span>`;
   }

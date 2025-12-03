@@ -133,6 +133,12 @@ const componentConfigs = {
     defaultValue: [],
     options: ["Option 1", "Option 2", "Option 3"],
     type: "array"
+  },
+  ColorPicker: {
+    name: "color",
+    title: "Color Picker",
+    defaultValue: "#1890ff",
+    type: "string"
   }
 };
 

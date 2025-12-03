@@ -1089,6 +1089,30 @@ body {
   tab-size: 4;
 }
 
+/* Color picker preview styles */
+.color-picker-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.color-picker-display {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  border: 1px solid #d9d9d9;
+}
+
+.color-picker-value {
+  font-family: monospace;
+  font-size: 14px;
+  color: #333;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .components-panel {
