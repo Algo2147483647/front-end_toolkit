@@ -192,7 +192,60 @@ function openPreview() {
   if (previewForm) {
     previewForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      alert('表单提交功能仅在预览模式下展示');
+      
+      // 收集表单数据
+      const formData = {};
+      const formElements = previewForm.querySelectorAll('input, select, textarea, [type="hidden"]');
+      
+      formElements.forEach(element => {
+        // 跳过没有name属性的元素
+        if (!element.name) return;
+        
+        const name = element.name;
+        const type = element.type;
+        
+        // 处理名称末尾的[]符号（用于多选checkbox）
+        const isArray = name.endsWith('[]');
+        const cleanName = isArray ? name.slice(0, -2) : name;
+        
+        switch(type) {
+          case 'checkbox':
+            if (isArray) {
+              // 多选复选框
+              if (!formData[cleanName]) {
+                formData[cleanName] = [];
+              }
+              if (element.checked) {
+                formData[cleanName].push(element.value);
+              }
+            } else {
+              // 单个复选框，存储true/false
+              formData[cleanName] = element.checked;
+            }
+            break;
+          case 'radio':
+            // 只保存选中的值
+            if (element.checked) {
+              formData[cleanName] = element.value;
+            } else if (!(cleanName in formData)) {
+              // 如果还没有设置该字段，则初始化为undefined
+              formData[cleanName] = undefined;
+            }
+            break;
+          case 'hidden':
+            // 隐藏字段直接获取值
+            formData[cleanName] = element.value;
+            break;
+          default:
+            // 其他类型的输入框
+            formData[cleanName] = element.value;
+            break;
+        }
+      });
+      
+      // 显示JSON结果
+      alert('表单数据:\n' + JSON.stringify(formData, null, 2));
+      console.log('表单数据:', formData);
     });
   }
   

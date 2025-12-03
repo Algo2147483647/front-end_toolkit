@@ -227,17 +227,24 @@
     const track = element.querySelector('.switch-track');
     const thumb = element.querySelector('.switch-thumb');
     const label = element.querySelector('.switch-label');
+    const hiddenInput = element.querySelector('input[type="hidden"]');
     
     if (track.style.backgroundColor === 'rgb(24, 144, 255)') {
       // Turn off
       track.style.backgroundColor = '#ccc';
       thumb.style.transform = 'translateX(0)';
       label.textContent = 'OFF';
+      if (hiddenInput) {
+        hiddenInput.value = 'OFF';
+      }
     } else {
       // Turn on
       track.style.backgroundColor = '#1890ff';
       thumb.style.transform = 'translateX(20px)';
       label.textContent = 'ON';
+      if (hiddenInput) {
+        hiddenInput.value = 'ON';
+      }
     }
   }
 
