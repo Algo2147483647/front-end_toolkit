@@ -1,10 +1,993 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON工具箱 - 格式化与对比工具</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e6e6e6;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: rgba(25, 25, 35, 0.9);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      border: 1px solid #333348;
+    }
+
+    header {
+      background: linear-gradient(to right, #2a2a3e, #1c1c2e);
+      padding: 20px 30px;
+      border-bottom: 1px solid #44445a;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 5px;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: #a0a0c0;
+      font-size: 1rem;
+    }
+
+    .tabs {
+      display: flex;
+      margin-top: 20px;
+      border-bottom: 1px solid #44445a;
+    }
+
+    .tab {
+      padding: 15px 30px;
+      background: none;
+      border: none;
+      color: #a0a0c0;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tab:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab.active {
+      color: #00c6ff;
+      background-color: rgba(0, 198, 255, 0.08);
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title i {
+      color: #00c6ff;
+    }
+
+    /* 格式化工具样式 */
+    .json-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-label span {
+      font-weight: 600;
+      color: #ccccdd;
+    }
+
+    .char-count {
+      color: #8888aa;
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 250px;
+      padding: 15px;
+      background-color: #2a2a3e;
+      border: 2px solid #44445a;
+      border-radius: 8px;
+      color: #e6e6e6;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      resize: vertical;
+      transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #00c6ff;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 114, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(to right, #8e9eab, #eef2f3);
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 5px 15px rgba(142, 158, 171, 0.4);
+    }
+
+    .output-container {
+      margin-top: 30px;
+    }
+
+    /* 对比工具样式 */
+    .compare-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .compare-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .compare-inputs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .compare-controls {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .diff-result {
+      margin-top: 30px;
+      border: 1px solid #44445a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .diff-header {
+      padding: 15px;
+      background-color: #2a2a3e;
+      border-bottom: 1px solid #44445a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .diff-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 300px;
+      background-color: #1e1e2e;
+    }
+
+    @media (max-width: 768px) {
+      .diff-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diff-left, .diff-right {
+      padding: 20px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .diff-left {
+      border-right: 1px solid #44445a;
+    }
+
+    .diff-line {
+      white-space: pre-wrap;
+      margin-bottom: 2px;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .added {
+      background-color: rgba(0, 200, 0, 0.2);
+      border-left: 3px solid #00cc00;
+    }
+
+    .removed {
+      background-color: rgba(255, 0, 0, 0.2);
+      border-left: 3px solid #ff3333;
+    }
+
+    .unchanged {
+      color: #cccccc;
+    }
+
+    .diff-key {
+      color: #ff9966;
+    }
+
+    .diff-value {
+      color: #99ccff;
+    }
+
+    .diff-string {
+      color: #99ff99;
+    }
+
+    .diff-number {
+      color: #ffcc66;
+    }
+
+    .diff-boolean {
+      color: #ff66cc;
+    }
+
+    .diff-null {
+      color: #cc99ff;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background-color: #2a2a3e;
+      border-left: 4px solid #00c6ff;
+      border-radius: 6px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateX(150%);
+      transition: transform 0.4s ease;
+      z-index: 1000;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.error {
+      border-left-color: #ff3333;
+    }
+
+    .notification.success {
+      border-left-color: #00cc66;
+    }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #44445a;
+      text-align: center;
+      color: #8888aa;
+      font-size: 0.9rem;
+    }
+
+    .option-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #00c6ff;
+    }
+
+    .indent-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .indent-option select {
+      padding: 8px 12px;
+      background-color: #2a2a3e;
+      border: 1px solid #44445a;
+      border-radius: 4px;
+      color: #e6e6e6;
+    }
+  </style>
 </head>
 <body>
+<div class="container">
+  <header>
+    <h1><i class="fas fa-code"></i> JSON工具箱</h1>
+    <p class="subtitle">格式化、验证、对比和转换JSON数据 - 一站式JSON处理工具</p>
 
+    <div class="tabs">
+      <button class="tab active" data-tab="format">
+        <i class="fas fa-indent"></i> JSON格式化
+      </button>
+      <button class="tab" data-tab="compare">
+        <i class="fas fa-exchange-alt"></i> JSON对比
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- 格式化工具 -->
+    <div id="format" class="tab-content active">
+      <div class="json-input-container">
+        <div class="input-group">
+          <div class="input-label">
+            <span>输入JSON</span>
+            <span class="char-count">字符数: <span id="inputCharCount">0</span></span>
+          </div>
+          <textarea id="jsonInput" placeholder='在此处输入或粘贴JSON数据，例如：{"name":"John","age":30,"city":"New York"}'>{"name":"John Doe","age":30,"isStudent":false,"courses":["Math","Science","History"],"address":{"street":"123 Main St","city":"Anytown","zipcode":"12345"},"contact":{"email":"john@example.com","phone":"555-1234"},"metadata":{"created":"2023-01-15","modified":"2023-06-20","tags":["user","premium"]}}</textarea>
+        </div>
+
+        <div class="option-group">
+          <div class="option">
+            <input type="checkbox" id="sortKeys" checked>
+            <label for="sortKeys">按键名排序</label>
+          </div>
+          <div class="option">
+            <input type="checkbox" id="escapeOutput" checked>
+            <label for="escapeOutput">转义输出</label>
+          </div>
+          <div class="indent-option">
+            <label for="indentSize">缩进:</label>
+            <select id="indentSize">
+              <option value="2">2 空格</option>
+              <option value="4" selected>4 空格</option>
+              <option value="8">8 空格</option>
+              <option value="tab">制表符</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="formatBtn" class="btn">
+            <i class="fas fa-indent"></i> 格式化
+          </button>
+          <button id="minifyBtn" class="btn">
+            <i class="fas fa-compress-alt"></i> 压缩
+          </button>
+          <button id="escapeBtn" class="btn">
+            <i class="fas fa-code"></i> 转义
+          </button>
+          <button id="unescapeBtn" class="btn">
+            <i class="fas fa-code"></i> 反转义
+          </button>
+          <button id="validateBtn" class="btn btn-secondary">
+            <i class="fas fa-check-circle"></i> 验证
+          </button>
+          <button id="clearBtn" class="btn btn-secondary">
+            <i class="fas fa-trash-alt"></i> 清空
+          </button>
+        </div>
+
+        <div class="input-group">
+          <div class="input-label">
+            <span>输出结果</span>
+            <span class="char-count">字符数: <span id="outputCharCount">0</span></span>
+          </div>
+          <textarea id="jsonOutput" readonly placeholder='格式化后的JSON将显示在这里'></textarea>
+        </div>
+
+        <div class="controls">
+          <button id="copyBtn" class="btn">
+            <i class="fas fa-copy"></i> 复制结果
+          </button>
+          <button id="downloadBtn" class="btn">
+            <i class="fas fa-download"></i> 下载JSON
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 对比工具 -->
+    <div id="compare" class="tab-content">
+      <div class="compare-container">
+        <div class="compare-inputs">
+          <div class="input-group">
+            <div class="input-label">
+              <span>JSON 1</span>
+              <span class="char-count">字符数: <span id="compareLeftCharCount">0</span></span>
+            </div>
+            <textarea id="compareLeft" placeholder='在此输入第一个JSON'>{"name":"Alice","age":30,"city":"New York","hobbies":["reading","swimming"],"isStudent":false,"address":{"street":"123 Main St","zip":"10001"}}</textarea>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label">
+              <span>JSON 2</span>
+              <span class="char-count">字符数: <span id="compareRightCharCount">0</span></span>
+            </div>
+            <textarea id="compareRight" placeholder='在此输入第二个JSON'>{"name":"Bob","age":35,"city":"Boston","hobbies":["reading","gaming","hiking"],"isStudent":true,"address":{"street":"456 Oak Ave","zip":"02101"},"employed":true}</textarea>
+          </div>
+        </div>
+
+        <div class="compare-controls">
+          <button id="compareBtn" class="btn">
+            <i class="fas fa-exchange-alt"></i> 对比JSON
+          </button>
+        </div>
+
+        <div class="diff-result">
+          <div class="diff-header">
+            <h3 class="section-title">
+              <i class="fas fa-difference"></i> JSON差异对比
+            </h3>
+            <div class="legend">
+              <span style="color:#00cc00"><i class="fas fa-plus"></i> 新增</span>
+              <span style="color:#ff3333; margin-left: 15px;"><i class="fas fa-minus"></i> 删除</span>
+            </div>
+          </div>
+
+          <div class="diff-body">
+            <div class="diff-left" id="diffLeft">
+              <div class="diff-line unchanged">// 对比结果将显示在这里</div>
+            </div>
+            <div class="diff-right" id="diffRight">
+              <div class="diff-line unchanged">// 对比结果将显示在这里</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>JSON工具箱 &copy; 2023 | 使用安全的本地处理，数据不会上传到服务器</p>
+    <p>支持JSON格式化、压缩、转义、验证和对比功能</p>
+  </div>
+</div>
+
+<div id="notification" class="notification">
+  <i class="fas fa-check-circle"></i>
+  <span>操作成功完成！</span>
+</div>
+
+<script>
+  // 全局变量和DOM元素
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const notification = document.getElementById('notification');
+
+  // 格式化工具相关元素
+  const jsonInput = document.getElementById('jsonInput');
+  const jsonOutput = document.getElementById('jsonOutput');
+  const formatBtn = document.getElementById('formatBtn');
+  const minifyBtn = document.getElementById('minifyBtn');
+  const escapeBtn = document.getElementById('escapeBtn');
+  const unescapeBtn = document.getElementById('unescapeBtn');
+  const validateBtn = document.getElementById('validateBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const inputCharCount = document.getElementById('inputCharCount');
+  const outputCharCount = document.getElementById('outputCharCount');
+  const sortKeysCheckbox = document.getElementById('sortKeys');
+  const escapeOutputCheckbox = document.getElementById('escapeOutput');
+  const indentSizeSelect = document.getElementById('indentSize');
+
+  // 对比工具相关元素
+  const compareLeft = document.getElementById('compareLeft');
+  const compareRight = document.getElementById('compareRight');
+  const compareBtn = document.getElementById('compareBtn');
+  const diffLeft = document.getElementById('diffLeft');
+  const diffRight = document.getElementById('diffRight');
+  const compareLeftCharCount = document.getElementById('compareLeftCharCount');
+  const compareRightCharCount = document.getElementById('compareRightCharCount');
+
+  // 标签切换功能
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.getAttribute('data-tab');
+
+      // 更新标签状态
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // 显示对应内容
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+        if (content.id === targetTab) {
+          content.classList.add('active');
+        }
+      });
+    });
+  });
+
+  // 更新字符计数
+  function updateCharCount(textarea, countElement) {
+    countElement.textContent = textarea.value.length;
+  }
+
+  // 为所有文本区域添加字符计数更新
+  [jsonInput, compareLeft, compareRight].forEach((textarea, index) => {
+    const countElements = [inputCharCount, compareLeftCharCount, compareRightCharCount];
+    textarea.addEventListener('input', () => updateCharCount(textarea, countElements[index]));
+    // 初始化字符计数
+    updateCharCount(textarea, countElements[index]);
+  });
+
+  // 显示通知
+  function showNotification(message, isError = false) {
+    const icon = notification.querySelector('i');
+    const text = notification.querySelector('span');
+
+    text.textContent = message;
+
+    if (isError) {
+      notification.classList.remove('success');
+      notification.classList.add('error');
+      icon.className = 'fas fa-exclamation-circle';
+    } else {
+      notification.classList.remove('error');
+      notification.classList.add('success');
+      icon.className = 'fas fa-check-circle';
+    }
+
+    notification.classList.add('show');
+
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 3000);
+  }
+
+  // 深度排序对象键
+  function sortObjectKeys(obj) {
+    if (typeof obj !== 'object' || obj === null) return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map(sortObjectKeys);
+    }
+
+    const sorted = {};
+    Object.keys(obj).sort().forEach(key => {
+      sorted[key] = sortObjectKeys(obj[key]);
+    });
+
+    return sorted;
+  }
+
+  // 格式化JSON
+  function formatJSON(jsonStr, sortKeys = true, indent = 4) {
+    try {
+      let parsed = JSON.parse(jsonStr);
+
+      if (sortKeys) {
+        parsed = sortObjectKeys(parsed);
+      }
+
+      if (indent === 'tab') {
+        return JSON.stringify(parsed, null, '\t');
+      } else {
+        return JSON.stringify(parsed, null, parseInt(indent) || 4);
+      }
+    } catch (error) {
+      throw new Error(`无效的JSON: ${error.message}`);
+    }
+  }
+
+  // 压缩JSON
+  function minifyJSON(jsonStr) {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return JSON.stringify(parsed);
+    } catch (error) {
+      throw new Error(`无效的JSON: ${error.message}`);
+    }
+  }
+
+  // 转义JSON字符串
+  function escapeJSON(jsonStr) {
+    return jsonStr
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+  }
+
+  // 反转义JSON字符串
+  function unescapeJSON(jsonStr) {
+    return jsonStr
+            .replace(/\\\\/g, '\\')
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t');
+  }
+
+  // 验证JSON
+  function validateJSON(jsonStr) {
+    try {
+      JSON.parse(jsonStr);
+      return { valid: true, message: '✅ JSON格式正确' };
+    } catch (error) {
+      return { valid: false, message: `❌ JSON格式错误: ${error.message}` };
+    }
+  }
+
+  // 格式化工具事件监听
+  formatBtn.addEventListener('click', () => {
+    try {
+      const input = jsonInput.value.trim();
+      if (!input) {
+        showNotification('请输入JSON数据', true);
+        return;
+      }
+
+      const indent = indentSizeSelect.value;
+      const sorted = sortKeysCheckbox.checked;
+      const escaped = escapeOutputCheckbox.checked;
+
+      let formatted = formatJSON(input, sorted, indent);
+
+      if (escaped) {
+        formatted = escapeJSON(formatted);
+      }
+
+      jsonOutput.value = formatted;
+      updateCharCount(jsonOutput, outputCharCount);
+      showNotification('JSON格式化成功');
+    } catch (error) {
+      showNotification(error.message, true);
+    }
+  });
+
+  minifyBtn.addEventListener('click', () => {
+    try {
+      const input = jsonInput.value.trim();
+      if (!input) {
+        showNotification('请输入JSON数据', true);
+        return;
+      }
+
+      const minified = minifyJSON(input);
+      jsonOutput.value = minified;
+      updateCharCount(jsonOutput, outputCharCount);
+      showNotification('JSON压缩成功');
+    } catch (error) {
+      showNotification(error.message, true);
+    }
+  });
+
+  escapeBtn.addEventListener('click', () => {
+    const input = jsonInput.value.trim();
+    if (!input) {
+      showNotification('请输入JSON数据', true);
+      return;
+    }
+
+    try {
+      // 首先验证JSON格式
+      JSON.parse(input);
+      const escaped = escapeJSON(input);
+      jsonOutput.value = escaped;
+      updateCharCount(jsonOutput, outputCharCount);
+      showNotification('JSON转义成功');
+    } catch (error) {
+      showNotification(`无效的JSON: ${error.message}`, true);
+    }
+  });
+
+  unescapeBtn.addEventListener('click', () => {
+    const input = jsonInput.value.trim();
+    if (!input) {
+      showNotification('请输入JSON数据', true);
+      return;
+    }
+
+    try {
+      const unescaped = unescapeJSON(input);
+      // 尝试解析以验证格式
+      JSON.parse(unescaped);
+      jsonOutput.value = unescaped;
+      updateCharCount(jsonOutput, outputCharCount);
+      showNotification('JSON反转义成功');
+    } catch (error) {
+      showNotification(`反转义后JSON无效: ${error.message}`, true);
+    }
+  });
+
+  validateBtn.addEventListener('click', () => {
+    const input = jsonInput.value.trim();
+    if (!input) {
+      showNotification('请输入JSON数据', true);
+      return;
+    }
+
+    const result = validateJSON(input);
+    showNotification(result.message, !result.valid);
+
+    if (result.valid) {
+      jsonOutput.value = '✅ JSON格式正确\n\n' + input;
+      updateCharCount(jsonOutput, outputCharCount);
+    } else {
+      jsonOutput.value = '❌ JSON格式错误\n\n' + input;
+      updateCharCount(jsonOutput, outputCharCount);
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    jsonInput.value = '';
+    jsonOutput.value = '';
+    updateCharCount(jsonInput, inputCharCount);
+    updateCharCount(jsonOutput, outputCharCount);
+    showNotification('已清空输入和输出');
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    if (!jsonOutput.value.trim()) {
+      showNotification('没有可复制的内容', true);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(jsonOutput.value);
+      showNotification('已复制到剪贴板');
+    } catch (error) {
+      // 备用方案
+      jsonOutput.select();
+      document.execCommand('copy');
+      showNotification('已复制到剪贴板（使用备用方法）');
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!jsonOutput.value.trim()) {
+      showNotification('没有可下载的内容', true);
+      return;
+    }
+
+    const blob = new Blob([jsonOutput.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'formatted.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showNotification('JSON文件已下载');
+  });
+
+  // JSON对比功能
+  function compareJSON(json1, json2) {
+    try {
+      // 解析并格式化两个JSON
+      const obj1 = JSON.parse(json1);
+      const obj2 = JSON.parse(json2);
+
+      // 排序键
+      const sorted1 = sortObjectKeys(obj1);
+      const sorted2 = sortObjectKeys(obj2);
+
+      // 转换为字符串并分割成行
+      const str1 = JSON.stringify(sorted1, null, 2);
+      const str2 = JSON.stringify(sorted2, null, 2);
+
+      const lines1 = str1.split('\n');
+      const lines2 = str2.split('\n');
+
+      // 简单的行对比算法
+      const maxLines = Math.max(lines1.length, lines2.length);
+      const diff1 = [];
+      const diff2 = [];
+
+      for (let i = 0; i < maxLines; i++) {
+        const line1 = lines1[i];
+        const line2 = lines2[i];
+
+        if (line1 === line2) {
+          // 相同行
+          diff1.push({ type: 'unchanged', content: line1 || '' });
+          diff2.push({ type: 'unchanged', content: line2 || '' });
+        } else if (!line1 && line2) {
+          // 行1不存在，行2存在（新增）
+          diff1.push({ type: 'removed', content: '' });
+          diff2.push({ type: 'added', content: line2 });
+        } else if (line1 && !line2) {
+          // 行1存在，行2不存在（删除）
+          diff1.push({ type: 'removed', content: line1 });
+          diff2.push({ type: 'added', content: '' });
+        } else {
+          // 行内容不同
+          diff1.push({ type: 'removed', content: line1 });
+          diff2.push({ type: 'added', content: line2 });
+        }
+      }
+
+      return { diff1, diff2, str1, str2 };
+    } catch (error) {
+      throw new Error(`JSON解析错误: ${error.message}`);
+    }
+  }
+
+  // 为JSON行添加语法高亮
+  function highlightJSON(line) {
+    if (!line) return '';
+
+    // 处理键
+    let highlighted = line.replace(/"([^"]+)":/g, '<span class="diff-key">"$1"</span>:');
+
+    // 处理字符串值
+    highlighted = highlighted.replace(/:\s*"([^"]*)"/g, ': <span class="diff-string">"$1"</span>');
+
+    // 处理数字
+    highlighted = highlighted.replace(/:\s*(\d+\.?\d*)/g, ': <span class="diff-number">$1</span>');
+
+    // 处理布尔值
+    highlighted = highlighted.replace(/:\s*(true|false)/g, ': <span class="diff-boolean">$1</span>');
+
+    // 处理null
+    highlighted = highlighted.replace(/:\s*(null)/g, ': <span class="diff-null">$1</span>');
+
+    return highlighted;
+  }
+
+  // 渲染对比结果
+  function renderDiff(diff1, diff2) {
+    diffLeft.innerHTML = '';
+    diffRight.innerHTML = '';
+
+    diff1.forEach(item => {
+      const lineDiv = document.createElement('div');
+      lineDiv.className = `diff-line ${item.type}`;
+      lineDiv.innerHTML = highlightJSON(item.content);
+      diffLeft.appendChild(lineDiv);
+    });
+
+    diff2.forEach(item => {
+      const lineDiv = document.createElement('div');
+      lineDiv.className = `diff-line ${item.type}`;
+      lineDiv.innerHTML = highlightJSON(item.content);
+      diffRight.appendChild(lineDiv);
+    });
+  }
+
+  // 对比按钮事件监听
+  compareBtn.addEventListener('click', () => {
+    const left = compareLeft.value.trim();
+    const right = compareRight.value.trim();
+
+    if (!left || !right) {
+      showNotification('请输入两个JSON进行对比', true);
+      return;
+    }
+
+    try {
+      const result = compareJSON(left, right);
+      renderDiff(result.diff1, result.diff2);
+      showNotification('JSON对比完成');
+    } catch (error) {
+      showNotification(error.message, true);
+    }
+  });
+
+  // 初始化：显示格式化的示例JSON
+  window.addEventListener('DOMContentLoaded', () => {
+    // 格式化示例JSON
+    try {
+      const example = jsonInput.value;
+      const formatted = formatJSON(example, true, 4);
+      jsonOutput.value = formatted;
+      updateCharCount(jsonInput, inputCharCount);
+      updateCharCount(jsonOutput, outputCharCount);
+    } catch (error) {
+      console.error('初始化示例JSON时出错:', error);
+    }
+
+    // 为对比工具预加载示例对比
+    try {
+      const leftExample = compareLeft.value;
+      const rightExample = compareRight.value;
+      const result = compareJSON(leftExample, rightExample);
+      renderDiff(result.diff1, result.diff2);
+    } catch (error) {
+      console.error('初始化对比示例时出错:', error);
+    }
+  });
+</script>
 </body>
 </html>
