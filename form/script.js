@@ -12,7 +12,8 @@ const state = {
   },
   selectedItem: null,
   components: [],
-  nextId: 1
+  nextId: 1,
+  showBorders: false  // 控制是否显示边框
 };
 
 // 组件配置映射
@@ -109,7 +110,52 @@ document.addEventListener('DOMContentLoaded', function() {
   initDragAndDrop();
   initEventListeners();
   renderFormItems();
+  initTabs(); // 初始化标签页
 });
+
+// 初始化标签页
+function initTabs() {
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabPanels = document.querySelectorAll('.panel-tab');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabName = button.dataset.tab;
+
+      // 更新激活的标签按钮
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+
+      // 显示对应的面板
+      tabPanels.forEach(panel => {
+        panel.classList.remove('active');
+        if (panel.id === tabName + 'Panel') {
+          panel.classList.add('active');
+        }
+      });
+
+      // 如果是组件树面板，则更新树结构
+      if (tabName === 'tree') {
+        renderComponentTree();
+      }
+    });
+  });
+
+  // 初始化边框切换按钮
+  const toggleButton = document.getElementById('toggleBorders');
+  toggleButton.addEventListener('click', function() {
+    state.showBorders = !state.showBorders;
+    const icon = this.querySelector('i');
+    if (state.showBorders) {
+      icon.className = 'fas fa-border-none';
+      this.title = '隐藏边框';
+    } else {
+      icon.className = 'fas fa-border-all';
+      this.title = '显示边框';
+    }
+    renderFormItems();
+  });
+}
 
 // 初始化拖拽功能
 function initDragAndDrop() {
@@ -194,6 +240,7 @@ function addComponent(type) {
   state.components.push(component);
   selectComponent(component);
   renderFormItems();
+  renderComponentTree(); // 更新组件树
   updateSchema();
 }
 
@@ -218,6 +265,7 @@ function addComponentToContainer(containerId, type) {
   container.children.push(childComponent);
   selectComponent(container);
   renderFormItems();
+  renderComponentTree(); // 更新组件树
   updateSchema();
 }
 
@@ -272,7 +320,7 @@ function renderFormItems() {
 
   emptyCanvas.style.display = 'none';
   container.innerHTML = state.components.map(comp => `
-              <div class="form-item ${state.selectedItem?.id === comp.id ? 'selected' : ''}"
+              <div class="form-item ${state.selectedItem?.id === comp.id ? 'selected' : ''} ${state.showBorders ? 'with-borders' : ''}"
                    data-id="${comp.id}"
                    draggable="true">
                   <span class="form-item-label">${comp.config.title}</span>
@@ -350,7 +398,7 @@ function renderComponentPreview(component) {
                   <span>请选择时间</span>
               </div>`;
     case 'Card':
-      return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''}">
+      return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders ? 'with-borders' : ''}">
                   <div style="color: #999; text-align: center;">
                     ${component.children && component.children.length > 0 
                       ? component.children.map(child => 
@@ -383,7 +431,7 @@ function renderComponentPreview(component) {
                         : `列 ${i+1}`}
                     </div>`;
       }
-      return `<div class="grid-preview">
+      return `<div class="grid-preview ${state.showBorders ? 'with-borders' : ''}">
                   <div class="grid-columns">${gridCols}</div>
                   ${component.children && component.children.length < columns * 2 ?
                     `<div class="container-drop-area" data-container-id="${component.id}" style="margin-top: 10px; padding: 10px; border: 2px dashed #1890ff; border-radius: 4px; text-align: center; color: #1890ff;">
@@ -423,11 +471,72 @@ function renderComponentPreview(component) {
   }
 }
 
+// 渲染组件树
+function renderComponentTree() {
+  const treeContainer = document.getElementById('componentTree');
+  
+  if (state.components.length === 0) {
+    treeContainer.innerHTML = '<li class="tree-empty">暂无组件</li>';
+    return;
+  }
+
+  treeContainer.innerHTML = state.components.map(component => renderTreeNode(component, 0)).join('');
+  
+  // 添加节点点击事件
+  treeContainer.querySelectorAll('.tree-node').forEach(node => {
+    node.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const id = this.dataset.id;
+      const component = findComponentById(id);
+      if (component) {
+        selectComponent(component);
+        
+        // 切换到组件库面板
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const componentsTab = Array.from(tabButtons).find(btn => btn.dataset.tab === 'components');
+        if (componentsTab) {
+          componentsTab.click();
+        }
+      }
+    });
+  });
+}
+
+// 渲染树节点
+function renderTreeNode(component, level) {
+  const isSelected = state.selectedItem?.id === component.id;
+  const icon = getComponentIcon(component.type);
+  const hasChildren = component.children && component.children.length > 0;
+  
+  let html = `
+    <li>
+      <div class="tree-node ${isSelected ? 'selected' : ''}" data-id="${component.id}">
+        ${hasChildren ? '<i class="tree-expand-icon fas fa-caret-right"></i>' : '<i class="tree-expand-icon-placeholder"></i>'}
+        <i class="node-icon fas fa-${icon}"></i>
+        <span class="node-label">${component.config.title || component.type}</span>
+        <span class="node-type">${component.type}</span>
+      </div>
+  `;
+  
+  // 渲染子节点
+  if (hasChildren) {
+    html += `<ul>`;
+    component.children.forEach(child => {
+      html += renderTreeNode(child, level + 1);
+    });
+    html += `</ul>`;
+  }
+  
+  html += `</li>`;
+  return html;
+}
+
 // 选择组件
 function selectComponent(component) {
   state.selectedItem = component;
   renderFormItems();
   renderProperties();
+  renderComponentTree(); // 更新组件树选中状态
 }
 
 // 渲染属性面板
@@ -548,6 +657,7 @@ function updateProperty(key, value) {
   if (state.selectedItem) {
     state.selectedItem.config[key] = value;
     renderFormItems();
+    renderComponentTree(); // 更新组件树
     updateSchema();
   }
 }
@@ -568,6 +678,7 @@ function deleteComponent(id) {
     }
     renderFormItems();
     renderProperties();
+    renderComponentTree(); // 更新组件树
     updateSchema();
   }
 }
@@ -832,6 +943,7 @@ function importSchema(schema) {
 
   renderFormItems();
   renderProperties();
+  renderComponentTree(); // 更新组件树
 }
 
 // 打开预览
@@ -936,6 +1048,7 @@ window.startDrag = function(e, id) {
 
       state.components.sort((a, b) => a.position - b.position);
       renderFormItems();
+      renderComponentTree(); // 更新组件树
       updateSchema();
     }
   };

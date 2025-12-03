@@ -52,6 +52,46 @@ body {
   border-right: 1px solid #f0f0f0;
   padding: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.tab-button.active {
+  background: #fff;
+  font-weight: 500;
+  border-bottom: 2px solid #1890ff;
+}
+
+.tab-button:hover:not(.active) {
+  background: #f0f0f0;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.panel-tab {
+  display: none;
+}
+
+.panel-tab.active {
+  display: block;
 }
 
 .components-category {
@@ -111,6 +151,89 @@ body {
   font-size: 12px;
   color: #333;
   margin-top: 4px;
+}
+
+/* 组件树样式 */
+.tree-content {
+  padding: 12px;
+}
+
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tree-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.tree-container {
+  overflow-y: auto;
+}
+
+.component-tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.component-tree ul {
+  list-style: none;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.tree-node {
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.tree-node:hover {
+  background-color: #f0f9ff;
+}
+
+.tree-node.selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.tree-node .node-icon {
+  color: #1890ff;
+  width: 16px;
+  text-align: center;
+}
+
+.tree-node .node-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-node .node-type {
+  color: #999;
+  font-size: 12px;
+}
+
+.tree-expand-icon {
+  width: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.tree-expand-icon.rotated {
+  transform: rotate(90deg);
 }
 
 /* 设计画布 */
@@ -184,6 +307,10 @@ body {
   flex-direction: row;
   align-items: center;
   gap: 12px;
+}
+
+.form-item.with-borders {
+  border: 1px solid #d9d9d9;
 }
 
 .form-item-label {
@@ -407,6 +534,10 @@ body {
   width: 100%;
 }
 
+.card-preview.with-borders {
+  border: 1px solid #d9d9d9;
+}
+
 .card-preview.with-title::before {
   content: "卡片标题";
   display: block;
@@ -425,6 +556,10 @@ body {
   background: rgba(24, 144, 255, 0.05);
   padding: 16px;
   border-radius: 4px;
+}
+
+.grid-preview.with-borders {
+  border: 1px solid #d9d9d9;
 }
 
 .grid-preview::before {

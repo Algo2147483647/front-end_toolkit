@@ -31,72 +31,93 @@
   <div class="app-content">
     <!-- 左侧组件面板 -->
     <div class="components-panel">
-      <div class="components-category">
-        <div class="category-title">基础字段</div>
-        <div class="component-grid">
-          <div class="component-item" draggable="true" data-type="Input">
-            <i class="fas fa-font component-icon"></i>
-            <span class="component-name">输入框</span>
+      <div class="panel-tabs">
+        <button class="tab-button active" data-tab="components">组件库</button>
+        <button class="tab-button" data-tab="tree">组件树</button>
+      </div>
+      
+      <div class="panel-content">
+        <div class="components-content panel-tab active" id="componentsPanel">
+          <div class="components-category">
+            <div class="category-title">基础字段</div>
+            <div class="component-grid">
+              <div class="component-item" draggable="true" data-type="Input">
+                <i class="fas fa-font component-icon"></i>
+                <span class="component-name">输入框</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Textarea">
+                <i class="fas fa-align-left component-icon"></i>
+                <span class="component-name">多行文本框</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="InputNumber">
+                <i class="fas fa-sort-numeric-up component-icon"></i>
+                <span class="component-name">数字输入框</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Select">
+                <i class="fas fa-list component-icon"></i>
+                <span class="component-name">选择器</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="DatePicker">
+                <i class="fas fa-calendar-alt component-icon"></i>
+                <span class="component-name">日期选择器</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="TimePicker">
+                <i class="fas fa-clock component-icon"></i>
+                <span class="component-name">时间选择器</span>
+              </div>
+            </div>
           </div>
-          <div class="component-item" draggable="true" data-type="Textarea">
-            <i class="fas fa-align-left component-icon"></i>
-            <span class="component-name">多行文本框</span>
+
+          <div class="components-category">
+            <div class="category-title">布局组件</div>
+            <div class="component-grid">
+              <div class="component-item" draggable="true" data-type="Card">
+                <i class="fas fa-square component-icon"></i>
+                <span class="component-name">卡片</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Divider">
+                <i class="fas fa-minus component-icon"></i>
+                <span class="component-name">分割线</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Grid">
+                <i class="fas fa-th component-icon"></i>
+                <span class="component-name">栅格布局</span>
+              </div>
+            </div>
           </div>
-          <div class="component-item" draggable="true" data-type="InputNumber">
-            <i class="fas fa-sort-numeric-up component-icon"></i>
-            <span class="component-name">数字输入框</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="Select">
-            <i class="fas fa-list component-icon"></i>
-            <span class="component-name">选择器</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="DatePicker">
-            <i class="fas fa-calendar-alt component-icon"></i>
-            <span class="component-name">日期选择器</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="TimePicker">
-            <i class="fas fa-clock component-icon"></i>
-            <span class="component-name">时间选择器</span>
+
+          <div class="components-category">
+            <div class="category-title">其他组件</div>
+            <div class="component-grid">
+              <div class="component-item" draggable="true" data-type="Switch">
+                <i class="fas fa-toggle-on component-icon"></i>
+                <span class="component-name">开关</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Slider">
+                <i class="fas fa-sliders-h component-icon"></i>
+                <span class="component-name">滑动输入条</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Radio">
+                <i class="fas fa-dot-circle component-icon"></i>
+                <span class="component-name">单选框</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="Checkbox">
+                <i class="fas fa-check-square component-icon"></i>
+                <span class="component-name">多选框</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="components-category">
-        <div class="category-title">布局组件</div>
-        <div class="component-grid">
-          <div class="component-item" draggable="true" data-type="Card">
-            <i class="fas fa-square component-icon"></i>
-            <span class="component-name">卡片</span>
+        
+        <div class="tree-content panel-tab" id="treePanel">
+          <div class="tree-header">
+            <h3>组件树</h3>
+            <button id="toggleBorders" class="ant-btn ant-btn-default ant-btn-sm">
+              <i class="fas fa-border-all"></i> 边框
+            </button>
           </div>
-          <div class="component-item" draggable="true" data-type="Divider">
-            <i class="fas fa-minus component-icon"></i>
-            <span class="component-name">分割线</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="Grid">
-            <i class="fas fa-th component-icon"></i>
-            <span class="component-name">栅格布局</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="components-category">
-        <div class="category-title">其他组件</div>
-        <div class="component-grid">
-          <div class="component-item" draggable="true" data-type="Switch">
-            <i class="fas fa-toggle-on component-icon"></i>
-            <span class="component-name">开关</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="Slider">
-            <i class="fas fa-sliders-h component-icon"></i>
-            <span class="component-name">滑动输入条</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="Radio">
-            <i class="fas fa-dot-circle component-icon"></i>
-            <span class="component-name">单选框</span>
-          </div>
-          <div class="component-item" draggable="true" data-type="Checkbox">
-            <i class="fas fa-check-square component-icon"></i>
-            <span class="component-name">多选框</span>
+          <div class="tree-container">
+            <ul id="componentTree" class="component-tree"></ul>
           </div>
         </div>
       </div>
