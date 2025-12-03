@@ -149,10 +149,18 @@
       </div>
     </div>
 
+    <!-- Vertical resizer between canvas and properties -->
+    <div class="props-resizer" id="propsResizer" title="Drag to resize properties panel"></div>
+
     <!-- Right properties panel -->
-    <div class="properties-panel">
-      <div class="properties-title">Property Configuration</div>
-      <div id="propertiesContent">
+    <div class="properties-panel" id="propertiesPanel">
+      <div class="properties-header">
+        <div class="properties-title">Property Configuration</div>
+        <button id="collapsePropsBtn" class="ant-btn ant-btn-default ant-btn-sm" title="Collapse/Expand">
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+      <div id="propertiesContent" class="properties-content">
         <div class="empty-properties">
           <p style="color: #999; text-align: center;">Please select a component to configure</p>
         </div>

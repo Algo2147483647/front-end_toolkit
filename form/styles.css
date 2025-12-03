@@ -754,6 +754,66 @@ body {
   background: #e6f7ff;
 }
 
+/* Properties panel and resizer */
+.props-resizer {
+  width: 8px;
+  background: transparent;
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+.props-resizer:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.properties-panel {
+  width: 320px; /* default width */
+  min-width: 40px;
+  max-width: 600px;
+  background: #fff;
+  border-left: 1px solid #f0f0f0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.12s ease;
+}
+
+.properties-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  height: 48px;
+}
+
+.properties-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.properties-content {
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.properties-panel.collapsed {
+  width: 40px !important;
+}
+
+.properties-panel.collapsed .properties-content {
+  display: none;
+}
+
+.properties-panel.collapsed .properties-title {
+  display: none;
+}
+
+.properties-panel .ant-btn-sm {
+  padding: 4px 6px;
+}
+
 /* Slider component preview */
 .slider-preview {
   display: flex;

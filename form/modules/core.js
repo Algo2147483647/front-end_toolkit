@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initEventListeners();
   renderFormItems();
   initTabs(); // Initialize tabs
+  initPropertiesPanelControls(); // Collapse + resize
 });
 
 // Initialize tabs
@@ -539,4 +540,74 @@ function startDrag(e, id) {
     document.onmousemove = null;
     document.onmouseup = null;
   };
+}
+
+// Initialize properties panel collapse and resize controls
+function initPropertiesPanelControls() {
+  const panel = document.getElementById('propertiesPanel');
+  const content = document.getElementById('propertiesContent');
+  const collapseBtn = document.getElementById('collapsePropsBtn');
+  const resizer = document.getElementById('propsResizer');
+
+  if (!panel || !resizer || !collapseBtn) return;
+
+  // Restore saved width/collapsed state
+  const savedWidth = parseInt(localStorage.getItem('propsWidth'), 10);
+  const savedCollapsed = localStorage.getItem('propsCollapsed') === '1';
+  if (!isNaN(savedWidth)) {
+    panel.style.width = Math.min(600, Math.max(200, savedWidth)) + 'px';
+  }
+  if (savedCollapsed) {
+    panel.classList.add('collapsed');
+    collapseBtn.querySelector('i').className = 'fas fa-angle-double-left';
+    resizer.style.display = 'none';
+  }
+
+  // Collapse / expand
+  collapseBtn.addEventListener('click', function() {
+    const icon = this.querySelector('i');
+    if (panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+      icon.className = 'fas fa-angle-double-right';
+      resizer.style.display = '';
+      localStorage.setItem('propsCollapsed', '0');
+    } else {
+      panel.classList.add('collapsed');
+      icon.className = 'fas fa-angle-double-left';
+      resizer.style.display = 'none';
+      localStorage.setItem('propsCollapsed', '1');
+    }
+  });
+
+  // Drag to resize
+  let dragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    startX = e.clientX;
+    startWidth = panel.getBoundingClientRect().width;
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const dx = startX - e.clientX; // moving mouse left increases width
+    let newWidth = startWidth + dx;
+    // clamp
+    newWidth = Math.max(200, Math.min(600, newWidth));
+    panel.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (dragging) {
+      dragging = false;
+      document.body.style.userSelect = '';
+      // persist width
+      const width = parseInt(panel.getBoundingClientRect().width, 10);
+      localStorage.setItem('propsWidth', width);
+    }
+  });
 }
