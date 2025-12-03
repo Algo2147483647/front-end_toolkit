@@ -788,6 +788,41 @@ body {
   color: #333;
 }
 
+/* Switch component preview */
+.switch-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.switch-track {
+  position: relative;
+  width: 44px;
+  height: 22px;
+  background: #ccc;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.switch-track::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  top: 1px;
+  left: 1px;
+  transition: transform 0.3s;
+}
+
+.switch-preview .switch-label {
+  font-weight: 500;
+  color: #333;
+  min-width: 30px;
+}
+
 /* Properties panel */
 .properties-panel {
   width: 320px;

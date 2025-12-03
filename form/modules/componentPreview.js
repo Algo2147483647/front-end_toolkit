@@ -88,7 +88,13 @@ function renderComponentPreview(component) {
                   <div class="grid-columns">${gridCols}</div>
               </div>`;
     case 'Switch':
-      return `<button class="ant-switch" style="vertical-align: middle;" disabled></button>`;
+      return `
+        <div class="switch-preview">
+          <div class="switch-track">
+            <div class="switch-thumb"></div>
+          </div>
+          <span class="switch-label">${component.config.defaultValue ? 'ON' : 'OFF'}</span>
+        </div>`;
     case 'Slider':
       return `<div class="slider-preview">
                 <input type="range" 
