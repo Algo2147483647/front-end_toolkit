@@ -56,7 +56,7 @@ function renderProperties() {
 
   if (comp.type === 'Select' || comp.type === 'Radio') {
     propertiesHTML += `
-                  <div class="property-field">
+                  <div class="property-field vertical">
                       <label class="property-label">Option Configuration</label>
                       <textarea class="ant-input" style="height: 80px;"
                                 onchange="updateProperty('options', this.value.split('\n'))">${(comp.config.options || []).join('\n')}</textarea>
@@ -76,7 +76,7 @@ function renderProperties() {
 
   if (comp.type === 'Checkbox') {
     propertiesHTML += `
-                  <div class="property-field">
+                  <div class="property-field vertical">
                       <label class="property-label">Option Configuration</label>
                       <textarea class="ant-input" style="height: 80px;"
                                 onchange="updateProperty('options', this.value.split('\n'))">${(comp.config.options || []).join('\n')}</textarea>

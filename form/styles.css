@@ -876,6 +876,11 @@ body {
   margin-bottom: 16px;
 }
 
+.property-field.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .property-label {
   font-size: 14px;
   font-weight: 500;
