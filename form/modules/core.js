@@ -455,7 +455,11 @@ function getComponentIcon(type) {
     Switch: 'toggle-on',
     Slider: 'sliders-h',
     Radio: 'dot-circle',
-    Checkbox: 'check-square'
+    Checkbox: 'check-square',
+    Cascader: 'sitemap',
+    Grid: 'th',
+    Collapse: 'layer-group',
+    ColorPicker: 'palette'
   };
   return icons[type] || 'cube';
 }
