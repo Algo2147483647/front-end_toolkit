@@ -66,7 +66,7 @@ function renderProperties() {
   
   if (comp.type === 'Cascader') {
     propertiesHTML += `
-                  <div class="property-field">
+                  <div class="property-field vertical">
                       <label class="property-label">Cascader Options</label>
                       <textarea class="ant-input" style="height: 120px;"
                                 onchange="updateCascaderOptions(this.value, '${comp.id}')">${JSON.stringify(comp.config.options || [], null, 2)}</textarea>
