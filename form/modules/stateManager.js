@@ -201,39 +201,11 @@ function updateSchema() {
     
     if (comp.type === 'Card') {
       properties[fieldId]["x-component-props"].title = comp.config.showTitle ? comp.config.title : undefined;
-      // Handle child components
+      // Handle child components recursively
       if (comp.children && comp.children.length > 0) {
         properties[fieldId].properties = {};
         comp.children.forEach((child, childIndex) => {
-          const childFieldId = child.config.name.replace(/[^a-zA-Z0-9]/g, '') + '_' + child.id;
-          properties[fieldId].properties[childFieldId] = {
-            name: child.config.name,
-            type: child.config.type,
-            title: child.config.title,
-            "x-index": childIndex,
-            "x-component": child.type,
-            "x-decorator": "FormItem",
-            "x-component-props": {},
-            "x-validator": []
-          };
-          
-          if (child.config.placeholder) {
-            properties[fieldId].properties[childFieldId]["x-component-props"].placeholder = child.config.placeholder;
-          }
-          
-          if (child.config.options && child.config.options.length > 0) {
-            properties[fieldId].properties[childFieldId]["x-component-props"].options = child.config.options.map(opt => ({
-              label: opt,
-              value: opt
-            }));
-          }
-          
-          if (child.config.required) {
-            properties[fieldId].properties[childFieldId].required = true;
-            properties[fieldId].properties[childFieldId]["x-validator"].push({
-              ruleKey: "required"
-            });
-          }
+          Object.assign(properties[fieldId].properties, generateComponentSchema(child, childIndex));
         });
       }
     }
@@ -241,39 +213,11 @@ function updateSchema() {
     if (comp.type === 'Grid') {
       properties[fieldId]["x-component-props"].columns = comp.config.columns;
       properties[fieldId]["x-component-props"].title = comp.config.showTitle ? comp.config.title : undefined;
-      // Handle child components
+      // Handle child components recursively
       if (comp.children && comp.children.length > 0) {
         properties[fieldId].properties = {};
         comp.children.forEach((child, childIndex) => {
-          const childFieldId = child.config.name.replace(/[^a-zA-Z0-9]/g, '') + '_' + child.id;
-          properties[fieldId].properties[childFieldId] = {
-            name: child.config.name,
-            type: child.config.type,
-            title: child.config.title,
-            "x-index": childIndex,
-            "x-component": child.type,
-            "x-decorator": "FormItem",
-            "x-component-props": {},
-            "x-validator": []
-          };
-          
-          if (child.config.placeholder) {
-            properties[fieldId].properties[childFieldId]["x-component-props"].placeholder = child.config.placeholder;
-          }
-          
-          if (child.config.options && child.config.options.length > 0) {
-            properties[fieldId].properties[childFieldId]["x-component-props"].options = child.config.options.map(opt => ({
-              label: opt,
-              value: opt
-            }));
-          }
-          
-          if (child.config.required) {
-            properties[fieldId].properties[childFieldId].required = true;
-            properties[fieldId].properties[childFieldId]["x-validator"].push({
-              ruleKey: "required"
-            });
-          }
+          Object.assign(properties[fieldId].properties, generateComponentSchema(child, childIndex));
         });
       }
     }
@@ -287,6 +231,76 @@ function updateSchema() {
   });
 
   state.formSchema.schema.properties = properties;
+}
+
+// Generate component schema recursively (including nested components)
+function generateComponentSchema(component, index) {
+  const fieldId = component.config.name.replace(/[^a-zA-Z0-9]/g, '') + '_' + component.id;
+  
+  const schema = {
+    [fieldId]: {
+      name: component.config.name,
+      type: component.config.type,
+      title: component.config.title,
+      "x-index": index,
+      "x-component": component.type,
+      "x-decorator": "FormItem",
+      "x-component-props": {},
+      "x-validator": []
+    }
+  };
+  
+  // Add specific properties
+  if (component.config.placeholder) {
+    schema[fieldId]["x-component-props"].placeholder = component.config.placeholder;
+  }
+  
+  if (component.config.options && component.config.options.length > 0) {
+    schema[fieldId]["x-component-props"].options = component.config.options.map(opt => ({
+      label: opt,
+      value: opt
+    }));
+  }
+  
+  if (component.type === 'Cascader') {
+    schema[fieldId]["x-component-props"].options = component.config.options;
+  }
+  
+  if (component.type === 'Divider') {
+    schema[fieldId]["x-component-props"].content = component.config.content;
+  }
+  
+  if (component.type === 'Card') {
+    schema[fieldId]["x-component-props"].title = component.config.showTitle ? component.config.title : undefined;
+    // Handle child components recursively
+    if (component.children && component.children.length > 0) {
+      schema[fieldId].properties = {};
+      component.children.forEach((child, childIndex) => {
+        Object.assign(schema[fieldId].properties, generateComponentSchema(child, childIndex));
+      });
+    }
+  }
+  
+  if (component.type === 'Grid') {
+    schema[fieldId]["x-component-props"].columns = component.config.columns;
+    schema[fieldId]["x-component-props"].title = component.config.showTitle ? component.config.title : undefined;
+    // Handle child components recursively
+    if (component.children && component.children.length > 0) {
+      schema[fieldId].properties = {};
+      component.children.forEach((child, childIndex) => {
+        Object.assign(schema[fieldId].properties, generateComponentSchema(child, childIndex));
+      });
+    }
+  }
+  
+  if (component.config.required) {
+    schema[fieldId].required = true;
+    schema[fieldId]["x-validator"].push({
+      ruleKey: "required"
+    });
+  }
+  
+  return schema;
 }
 
 // Select component

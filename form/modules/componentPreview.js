@@ -36,7 +36,8 @@ function renderComponentPreview(component) {
                   <span>Please select time</span>
               </div>`;
     case 'Card':
-      return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders ? 'with-borders' : ''}">
+      // 添加一个特殊类名以标识这是卡片容器，便于拖拽操作
+      return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders ? 'with-borders' : ''}" data-container-type="Card" data-container-id="${component.id}">
                   ${component.children && component.children.length > 0 
                     ? component.children.map(child => 
                         `<div class="form-item ${state.selectedItem?.id === child.id ? 'selected' : ''}" 

@@ -196,6 +196,19 @@ function initDragAndDrop() {
   
   // Add support for dragging and sorting components within containers
   document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('form-item') && (e.target.parentNode.classList.contains('card-preview') || e.target.closest('.card-preview'))) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.id);
+    }
+  });
+  
+  document.addEventListener('dragover', function(e) {
+    if (e.target.classList.contains('card-preview') || e.target.closest('.card-preview')) {
+      e.preventDefault();
+    }
+  });
+  
+  // Add support for dragging and sorting components within containers
+  document.addEventListener('dragstart', function(e) {
     if (e.target.classList.contains('form-item') && e.target.parentNode.classList.contains('card-preview')) {
       e.dataTransfer.setData('text/plain', e.target.dataset.id);
     }
@@ -264,6 +277,7 @@ function addComponentToContainer(containerId, type) {
       ...config,
       name: config.name + '_' + id
     },
+    children: (type === 'Card' || type === 'Grid') ? [] : undefined, // 容器组件支持子组件
     position: container.children.length
   };
 
