@@ -468,9 +468,17 @@ body {
   gap: 8px;
   opacity: 0;
   transition: opacity 0.3s;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: #f0f9ff;
+  padding: 0px;
+  border-radius: 4px;
+  z-index: 2;
 }
 
-.form-item:hover .form-item-actions {
+.form-item:hover .form-item-actions,
+.form-item.selected .form-item-actions {
   opacity: 1;
 }
 
@@ -572,6 +580,7 @@ body {
   border: 1px solid transparent;
   border-radius: 4px;
   padding: 16px;
+  position: relative;
 }
 
 .card-preview .form-item:hover {
@@ -588,6 +597,25 @@ body {
   font-weight: 500;
   color: #333;
   margin-bottom: 0;
+}
+
+.card-preview .form-item .form-item-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #f0f9ff;
+  padding: 4px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.card-preview .form-item:hover .form-item-actions,
+.card-preview .form-item.selected .form-item-actions {
+  opacity: 1;
 }
 
 /* 栅格布局组件预览 */
@@ -638,6 +666,7 @@ body {
   padding: 16px;
   margin-bottom: 16px;
   cursor: move;
+  position: relative;
 }
 
 .grid-preview .grid-column > .form-item:hover {
@@ -654,6 +683,25 @@ body {
   font-weight: 500;
   color: #333;
   margin-bottom: 0;
+}
+
+.grid-preview .grid-column > .form-item .form-item-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #f0f9ff;
+  padding: 4px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.grid-preview .grid-column > .form-item:hover .form-item-actions,
+.grid-preview .grid-column > .form-item.selected .form-item-actions {
+  opacity: 1;
 }
 
 .grid-preview .container-drop-area {
