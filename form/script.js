@@ -58,24 +58,21 @@ const componentConfigs = {
   },
   Card: {
     name: "card",
-    title: "卡片",
+    title: "",
     type: "void",
-    showTitle: false, // 默认不显示标题
     properties: {}
   },
   Divider: {
     name: "divider",
-    title: "分割线",
+    title: "",
     type: "void",
     content: "", // 默认无文字
-    showTitle: false // 默认不显示主标题
   },
   Grid: {
     name: "grid",
-    title: "栅格布局",
+    title: "",
     type: "void",
     columns: 3, // 默认3列
-    showTitle: false // 默认不显示主标题
   },
   Switch: {
     name: "switch",
