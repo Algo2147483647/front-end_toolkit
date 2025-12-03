@@ -358,7 +358,7 @@ function renderFormItems() {
                    draggable="true">
                   <span class="form-item-label">${comp.config.title}</span>
                   <div class="form-item-content">
-                      ${renderComponentPreview(comp)}
+                      ${renderComponentPreview(comp, false)}
                   </div>
                   <div class="form-item-actions">
                       <i class="fas fa-edit form-item-action" onclick="event.stopPropagation(); editComponent('${comp.id}')"></i>

@@ -199,5 +199,64 @@
 <script src="modules/propertiesPanel.js"></script>
 <script src="modules/importExport.js"></script>
 <script src="modules/core.js"></script>
+<script>
+  // Functions for interactive components in preview mode
+  function incrementNumber(element) {
+    const input = element.closest('.number-input-wrapper').querySelector('input');
+    input.value = parseInt(input.value || 0) + 1;
+  }
+
+  function decrementNumber(element) {
+    const input = element.closest('.number-input-wrapper').querySelector('input');
+    input.value = parseInt(input.value || 0) - 1;
+  }
+
+  function handleSelectChange(element) {
+    console.log('Selected value:', element.value);
+  }
+
+  function openDatePicker(element) {
+    alert('Date picker would open here in a full implementation');
+  }
+
+  function openTimePicker(element) {
+    alert('Time picker would open here in a full implementation');
+  }
+
+  function toggleSwitch(element) {
+    const track = element.querySelector('.switch-track');
+    const thumb = element.querySelector('.switch-thumb');
+    const label = element.querySelector('.switch-label');
+    
+    if (track.style.backgroundColor === 'rgb(24, 144, 255)') {
+      // Turn off
+      track.style.backgroundColor = '#ccc';
+      thumb.style.transform = 'translateX(0)';
+      label.textContent = 'OFF';
+    } else {
+      // Turn on
+      track.style.backgroundColor = '#1890ff';
+      thumb.style.transform = 'translateX(20px)';
+      label.textContent = 'ON';
+    }
+  }
+
+  function updateSliderValue(element) {
+    const valueDisplay = element.nextElementSibling;
+    valueDisplay.textContent = element.value;
+  }
+
+  function handleRadioChange(element) {
+    console.log('Radio selected:', element.value);
+  }
+
+  function handleCheckboxChange(element) {
+    console.log('Checkbox toggled:', element.checked);
+  }
+
+  function openColorPicker(element) {
+    alert('Color picker would open here in a full implementation');
+  }
+</script>
 </body>
 </html>

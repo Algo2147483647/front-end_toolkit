@@ -160,7 +160,7 @@ function openPreview() {
           ${comp.config.title}${comp.config.required ? ' *' : ''}
         </span>
         <div class="form-item-content">
-          ${renderComponentPreview(comp)}
+          ${renderComponentPreview(comp, true)}
         </div>
       </div>
     `).join('');

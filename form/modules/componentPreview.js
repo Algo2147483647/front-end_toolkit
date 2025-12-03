@@ -1,21 +1,21 @@
 // Render component preview
-function renderComponentPreview(component) {
+function renderComponentPreview(component, isPreview = false) {
   switch(component.type) {
     case 'Input':
-      return `<input type="text" class="ant-input" placeholder="${component.config.placeholder}" disabled>`;
+      return `<input type="text" class="ant-input" placeholder="${component.config.placeholder}" ${isPreview ? '' : 'disabled'}>`;
     case 'Textarea':
-      return `<textarea class="ant-input" placeholder="${component.config.placeholder}" disabled style="height: 80px;"></textarea>`;
+      return `<textarea class="ant-input" placeholder="${component.config.placeholder}" ${isPreview ? '' : 'disabled'} style="height: 80px;"></textarea>`;
     case 'InputNumber':
       return `
         <div class="number-input-wrapper">
-          <input type="number" class="ant-input" value="${component.config.defaultValue}" disabled>
-          <div class="number-input-controls">
-            <button class="number-input-control number-input-control-up" disabled>▲</button>
-            <button class="number-input-control number-input-control-down" disabled>▼</button>
+          <input type="number" class="ant-input" value="${component.config.defaultValue}" ${isPreview ? '' : 'disabled'}>
+          <div class="number-input-controls" style="${isPreview ? 'opacity: 1;' : ''}">
+            <button class="number-input-control number-input-control-up" ${isPreview ? 'onclick="incrementNumber(this)"' : 'disabled'}>▲</button>
+            <button class="number-input-control number-input-control-down" ${isPreview ? 'onclick="decrementNumber(this)"' : 'disabled'}>▼</button>
           </div>
         </div>`;
     case 'Select':
-      return `<select class="ant-select" disabled>
+      return `<select class="ant-select" ${isPreview ? 'onchange="handleSelectChange(this)"' : 'disabled'}>
                       ${component.config.options.map(opt => `<option>${opt}</option>`).join('')}
                   </select>`;
     case 'Cascader':
@@ -26,12 +26,12 @@ function renderComponentPreview(component) {
                   </div>
               </div>`;
     case 'DatePicker':
-      return `<div class="date-picker-preview">
+      return `<div class="date-picker-preview" ${isPreview ? 'onclick="openDatePicker(this)"' : ''}>
                   <i class="fas fa-calendar-alt"></i>
                   <span>Please select date</span>
               </div>`;
     case 'TimePicker':
-      return `<div class="date-picker-preview">
+      return `<div class="date-picker-preview" ${isPreview ? 'onclick="openTimePicker(this)"' : ''}>
                   <i class="fas fa-clock"></i>
                   <span>Please select time</span>
               </div>`;
@@ -160,48 +160,92 @@ function renderComponentPreview(component) {
                 </div>`;
       }
     case 'Switch':
-      return `
-        <div class="switch-preview">
-          <div class="switch-track">
-            <div class="switch-thumb"></div>
-          </div>
-          <span class="switch-label">${component.config.defaultValue ? 'ON' : 'OFF'}</span>
-        </div>`;
+      if (isPreview) {
+        return `
+          <div class="switch-preview" onclick="toggleSwitch(this)">
+            <div class="switch-track">
+              <div class="switch-thumb"></div>
+            </div>
+            <span class="switch-label">${component.config.defaultValue ? 'ON' : 'OFF'}</span>
+          </div>`;
+      } else {
+        return `
+          <div class="switch-preview">
+            <div class="switch-track">
+              <div class="switch-thumb"></div>
+            </div>
+            <span class="switch-label">${component.config.defaultValue ? 'ON' : 'OFF'}</span>
+          </div>`;
+      }
+
     case 'Slider':
       return `<div class="slider-preview">
                 <input type="range" 
                        min="${component.config.min || 0}" 
                        max="${component.config.max || 100}" 
                        value="${component.config.defaultValue || 0}" 
-                       disabled
+                       ${isPreview ? 'oninput="updateSliderValue(this)"' : 'disabled'}
                        class="ant-slider">
                 <div class="slider-value">${component.config.defaultValue || 0}</div>
               </div>`;
+
     case 'Radio':
       const radioOptions = component.config.options || ['Option 1', 'Option 2'];
-      return `<div class="radio-preview">
-                ${radioOptions.map((opt, idx) => `
-                  <div class="radio-option">
-                    <input type="radio" name="radio_${component.id}" ${idx === 0 ? 'checked' : ''} disabled>
-                    <label>${opt}</label>
-                  </div>
-                `).join('')}
-              </div>`;
+      if (isPreview) {
+        return `<div class="radio-preview">
+                  ${radioOptions.map((opt, idx) => `
+                    <div class="radio-option">
+                      <input type="radio" name="radio_${component.id}" ${idx === 0 ? 'checked' : ''} onchange="handleRadioChange(this)">
+                      <label>${opt}</label>
+                    </div>
+                  `).join('')}
+                </div>`;
+      } else {
+        return `<div class="radio-preview">
+                  ${radioOptions.map((opt, idx) => `
+                    <div class="radio-option">
+                      <input type="radio" name="radio_${component.id}" ${idx === 0 ? 'checked' : ''} disabled>
+                      <label>${opt}</label>
+                    </div>
+                  `).join('')}
+                </div>`;
+      }
+
     case 'Checkbox':
       const checkboxOptions = component.config.options || ['Option 1', 'Option 2', 'Option 3'];
-      return `<div class="checkbox-preview">
-                ${checkboxOptions.map(opt => `
-                  <div class="checkbox-option">
-                    <input type="checkbox" disabled>
-                    <label>${opt}</label>
-                  </div>
-                `).join('')}
-              </div>`;
+      if (isPreview) {
+        return `<div class="checkbox-preview">
+                  ${checkboxOptions.map(opt => `
+                    <div class="checkbox-option">
+                      <input type="checkbox" onchange="handleCheckboxChange(this)">
+                      <label>${opt}</label>
+                    </div>
+                  `).join('')}
+                </div>`;
+      } else {
+        return `<div class="checkbox-preview">
+                  ${checkboxOptions.map(opt => `
+                    <div class="checkbox-option">
+                      <input type="checkbox" disabled>
+                      <label>${opt}</label>
+                    </div>
+                  `).join('')}
+                </div>`;
+      }
+
     case 'ColorPicker':
-      return `<div class="color-picker-preview">
-                <div class="color-picker-display" style="background-color: ${component.config.defaultValue};"></div>
-                <span class="color-picker-value">${component.config.defaultValue}</span>
-              </div>`;
+      if (isPreview) {
+        return `<div class="color-picker-preview" onclick="openColorPicker(this)">
+                  <div class="color-picker-display" style="background-color: ${component.config.defaultValue};"></div>
+                  <span class="color-picker-value">${component.config.defaultValue}</span>
+                </div>`;
+      } else {
+        return `<div class="color-picker-preview">
+                  <div class="color-picker-display" style="background-color: ${component.config.defaultValue};"></div>
+                  <span class="color-picker-value">${component.config.defaultValue}</span>
+                </div>`;
+      }
+
     default:
       return `<span style="color: #999;">${component.type} component preview</span>`;
   }
