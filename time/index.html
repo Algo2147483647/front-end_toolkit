@@ -59,19 +59,26 @@
         </div>
     </div>
 
-    <!-- Clock Size Control -->
-    <div class="size-control">
-        <label>
-            Adjust Dial Size
-            <input type="range" min="400" max="800" value="700" class="size-slider" id="size-slider">
-        </label>
-        <label>
-            Second Hand Motion
-            <select id="second-hand-motion" class="motion-select">
-                <option value="smooth">Smooth</option>
-                <option value="ticking" selected>One Second Tick</option>
-            </select>
-        </label>
+    <!-- Settings Button and Panel -->
+    <div class="settings-container">
+        <button class="settings-toggle-btn" id="settings-toggle">
+            <i class="fas fa-cog"></i>
+        </button>
+        <div class="settings-panel" id="settings-panel">
+            <div class="settings-content">
+                <label>
+                    Adjust Dial Size
+                    <input type="range" min="400" max="800" value="700" class="size-slider" id="size-slider">
+                </label>
+                <label>
+                    Second Hand Motion
+                    <select id="second-hand-motion" class="motion-select">
+                        <option value="smooth" selected>Smooth</option>
+                        <option value="ticking">One Second Tick</option>
+                    </select>
+                </label>
+            </div>
+        </div>
     </div>
 
     <script src="scripts/calendar.js"></script>

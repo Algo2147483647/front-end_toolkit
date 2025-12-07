@@ -391,24 +391,66 @@ body {
     display: contents;
 }
 
-/* 时钟尺寸控制 */
-.size-control {
+/* Settings panel styles */
+.settings-container {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px 20px;
-    border-radius: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    border: 1px solid rgba(200, 200, 200, 0.5);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     z-index: 100;
 }
 
-.size-control label {
+.settings-toggle-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #6a9eff;
+    transition: all 0.3s ease;
+}
+
+.settings-toggle-btn:hover {
+    transform: rotate(45deg);
+    background: rgba(255, 255, 255, 1);
+}
+
+.settings-panel {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 280px;
+    transform: translateY(20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.settings-panel.active {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.settings-content label {
     font-size: 14px;
     color: rgba(200, 200, 255, 0.9);
     display: flex;
@@ -425,7 +467,7 @@ body {
 }
 
 .size-slider {
-    width: 200px;
+    width: 150px;
     appearance: none;
     -webkit-appearance: none;
     height: 8px;

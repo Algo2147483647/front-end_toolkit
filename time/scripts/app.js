@@ -8,6 +8,8 @@ class TimeApp {
         this.toggleSlider = document.querySelector('.toggle-slider');
         this.sizeSlider = document.getElementById('size-slider');
         this.secondHandMotion = document.getElementById('second-hand-motion');
+        this.settingsToggle = document.getElementById('settings-toggle');
+        this.settingsPanel = document.getElementById('settings-panel');
         
         this.bindEvents();
         this.init();
@@ -18,6 +20,7 @@ class TimeApp {
         this.calendarBtn.addEventListener('click', () => this.showCalendar());
         this.sizeSlider.addEventListener('input', () => this.onSizeChange());
         this.secondHandMotion.addEventListener('change', () => this.onMotionChange());
+        this.settingsToggle.addEventListener('click', () => this.toggleSettings());
     }
 
     showClock() {
@@ -50,6 +53,10 @@ class TimeApp {
     onMotionChange() {
         // 重新绘制时钟以应用新的秒针运动方式
         drawClock();
+    }
+
+    toggleSettings() {
+        this.settingsPanel.classList.toggle('active');
     }
 
     init() {
