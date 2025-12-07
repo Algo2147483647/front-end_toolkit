@@ -16,6 +16,7 @@ class Calendar {
     initElements() {
         this.calendarMonthYear = document.getElementById('calendar-month-year');
         this.calendarGrid = document.getElementById('calendar-grid');
+        this.calendarWeekdays = document.getElementById('calendar-weekdays');
         this.prevMonthBtn = document.getElementById('prev-month');
         this.nextMonthBtn = document.getElementById('next-month');
         this.todayBtn = document.getElementById('today-btn');
@@ -32,13 +33,17 @@ class Calendar {
 
     // 初始化日历
     initCalendar() {
-        // 添加星期标题
+        // 清空日历网格和星期标题容器
         this.calendarGrid.innerHTML = '';
+        if (this.calendarWeekdays) this.calendarWeekdays.innerHTML = '';
+
+        // 添加星期标题到独立的标题容器（避免随内容滚动）
         this.weekdays.forEach(day => {
             const dayElement = document.createElement('div');
             dayElement.className = 'weekday';
             dayElement.textContent = day;
-            this.calendarGrid.appendChild(dayElement);
+            if (this.calendarWeekdays) this.calendarWeekdays.appendChild(dayElement);
+            else this.calendarGrid.appendChild(dayElement);
         });
 
         // 渲染初始月份及前后几个月
@@ -71,8 +76,10 @@ class Calendar {
 
     // 渲染指定年月
     renderMonth(year, month) {
-        // 创建临时容器存储新月份的日期
+        // 创建临时容器存储新月份的日期，并将其包裹到一个月份块中以便分隔
         const tempContainer = document.createDocumentFragment();
+        const monthBlock = document.createElement('div');
+        monthBlock.className = 'month-block';
         
         // 获取该月的第一天和最后一天
         const firstDay = new Date(year, month, 1);
@@ -120,7 +127,7 @@ class Calendar {
             tempContainer.appendChild(day);
         }
 
-        // 添加月份分隔标识
+        // 添加月份分隔标识到月份块末尾（用于定位）
         const monthSeparator = document.createElement('div');
         monthSeparator.className = 'month-separator';
         monthSeparator.dataset.year = year;
@@ -128,8 +135,9 @@ class Calendar {
         monthSeparator.style.display = 'none'; // 隐藏分隔符，仅用作标记
         tempContainer.appendChild(monthSeparator);
 
-        // 添加到日历网格
-        this.calendarGrid.appendChild(tempContainer);
+        // 将临时内容添加到月份块并插入到日历网格
+        monthBlock.appendChild(tempContainer);
+        this.calendarGrid.appendChild(monthBlock);
     }
 
     // 处理滚动事件，实现无限滚动
@@ -153,9 +161,10 @@ class Calendar {
     // 加载更多过去的月份
     loadMorePastMonths() {
         // 获取最早渲染的月份
-        const separators = this.calendarGrid.querySelectorAll('.month-separator');
-        if (separators.length > 0) {
-            const firstSeparator = separators[0];
+        const monthBlocks = this.calendarGrid.querySelectorAll('.month-block');
+        if (monthBlocks.length > 0) {
+            const firstBlock = monthBlocks[0];
+            const firstSeparator = firstBlock.querySelector('.month-separator');
             let year = parseInt(firstSeparator.dataset.year);
             let month = parseInt(firstSeparator.dataset.month);
             
@@ -174,7 +183,7 @@ class Calendar {
             
             if (!isRendered) {
                 // 在现有内容前插入新月份
-                this.insertMonthBefore(year, month);
+                    this.insertMonthBefore(year, month);
             }
         }
     }
@@ -182,9 +191,10 @@ class Calendar {
     // 加载更多未来的月份
     loadMoreFutureMonths() {
         // 获取最晚渲染的月份
-        const separators = this.calendarGrid.querySelectorAll('.month-separator');
-        if (separators.length > 0) {
-            const lastSeparator = separators[separators.length - 1];
+        const monthBlocks = this.calendarGrid.querySelectorAll('.month-block');
+        if (monthBlocks.length > 0) {
+            const lastBlock = monthBlocks[monthBlocks.length - 1];
+            const lastSeparator = lastBlock.querySelector('.month-separator');
             let year = parseInt(lastSeparator.dataset.year);
             let month = parseInt(lastSeparator.dataset.month);
             
@@ -210,9 +220,11 @@ class Calendar {
 
     // 在现有内容前插入月份
     insertMonthBefore(year, month) {
-        // 创建临时容器存储新月份的日期
+        // 创建月份块并填充日期（与 renderMonth 类似）
         const tempContainer = document.createDocumentFragment();
-        
+        const monthBlock = document.createElement('div');
+        monthBlock.className = 'month-block';
+
         // 获取该月的第一天和最后一天
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
@@ -229,15 +241,11 @@ class Calendar {
         }
 
         // 添加当前月的所有日期
-        const today = new Date();
         for (let i = 1; i <= daysInMonth; i++) {
             const day = document.createElement('div');
             day.className = 'calendar-day';
             day.textContent = i;
-            
-            // 添加数据属性以便识别日期
             day.dataset.date = `${year}-${month+1}-${i}`;
-
             tempContainer.appendChild(day);
         }
 
@@ -259,32 +267,34 @@ class Calendar {
         monthSeparator.className = 'month-separator';
         monthSeparator.dataset.year = year;
         monthSeparator.dataset.month = month;
-        monthSeparator.style.display = 'none'; // 隐藏分隔符，仅用作标记
+        monthSeparator.style.display = 'none';
         tempContainer.appendChild(monthSeparator);
 
-        // 插入到星期标题之后的第一个位置
-        const weekdays = document.querySelectorAll('.weekday');
-        const firstWeekday = weekdays[0];
-        firstWeekday.after(tempContainer);
+        monthBlock.appendChild(tempContainer);
+
+        // 将新月份插入到第一个月份块之前，如果没有则追加
+        const firstMonthBlock = this.calendarGrid.querySelector('.month-block');
+        if (firstMonthBlock) this.calendarGrid.insertBefore(monthBlock, firstMonthBlock);
+        else this.calendarGrid.appendChild(monthBlock);
     }
 
     // 更新当前显示的月份标题
     updateCurrentMonthTitle() {
-        // 获取可见区域中心的日期元素
-        const calendarDays = this.calendarGrid.querySelectorAll('.calendar-day:not(.other-month)');
-        if (calendarDays.length > 0) {
-            // 找到可见区域中间的日期元素
-            const middleIndex = Math.floor(calendarDays.length / 2);
-            const middleDay = calendarDays[middleIndex];
-            
-            // 如果找到了中间的日期元素，更新标题
-            if (middleDay) {
-                // 从数据属性中获取日期信息
-                const dateAttr = middleDay.dataset.date;
-                if (dateAttr) {
-                    const [year, month] = dateAttr.split('-').map(Number);
-                    this.calendarMonthYear.textContent = `${this.monthNames[month-1]} ${year}`;
+        // 基于可见区域中心定位对应的月份块并更新标题
+        const { scrollTop, clientHeight } = this.calendarGrid;
+        const middleY = scrollTop + clientHeight / 2;
+        const monthBlocks = this.calendarGrid.querySelectorAll('.month-block');
+        for (let block of monthBlocks) {
+            const top = block.offsetTop;
+            const bottom = top + block.offsetHeight;
+            if (middleY >= top && middleY <= bottom) {
+                const sep = block.querySelector('.month-separator');
+                if (sep) {
+                    const year = parseInt(sep.dataset.year);
+                    const month = parseInt(sep.dataset.month);
+                    this.calendarMonthYear.textContent = `${this.monthNames[month]} ${year}`;
                 }
+                break;
             }
         }
     }
