@@ -54,9 +54,10 @@ function createClockMarkers() {
         number.style.textAlign = 'center';
         number.style.width = '20px';
         number.style.height = '20px';
-        number.style.color = 'white';
+        number.style.color = 'rgba(255, 255, 255, 0.8)';
         number.style.fontWeight = 'bold';
         number.style.fontSize = '14px';
+        number.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
         number.textContent = i === 0 ? '24' : i * 2;
         clockFace.appendChild(number);
     }
