@@ -59,11 +59,23 @@ function drawClock() {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
+    const milliseconds = now.getMilliseconds();
 
     // 计算指针角度（24小时制）
     const hourAngle = (hours % 24 + minutes / 60) * Math.PI / 12 - Math.PI / 2;
     const minuteAngle = (minutes + seconds / 60) * Math.PI / 30 - Math.PI / 2;
-    const secondAngle = seconds * Math.PI / 30 - Math.PI / 2;
+    
+    // 根据设置决定秒针运动方式
+    const motionSelect = document.getElementById('second-hand-motion');
+    let secondAngle;
+    
+    if (motionSelect && motionSelect.value === 'smooth') {
+        // 平滑移动：包括毫秒精度
+        secondAngle = (seconds + milliseconds / 1000) * Math.PI / 30 - Math.PI / 2;
+    } else {
+        // 一秒一跳：只使用秒数
+        secondAngle = seconds * Math.PI / 30 - Math.PI / 2;
+    }
 
     // 绘制时针
     ctx.beginPath();
@@ -89,12 +101,12 @@ function drawClock() {
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // 绘制秒针
+    // 绘制秒针（延长至与半径一致）
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(
-        centerX + Math.cos(secondAngle) * radius * 0.8,
-        centerY + Math.sin(secondAngle) * radius * 0.8
+        centerX + Math.cos(secondAngle) * (radius - 2),
+        centerY + Math.sin(secondAngle) * (radius - 2)
     );
     ctx.strokeStyle = '#ff4a4a';
     ctx.lineWidth = 3;

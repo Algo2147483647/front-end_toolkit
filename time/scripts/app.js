@@ -7,6 +7,7 @@ class TimeApp {
         this.calendarView = document.getElementById('calendar-view');
         this.toggleSlider = document.querySelector('.toggle-slider');
         this.sizeSlider = document.getElementById('size-slider');
+        this.secondHandMotion = document.getElementById('second-hand-motion');
         
         this.bindEvents();
         this.init();
@@ -16,6 +17,7 @@ class TimeApp {
         this.clockBtn.addEventListener('click', () => this.showClock());
         this.calendarBtn.addEventListener('click', () => this.showCalendar());
         this.sizeSlider.addEventListener('input', () => this.onSizeChange());
+        this.secondHandMotion.addEventListener('change', () => this.onMotionChange());
     }
 
     showClock() {
@@ -45,6 +47,11 @@ class TimeApp {
         updateClockSize();
     }
 
+    onMotionChange() {
+        // 重新绘制时钟以应用新的秒针运动方式
+        drawClock();
+    }
+
     init() {
         // Initialize clock size
         updateClockSize();
@@ -56,11 +63,27 @@ class TimeApp {
         drawClock();
         updateDigitalClock();
 
-        // Set timer to update every second
-        setInterval(() => {
+        // Set timer to update every frame for smooth second hand or every second for ticking
+        this.startClock();
+    }
+    
+    startClock() {
+        const update = () => {
             drawClock();
             updateDigitalClock();
-        }, 1000);
+            
+            const motionSelect = document.getElementById('second-hand-motion');
+            if (motionSelect && motionSelect.value === 'smooth') {
+                // 平滑模式下每帧更新一次
+                requestAnimationFrame(update);
+            } else {
+                // 一秒一跳模式下每秒更新一次
+                setTimeout(update, 1000);
+            }
+        };
+        
+        // 启动时钟更新循环
+        update();
     }
 }
 
