@@ -279,31 +279,48 @@ body {
     transform: scale(1.1);
 }
 
+.calendar-weekdays,
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 10px;
-    max-height: 500px;
-    overflow-y: auto;
+    /* keep identical horizontal padding so columns align */
     padding: 5px;
+    box-sizing: border-box;
+}
+
+/* reserve scrollbar space so header columns don't shift when grid scrolls */
+.calendar-grid {
+    max-height: 500px;
+    overflow-y: auto; /* keep scrollbar visible to avoid layout shift */
+    scrollbar-gutter: stable;
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+.calendar-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.calendar-grid {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
 }
 
 .calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
     margin-bottom: 10px;
 }
 
 .calendar-weekdays .weekday,
 .weekday {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     font-weight: 600;
     color: rgba(80, 80, 120, 0.95);
-    padding: 12px 0;
-    font-size: 16px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
+    padding: 10px 0;
+    font-size: 14px;
+    background: transparent;
 }
 
 .calendar-day {
