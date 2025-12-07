@@ -8,6 +8,17 @@ class Calendar {
         this.monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                           'July', 'August', 'September', 'October', 'November', 'December'];
         this.titleUpdateTimer = null;
+        // Virtualization settings
+        this.startYear = 1970;
+        this.endYear = 2030;
+        this.rowHeight = 70; // px per week-row (matches .calendar-day height)
+        this.bufferRows = 3; // extra rows to render above/below viewport
+        this.totalStartDate = new Date(this.startYear, 0, 1);
+        this.totalEndDate = new Date(this.endYear + 1, 0, 1); // exclusive
+
+        // runtime state for virtualization
+        this.firstVisibleRow = 0; // row index (week index) currently at top
+        this.totalWeeks = Math.ceil((this.totalEndDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
         
         this.initElements();
         this.bindEvents();
@@ -34,10 +45,11 @@ class Calendar {
 
     // 初始化日历
     initCalendar() {
+        // clear grid and create virtualization structure: top spacer, visible container, bottom spacer
         this.calendarGrid.innerHTML = '';
         if (this.calendarWeekdays) this.calendarWeekdays.innerHTML = '';
 
-        // 添加星期标题到独立的标题容器
+        // weekday header (kept outside scrolling content if a separate container exists)
         this.weekdays.forEach(day => {
             const dayElement = document.createElement('div');
             dayElement.className = 'weekday';
@@ -46,185 +58,188 @@ class Calendar {
             else this.calendarGrid.appendChild(dayElement);
         });
 
-        // 渲染从1970年到2030年的所有月份
-        this.renderAllMonths();
+        // create virtualization elements
+        this.topSpacer = document.createElement('div');
+        this.topSpacer.className = 'top-spacer';
+        this.daysContainer = document.createElement('div');
+        this.daysContainer.className = 'days-container';
+        this.bottomSpacer = document.createElement('div');
+        this.bottomSpacer.className = 'bottom-spacer';
+
+        this.calendarGrid.appendChild(this.topSpacer);
+        this.calendarGrid.appendChild(this.daysContainer);
+        this.calendarGrid.appendChild(this.bottomSpacer);
+
+        // Ensure spacers span full grid width and container's children participate in grid
+        this.topSpacer.style.gridColumn = '1 / -1';
+        this.topSpacer.style.width = '100%';
+        this.topSpacer.style.display = 'block';
+
+        this.bottomSpacer.style.gridColumn = '1 / -1';
+        this.bottomSpacer.style.width = '100%';
+        this.bottomSpacer.style.display = 'block';
+
+        // Make daysContainer transparent to grid so its children (day cells) become grid items
+        this.daysContainer.style.display = 'contents';
+
+        // compute initial pointer: Monday of the first day of the current month
+        const firstOfMonth = new Date(this.currentYear, this.currentMonth, 1);
+        const dayOfWeek = firstOfMonth.getDay();
+        const diffToMonday = (dayOfWeek + 6) % 7; // 0 if Monday, 1 if Tuesday, etc.
+        this.initialPointerDate = new Date(firstOfMonth);
+        this.initialPointerDate.setDate(firstOfMonth.getDate() - diffToMonday);
+
+        // set initial scroll position to place initialPointerDate at the top
+        const weeksBefore = Math.floor((this.initialPointerDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        const initialScrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        // set container virtual height
+        const contentHeight = this.totalWeeks * this.rowHeight;
+        this.topSpacer.style.height = '0px';
+        this.bottomSpacer.style.height = (contentHeight - initialScrollTop) + 'px';
+
+        // apply initial scroll after a tick so dimensions exist
+        setTimeout(() => {
+            this.calendarGrid.scrollTop = initialScrollTop;
+            this.handleScroll();
+        }, 0);
     }
 
     // 渲染所有月份
     renderAllMonths() {
-        const startYear = 1970;
-        const endYear = 2030;
-        
-        // 清空网格
-        this.calendarGrid.innerHTML = '';
-        
-        // 重新添加星期标题（如果需要的话）
-        if (!this.calendarWeekdays) {
-            this.weekdays.forEach(day => {
-                const dayElement = document.createElement('div');
-                dayElement.className = 'weekday';
-                dayElement.textContent = day;
-                this.calendarGrid.appendChild(dayElement);
-            });
-        }
-        
-        // 渲染所有月份
-        for (let year = startYear; year <= endYear; year++) {
-            for (let month = 0; month < 12; month++) {
-                this.renderMonth(year, month);
-            }
-        }
-        
-        // 滚动到当前月份
-        this.scrollToCurrentMonth();
+        // No-op: replaced by virtualized rendering in `initCalendar` and `handleScroll`
     }
 
     // 渲染指定年月
     renderMonth(year, month) {
-        // 获取该月的第一天和最后一天
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const firstDayOfWeek = firstDay.getDay();
+        // Legacy method kept for compatibility but not used in virtualization.
+    }
 
-        // 添加上个月的最后几天
-        const prevMonthLastDay = new Date(year, month, 0).getDate();
-        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day other-month';
-            day.textContent = prevMonthLastDay - i;
-            // 添加数据属性标识月份
-            day.dataset.month = month;
-            day.dataset.year = year;
-            this.calendarGrid.appendChild(day);
-        }
+    // Render a window of weeks starting at `firstWeekIndex` and rendering `numRows` rows (weeks)
+    renderWindow(firstWeekIndex) {
+        if (!this.daysContainer) return;
 
-        // 添加当前月的所有日期
+        const gridHeight = this.calendarGrid.clientHeight || (this.rowHeight * 6);
+        const visibleRows = Math.ceil(gridHeight / this.rowHeight);
+        const startRow = Math.max(0, firstWeekIndex - this.bufferRows);
+        const endRow = Math.min(this.totalWeeks - 1, firstWeekIndex + visibleRows + this.bufferRows);
+        const rowsToRender = endRow - startRow + 1;
+
+        // clear days container
+        this.daysContainer.innerHTML = '';
+
         const today = new Date();
-        for (let i = 1; i <= daysInMonth; i++) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day';
-            day.textContent = i;
-            
-            // 添加数据属性以便识别日期和月份
-            day.dataset.date = `${year}-${month+1}-${i}`;
-            day.dataset.month = month;
-            day.dataset.year = year;
 
-            // 标记今天
-            if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
-                day.classList.add('today');
+        for (let r = 0; r < rowsToRender; r++) {
+            const weekIndex = startRow + r;
+            for (let d = 0; d < 7; d++) {
+                const cellDate = new Date(this.totalStartDate);
+                cellDate.setDate(this.totalStartDate.getDate() + weekIndex * 7 + d);
+
+                const day = document.createElement('div');
+                day.className = 'calendar-day';
+                day.textContent = cellDate.getDate();
+
+                day.dataset.date = `${cellDate.getFullYear()}-${cellDate.getMonth()+1}-${cellDate.getDate()}`;
+                day.dataset.month = cellDate.getMonth();
+                day.dataset.year = cellDate.getFullYear();
+
+                if (cellDate.getFullYear() === today.getFullYear() && cellDate.getMonth() === today.getMonth() && cellDate.getDate() === today.getDate()) {
+                    day.classList.add('today');
+                }
+
+                // mark other-month vs the primary month will be handled in updateCurrentMonthTitleAndStyles
+                this.daysContainer.appendChild(day);
             }
-
-            this.calendarGrid.appendChild(day);
         }
 
-        // 计算需要填充的剩余单元格
-        const totalCells = 42; // 6行 * 7天
-        const cellsAdded = firstDayOfWeek + daysInMonth;
-        const remainingCells = totalCells - cellsAdded;
+        // adjust spacers
+        const topSpacerHeight = startRow * this.rowHeight;
+        const renderedHeight = rowsToRender * this.rowHeight;
+        const contentHeight = this.totalWeeks * this.rowHeight;
+        this.topSpacer.style.height = topSpacerHeight + 'px';
+        this.bottomSpacer.style.height = Math.max(0, contentHeight - topSpacerHeight - renderedHeight) + 'px';
 
-        // 添加下个月的前几天
-        for (let i = 1; i <= remainingCells; i++) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day other-month';
-            day.textContent = i;
-            // 添加数据属性标识月份
-            day.dataset.month = month;
-            day.dataset.year = year;
-            this.calendarGrid.appendChild(day);
-        }
+        // update styles and title for the newly rendered window
+        this.updateCurrentMonthTitleAndStyles();
     }
 
     // 滚动到当前月份
     scrollToCurrentMonth() {
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth();
-        
-        // 计算当前月份前面有多少个月
-        const totalMonthsBefore = (currentYear - 1970) * 12 + currentMonth;
-        
-        // 每个月占据6行，每行高度大约是 (calendarGrid高度 / 行数)
-        const rowHeight = 80; // 大概的高度
-        const scrollToPosition = totalMonthsBefore * 6 * rowHeight;
-        
-        // 滚动到指定位置
-        this.calendarGrid.scrollTop = scrollToPosition;
-        
-        // 更新标题和样式
-        setTimeout(() => {
-            this.updateCurrentMonthTitleAndStyles();
-        }, 100);
+        // compute week index for initialPointerDate
+        const weeksBefore = Math.floor((this.initialPointerDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        this.handleScroll();
     }
 
     // 处理滚动事件
     handleScroll() {
-        // 使用防抖优化性能
-        this.debounceUpdateTitleAndStyles();
+        // 使用防抖优化性能并虚拟渲染窗口
+        clearTimeout(this.titleUpdateTimer);
+        this.titleUpdateTimer = setTimeout(() => {
+            const scrollTop = this.calendarGrid.scrollTop;
+            const newFirstVisibleRow = Math.floor(scrollTop / this.rowHeight);
+            if (newFirstVisibleRow !== this.firstVisibleRow) {
+                this.firstVisibleRow = newFirstVisibleRow;
+            }
+            this.renderWindow(this.firstVisibleRow);
+        }, 50);
     }
 
     // 防抖函数用于优化性能
     debounceUpdateTitleAndStyles() {
-        clearTimeout(this.titleUpdateTimer);
-        this.titleUpdateTimer = setTimeout(() => {
-            this.updateCurrentMonthTitleAndStyles();
-        }, 50);
+        // kept for compatibility, now handleScroll does debounced rendering and update
+        this.handleScroll();
     }
 
     // 更新当前显示的月份标题和日期样式
     updateCurrentMonthTitleAndStyles() {
-        const gridHeight = this.calendarGrid.clientHeight;
-        const scrollTop = this.calendarGrid.scrollTop;
-        
-        // 统计可见区域内各个月份的天数
+        // Count visible days per month-year in the currently rendered container
+        const days = this.daysContainer ? Array.from(this.daysContainer.querySelectorAll('.calendar-day')) : Array.from(this.calendarGrid.querySelectorAll('.calendar-day'));
+        const gridRect = this.calendarGrid.getBoundingClientRect();
         const monthCounts = new Map();
-        const days = this.calendarGrid.querySelectorAll('.calendar-day');
-        
+
         days.forEach(day => {
             const rect = day.getBoundingClientRect();
-            const gridRect = this.calendarGrid.getBoundingClientRect();
-            const relativeTop = rect.top - gridRect.top + scrollTop;
-            
-            // 检查日期是否在可见区域内
-            if (relativeTop >= scrollTop && relativeTop <= scrollTop + gridHeight) {
+            // consider visible if intersects grid viewport
+            if (rect.bottom >= gridRect.top && rect.top <= gridRect.bottom) {
                 const month = parseInt(day.dataset.month);
-                if (!isNaN(month)) {
-                    monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+                const year = parseInt(day.dataset.year);
+                if (!isNaN(month) && !isNaN(year)) {
+                    const key = `${year}-${month}`;
+                    monthCounts.set(key, (monthCounts.get(key) || 0) + 1);
                 }
             }
         });
-        
-        // 找到天数最多的月份作为主月份
-        let primaryMonth = this.currentMonth;
+
+        // find primary month-year
+        let primaryKey = null;
         let maxCount = 0;
-        
-        monthCounts.forEach((count, month) => {
+        monthCounts.forEach((count, key) => {
             if (count > maxCount) {
                 maxCount = count;
-                primaryMonth = month;
+                primaryKey = key;
             }
         });
-        
-        // 更新标题
-        this.calendarMonthYear.textContent = `${this.monthNames[primaryMonth]} ${new Date().getFullYear()}`;
-        
-        // 更新日期样式
+
+        if (primaryKey) {
+            const [y, m] = primaryKey.split('-').map(n => parseInt(n, 10));
+            this.calendarMonthYear.textContent = `${this.monthNames[m]} ${y}`;
+        }
+
+        // update styles
         days.forEach(day => {
             const month = parseInt(day.dataset.month);
-            if (month === primaryMonth) {
-                day.style.color = '#000'; // 当前主月份日期置黑
+            const year = parseInt(day.dataset.year);
+            const key = `${year}-${month}`;
+            if (primaryKey && key === primaryKey) {
+                day.style.color = '#000';
+                day.classList.remove('other-month');
             } else {
-                day.style.color = '#999'; // 其他月份日期置灰
+                day.style.color = '#999';
+                day.classList.add('other-month');
             }
-            
-            // 今天特殊处理 - 保持原有的背景色和文字色
+
             if (day.classList.contains('today')) {
-                day.style.color = ''; // 移除自定义颜色，使用CSS定义的样式
-            }
-            
-            // 其他月份的日期保持原来的灰色（通过CSS）
-            if (day.classList.contains('other-month')) {
                 day.style.color = '';
             }
         });
@@ -237,7 +252,14 @@ class Calendar {
             this.currentMonth = 11;
             this.currentYear--;
         }
-        this.resetCalendar();
+        // update pointer to Monday of new month and scroll to it
+        const firstOfMonth = new Date(this.currentYear, this.currentMonth, 1);
+        const diffToMonday = (firstOfMonth.getDay() + 6) % 7;
+        const ptr = new Date(firstOfMonth);
+        ptr.setDate(firstOfMonth.getDate() - diffToMonday);
+        const weeksBefore = Math.floor((ptr - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        this.handleScroll();
     }
 
     // 下一个月
@@ -247,30 +269,41 @@ class Calendar {
             this.currentMonth = 0;
             this.currentYear++;
         }
-        this.resetCalendar();
+        const firstOfMonth = new Date(this.currentYear, this.currentMonth, 1);
+        const diffToMonday = (firstOfMonth.getDay() + 6) % 7;
+        const ptr = new Date(firstOfMonth);
+        ptr.setDate(firstOfMonth.getDate() - diffToMonday);
+        const weeksBefore = Math.floor((ptr - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        this.handleScroll();
     }
 
     // 回到今天
     goToToday() {
         // 直接滚动到今天的日期
-        const todayElement = this.calendarGrid.querySelector('.calendar-day.today');
-        if (todayElement) {
-            todayElement.scrollIntoView({behavior: 'smooth', block: 'center'});
-            
-            // 添加视觉反馈
-            todayElement.style.backgroundColor = '#ffeb3b';
-            todayElement.style.transform = 'scale(1.1)';
-            todayElement.style.transition = 'all 0.3s ease';
-            
-            setTimeout(() => {
-                todayElement.style.backgroundColor = '';
-                todayElement.style.transform = '';
-            }, 1000);
-        }
+        const today = new Date();
+        const weeksBefore = Math.floor((new Date(today.getFullYear(), today.getMonth(), today.getDate()) - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        this.handleScroll();
+
+        // add visual feedback once rendered
+        setTimeout(() => {
+            const todayElement = this.daysContainer.querySelector('.calendar-day.today');
+            if (todayElement) {
+                todayElement.style.backgroundColor = '#ffeb3b';
+                todayElement.style.transform = 'scale(1.1)';
+                todayElement.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    todayElement.style.backgroundColor = '';
+                    todayElement.style.transform = '';
+                }, 1000);
+            }
+        }, 200);
     }
 
     // 重置日历
     resetCalendar() {
+        // reinitialize virtualization and scroll to current month
         this.initCalendar();
     }
 }
