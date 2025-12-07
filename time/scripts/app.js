@@ -53,7 +53,7 @@ class TimeApp {
         this.calendarBtn.classList.add('active');
         this.clockBtn.classList.remove('active');
         if (this.globeBtn) this.globeBtn.classList.remove('active');
-        this.toggleSlider.style.transform = 'translateX(33.33%)';
+        this.toggleSlider.style.transform = 'translateX(100%)';
 
         this.clockView.classList.add('hidden');
         this.clockView.classList.remove('fade-in');
@@ -69,7 +69,7 @@ class TimeApp {
         this.globeBtn.classList.add('active');
         this.clockBtn.classList.remove('active');
         this.calendarBtn.classList.remove('active');
-        this.toggleSlider.style.transform = 'translateX(66.66%)';
+        this.toggleSlider.style.transform = 'translateX(200%)';
 
         this.clockView.classList.add('hidden');
         this.clockView.classList.remove('fade-in');
