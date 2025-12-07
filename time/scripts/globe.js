@@ -236,7 +236,7 @@
             const toggle = document.getElementById('globe-rotate-toggle');
             const centerBtn = document.getElementById('globe-center-location');
             const rollInput = document.getElementById('globe-roll');
-            const sizeInput = document.getElementById('size-slider');
+            const globeSizeInput = document.getElementById('globe-size');
             if (toggle) {
                 toggle.addEventListener('click', () => {
                     rotating = !rotating;
@@ -255,14 +255,12 @@
                 });
             }
 
-            if (sizeInput) {
-                // use the size slider to set canvas display size
-                const initialV = parseInt(sizeInput.value, 10) || 700;
+            if (globeSizeInput) {
+                const initialV = parseInt(globeSizeInput.value, 10) || 700;
                 canvas.style.width = initialV + 'px';
                 canvas.style.height = initialV + 'px';
-                sizeInput.addEventListener('input', () => {
-                    // set canvas CSS size to slider value (px)
-                    const v = parseInt(sizeInput.value, 10) || 700;
+                globeSizeInput.addEventListener('input', () => {
+                    const v = parseInt(globeSizeInput.value, 10) || 700;
                     canvas.style.width = v + 'px';
                     canvas.style.height = v + 'px';
                     resize();
