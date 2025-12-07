@@ -31,7 +31,8 @@
         let rotY = 0; // yaw
         let rotZ = 0; // roll
         let rotating = true;
-        const rotationSpeed = 0.0025; // rad per frame (applies to yaw)
+        let rotationSpeed = 0.0025; // rad per frame (applies to yaw)
+        const baseRotationSpeed = 0.0025; // Base speed value for calculations
 
         // Earth's axial tilt in radians (approximately 23.5 degrees)
         const earthAxialTilt = 23.5 * Math.PI / 180;
@@ -237,18 +238,20 @@
 
         // wire UI
         function wireUI() {
-            const toggle = document.getElementById('globe-rotate-toggle');
             const centerBtn = document.getElementById('globe-center-location');
             const globeSizeInput = document.getElementById('globe-size');
             const globeTiltInput = document.getElementById('globe-tilt');
             const resetTiltBtn = document.getElementById('reset-tilt');
+            const globeSpeedInput = document.getElementById('globe-speed');
+            const toggleBtn = document.getElementById('globe-rotate-toggle');
             
-            if (toggle) {
-                toggle.addEventListener('click', () => {
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
                     rotating = !rotating;
-                    toggle.textContent = rotating ? 'Pause' : 'Play';
+                    toggleBtn.textContent = rotating ? 'Pause Rotation' : 'Resume Rotation';
                 });
             }
+            
             if (centerBtn) {
                 centerBtn.addEventListener('click', () => {
                     if (hasLocation) centerOnLongitude(lon);
@@ -270,6 +273,17 @@
                     if (globeTiltInput) {
                         globeTiltInput.value = 23.5;
                     }
+                });
+            }
+
+            if (globeSpeedInput) {
+                // Set initial slider value (2.5 corresponds to base speed with multiplier of 1.0)
+                globeSpeedInput.value = 2.5;
+                
+                globeSpeedInput.addEventListener('input', (e) => {
+                    const speedValue = parseFloat(e.target.value) || 0;
+                    // Map slider value (0-10) to rotation speed (0-2x base speed)
+                    rotationSpeed = baseRotationSpeed * (speedValue / 2.5);
                 });
             }
 

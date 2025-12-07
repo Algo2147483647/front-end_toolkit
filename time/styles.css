@@ -60,7 +60,7 @@ body {
     top: 5px;
     left: 5px;
     height: calc(100% - 10px);
-    width: calc(33.33% - 10px);
+    width: calc(33.33% - 4px);
     background: linear-gradient(to right, #6a9eff, #a3c1ff);
     border-radius: 50px;
     transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -494,17 +494,9 @@ body {
     background: rgba(240, 240, 240, 0.9);
 }
 
-.size-slider {
-    width: 150px;
-    appearance: none;
-    -webkit-appearance: none;
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(240, 240, 240, 0.9);
-    outline: none;
-}
-
-.tilt-slider {
+.size-slider,
+.tilt-slider,
+.speed-slider {
     width: 150px;
     appearance: none;
     -webkit-appearance: none;
@@ -515,7 +507,8 @@ body {
 }
 
 .size-slider::-webkit-slider-thumb,
-.tilt-slider::-webkit-slider-thumb {
+.tilt-slider::-webkit-slider-thumb,
+.speed-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 22px;
     height: 22px;
@@ -525,13 +518,32 @@ body {
     box-shadow: 0 0 10px rgba(106, 158, 255, 0.8);
 }
 
-#reset-tilt {
+.settings-btn {
     align-self: flex-start;
-    padding: 5px 10px;
+    padding: 8px 16px;
     border-radius: 4px;
     background: rgba(240, 240, 240, 0.9);
     border: 1px solid rgba(200, 200, 200, 0.5);
     cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+#reset-tilt {
+    align-self: flex-start;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: rgba(240, 240, 240, 0.9);
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* 响应式设计 */

@@ -50,7 +50,6 @@
                         <div>Longitude: <span id="lon-value">0.00</span>°</div>
                     </div>
                     <div class="globe-controls">
-                        <button id="globe-rotate-toggle" class="nav-btn">Pause</button>
                         <button id="globe-center-location" class="nav-btn">Center On Me</button>
                     </div>
                 </div>
@@ -113,7 +112,12 @@
                         Globe Tilt
                         <input type="range" min="-45" max="45" value="23.5" step="0.1" class="tilt-slider" id="globe-tilt">
                     </label>
-                    <button id="reset-tilt" class="nav-btn">Reset Tilt</button>
+                    <button id="reset-tilt" class="settings-btn">Reset Tilt</button>
+                    <label>
+                        Rotation Speed
+                        <input type="range" min="0" max="10" value="2.5" step="0.1" class="speed-slider" id="globe-speed">
+                    </label>
+                    <button id="globe-rotate-toggle" class="settings-btn">Pause Rotation</button>
                 </div>
             </div>
         </div>
