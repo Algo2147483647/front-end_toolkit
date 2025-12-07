@@ -96,12 +96,12 @@ body {
 
 /* 时钟圆盘 */
 .clock-face {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 50%;
-    border: 2px solid rgba(200, 200, 200, 0.5);
+    border: 2px solid rgba(200, 200, 200, 0.7);
     box-shadow:
-        0 0 60px rgba(106, 158, 255, 0.2),
-        inset 0 0 30px rgba(240, 240, 240, 0.8);
+        0 0 60px rgba(106, 158, 255, 0.3),
+        inset 0 0 30px rgba(255, 255, 255, 0.9);
     position: relative;
     overflow: hidden;
 }
@@ -121,7 +121,7 @@ body {
     left: 50%;
     width: 2px;
     height: 15px;
-    background: rgba(106, 158, 255, 0.7);
+    background: rgba(60, 60, 120, 0.8);
     transform-origin: 0 50%;
     border-radius: 1px;
 }
@@ -129,7 +129,7 @@ body {
 /* 小时文本 */
 .hour-text {
     position: absolute;
-    color: rgba(80, 80, 80, 0.9);
+    color: rgba(30, 30, 90, 0.9);
     font-size: 18px;
     font-weight: 600;
     transform: translate(-50%, -50%);

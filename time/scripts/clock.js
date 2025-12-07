@@ -16,8 +16,8 @@ function drawClock() {
         centerX, centerY, radius * 0.5,
         centerX, centerY, radius
     );
-    gradient.addColorStop(0, 'rgba(25, 25, 60, 0.8)');
-    gradient.addColorStop(1, 'rgba(10, 10, 30, 0.9)');
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    gradient.addColorStop(1, 'rgba(240, 240, 240, 0.9)');
     ctx.fillStyle = gradient;
     ctx.fill();
 
@@ -39,7 +39,7 @@ function drawClock() {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
-        ctx.strokeStyle = i % 6 === 0 ? 'rgba(150, 150, 255, 0.9)' : 'rgba(150, 150, 255, 0.6)';
+        ctx.strokeStyle = i % 6 === 0 ? 'rgba(60, 60, 120, 0.8)' : 'rgba(100, 100, 180, 0.6)';
         ctx.lineWidth = i % 6 === 0 ? 3 : 2;
         ctx.stroke();
 
@@ -48,7 +48,7 @@ function drawClock() {
         const textY = centerY - Math.cos(angle) * (radius - 35);
 
         ctx.font = i % 6 === 0 ? 'bold 18px Arial' : '16px Arial';
-        ctx.fillStyle = i % 6 === 0 ? 'rgba(220, 220, 255, 0.9)' : 'rgba(200, 200, 255, 0.7)';
+        ctx.fillStyle = i % 6 === 0 ? 'rgba(30, 30, 90, 0.9)' : 'rgba(60, 60, 120, 0.8)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(i === 0 ? '24' : i.toString(), textX, textY);
