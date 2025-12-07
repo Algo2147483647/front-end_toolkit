@@ -1,12 +1,12 @@
-// 日历功能
+// Calendar functionality
 class Calendar {
     constructor() {
         this.currentDate = new Date();
         this.currentYear = this.currentDate.getFullYear();
         this.currentMonth = this.currentDate.getMonth();
-        this.weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-        this.monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
-                          '七月', '八月', '九月', '十月', '十一月', '十二月'];
+        this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        this.monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
         
         this.initElements();
         this.bindEvents();
@@ -27,9 +27,9 @@ class Calendar {
         this.todayBtn.addEventListener('click', () => this.goToToday());
     }
 
-    // 初始化日历
+    // Initialize calendar
     initCalendar() {
-        // 添加星期标题
+        // Add weekday titles
         this.calendarGrid.innerHTML = '';
         this.weekdays.forEach(day => {
             const dayElement = document.createElement('div');
@@ -41,22 +41,22 @@ class Calendar {
         this.renderCalendar(this.currentYear, this.currentMonth);
     }
 
-    // 渲染日历
+    // Render calendar
     renderCalendar(year, month) {
-        // 移除之前的日子（保留星期标题）
+        // Remove previous days (keep weekday titles)
         const days = document.querySelectorAll('.calendar-day');
         days.forEach(day => day.remove());
 
-        // 更新标题
-        this.calendarMonthYear.textContent = `${year}年 ${this.monthNames[month]}`;
+        // Update title
+        this.calendarMonthYear.textContent = `${this.monthNames[month]} ${year}`;
 
-        // 获取当月第一天和最后一天
+        // Get first and last day of the month
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
         const firstDayOfWeek = firstDay.getDay();
 
-        // 添加上个月的最后几天
+        // Add last days of previous month
         const prevMonthLastDay = new Date(year, month, 0).getDate();
         for (let i = firstDayOfWeek - 1; i >= 0; i--) {
             const day = document.createElement('div');
@@ -65,14 +65,14 @@ class Calendar {
             this.calendarGrid.appendChild(day);
         }
 
-        // 添加当月所有日子
+        // Add all days of current month
         const today = new Date();
         for (let i = 1; i <= daysInMonth; i++) {
             const day = document.createElement('div');
             day.className = 'calendar-day';
             day.textContent = i;
 
-            // 标记今天
+            // Mark today
             if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
                 day.classList.add('today');
             }
@@ -80,8 +80,8 @@ class Calendar {
             this.calendarGrid.appendChild(day);
         }
 
-        // 添加下个月的前几天
-        const totalCells = 42; // 6行 * 7天
+        // Add first days of next month
+        const totalCells = 42; // 6 rows * 7 days
         const cellsAdded = firstDayOfWeek + daysInMonth;
         const remainingCells = totalCells - cellsAdded;
 
@@ -93,7 +93,7 @@ class Calendar {
         }
     }
 
-    // 日历导航
+    // Calendar navigation
     previousMonth() {
         this.currentMonth--;
         if (this.currentMonth < 0) {

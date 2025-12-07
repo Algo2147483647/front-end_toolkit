@@ -1,4 +1,4 @@
-// 时钟和日历切换功能
+// Clock and calendar toggle functionality
 class TimeApp {
     constructor() {
         this.clockBtn = document.getElementById('clock-btn');
@@ -46,17 +46,17 @@ class TimeApp {
     }
 
     init() {
-        // 初始化时钟大小
+        // Initialize clock size
         updateClockSize();
         
-        // 初始化日历
+        // Initialize calendar
         this.calendar = new Calendar();
         
-        // 初始绘制
+        // Initial drawing
         drawClock();
         updateDigitalClock();
 
-        // 设置定时器，每秒更新一次
+        // Set timer to update every second
         setInterval(() => {
             drawClock();
             updateDigitalClock();
@@ -64,7 +64,7 @@ class TimeApp {
     }
 }
 
-// 页面加载完成后初始化
+// Initialize after page load
 document.addEventListener('DOMContentLoaded', () => {
     window.timeApp = new TimeApp();
 });
