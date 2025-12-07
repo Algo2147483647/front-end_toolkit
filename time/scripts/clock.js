@@ -31,7 +31,7 @@ function drawClock() {
     // 绘制24小时内圈刻度（在表盘半径的一半处）
     for (let i = 0; i < 24; i++) {
         const angle = (i * Math.PI * 2) / 24;
-        const innerRadius = radius * 0.5; // 刻度位于半径的一半处
+        const innerRadius = radius * 0.4; // 刻度位于半径的一半处
         const outerRadius = innerRadius + (i % 6 === 0 ? 12 : 8); // 大刻度和小刻度长度不同
         
         const startX = centerX + Math.sin(angle) * innerRadius;
