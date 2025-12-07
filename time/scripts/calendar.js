@@ -214,14 +214,6 @@ class Calendar {
         this.updateDaysFromToday();
     }
 
-    // 滚动到当前月份
-    scrollToCurrentMonth() {
-        // compute week index for initialPointerDate
-        const weeksBefore = Math.floor((this.initialPointerDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
-        this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
-        this.handleScroll();
-    }
-
     // 处理滚动事件
     handleScroll() {
         // 使用防抖优化性能并虚拟渲染窗口
@@ -234,12 +226,6 @@ class Calendar {
             }
             this.renderWindow(this.firstVisibleRow);
         }, 50);
-    }
-
-    // 防抖函数用于优化性能
-    debounceUpdateTitleAndStyles() {
-        // kept for compatibility, now handleScroll does debounced rendering and update
-        this.handleScroll();
     }
 
     // 更新当前显示的月份标题和日期样式
@@ -400,9 +386,4 @@ class Calendar {
         this.clearDaysFromToday();
     }
 
-    // 重置日历
-    resetCalendar() {
-        // reinitialize virtualization and scroll to current month
-        this.init();
-    }
 }
