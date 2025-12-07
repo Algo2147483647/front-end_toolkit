@@ -283,9 +283,9 @@ body {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
+    gap: 0;
     /* keep identical horizontal padding so columns align */
-    padding: 5px;
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -328,24 +328,31 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: 0;
     font-size: 18px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     background: rgba(240, 240, 240, 0.9);
     color: #555;
-    border: 1px solid rgba(200, 200, 200, 0.5);
+    border: none;
     min-height: 70px;
+    transition: all 0.3s ease;
 }
 
 .calendar-day:hover {
     background: rgba(106, 158, 255, 0.2);
-    transform: translateY(-5px);
+    transform: none;
 }
 
 .calendar-day.today {
-    background: linear-gradient(135deg, #6a9eff, #a3c1ff);
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+.calendar-day.selected {
+    background: linear-gradient(135deg, #6a9eff, #5271ee);
     color: white;
     box-shadow: 0 5px 15px rgba(106, 158, 255, 0.4);
 }

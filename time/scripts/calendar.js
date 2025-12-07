@@ -42,6 +42,8 @@ class Calendar {
         this.prevMonthBtn = document.getElementById('prev-month');
         this.nextMonthBtn = document.getElementById('next-month');
         this.todayBtn = document.getElementById('today-btn');
+        // 添加选中的日期跟踪
+        this.selectedDate = null;
     }
 
     bindEvents() {
@@ -51,6 +53,14 @@ class Calendar {
         
         // 添加滚动事件监听器
         this.calendarGrid.addEventListener('scroll', () => this.handleScroll());
+        
+        // 添加日期点击事件委托
+        this.calendarGrid.addEventListener('click', (e) => {
+            const dayElement = e.target.closest('.calendar-day');
+            if (dayElement) {
+                this.selectDate(dayElement);
+            }
+        });
     }
 
     // 初始化日历
@@ -157,6 +167,14 @@ class Calendar {
                     day.classList.add('today');
                 }
 
+                // 如果这是选中的日期，添加selected类
+                if (this.selectedDate && 
+                    cellDate.getFullYear() === this.selectedDate.getFullYear() &&
+                    cellDate.getMonth() === this.selectedDate.getMonth() &&
+                    cellDate.getDate() === this.selectedDate.getDate()) {
+                    day.classList.add('selected');
+                }
+
                 // mark other-month vs the primary month will be handled in updateCurrentMonthTitleAndStyles
                 this.daysContainer.appendChild(day);
             }
@@ -171,6 +189,22 @@ class Calendar {
 
         // update styles and title for the newly rendered window
         this.updateCurrentMonthTitleAndStyles();
+    }
+
+    // 处理日期选择
+    selectDate(dayElement) {
+        // 移除之前选中日期的selected类
+        const previouslySelected = this.daysContainer.querySelector('.calendar-day.selected');
+        if (previouslySelected) {
+            previouslySelected.classList.remove('selected');
+        }
+
+        // 添加selected类到新选中的日期
+        dayElement.classList.add('selected');
+        
+        // 更新选中的日期
+        const dateParts = dayElement.dataset.date.split('-');
+        this.selectedDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     }
 
     // 滚动到当前月份
