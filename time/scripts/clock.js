@@ -28,38 +28,6 @@ function drawClock() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 绘制60分钟外圈刻度
-    for (let i = 0; i < 60; i++) {
-        const angle = (i * Math.PI * 2) / 60;
-        const innerRadius = radius - 20; // 刻度位于接近表盘边缘
-        const outerRadius = innerRadius + (i % 5 === 0 ? 15 : 8); // 大刻度和小刻度长度不同
-        
-        const startX = centerX + Math.sin(angle) * innerRadius;
-        const startY = centerY - Math.cos(angle) * innerRadius;
-        const endX = centerX + Math.sin(angle) * outerRadius;
-        const endY = centerY - Math.cos(angle) * outerRadius;
-
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = i % 5 === 0 ? 'rgba(60, 60, 120, 0.8)' : 'rgba(100, 100, 180, 0.6)';
-        ctx.lineWidth = i % 5 === 0 ? 2.5 : 1.5;
-        ctx.stroke();
-
-        // 每15分钟标注数字（即每3个大刻度标注一次）
-        if (i % 15 === 0) {
-            const textRadius = outerRadius + 20;
-            const textX = centerX + Math.sin(angle) * textRadius;
-            const textY = centerY - Math.cos(angle) * textRadius;
-            
-            ctx.font = 'bold 16px Arial';
-            ctx.fillStyle = 'rgba(30, 30, 90, 0.9)';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(i === 0 ? '60' : i.toString(), textX, textY);
-        }
-    }
-
     // 绘制24小时内圈刻度（在表盘半径的一半处）
     for (let i = 0; i < 24; i++) {
         const angle = (i * Math.PI * 2) / 24;
@@ -88,6 +56,39 @@ function drawClock() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(i === 0 ? '24' : i.toString(), textX, textY);
+    }
+
+    // 绘制60分钟外圈刻度（在外圆内侧）
+    for (let i = 0; i < 60; i++) {
+        const angle = (i * Math.PI * 2) / 60;
+        const outerRadius = radius - 5; // 刻度位于外圆内侧
+        const innerRadius = outerRadius - (i % 5 === 0 ? 15 : 8); // 大刻度和小刻度长度不同
+        
+        const startX = centerX + Math.sin(angle) * innerRadius;
+        const startY = centerY - Math.cos(angle) * innerRadius;
+        const endX = centerX + Math.sin(angle) * outerRadius;
+        const endY = centerY - Math.cos(angle) * outerRadius;
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        // 所有刻度颜色改为黑色
+        ctx.strokeStyle = i % 5 === 0 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)';
+        ctx.lineWidth = i % 5 === 0 ? 2.5 : 1.5;
+        ctx.stroke();
+
+        // 每5分钟标注数字
+        if (i % 5 === 0) {
+            const textRadius = innerRadius - 20;
+            const textX = centerX + Math.sin(angle) * textRadius;
+            const textY = centerY - Math.cos(angle) * textRadius;
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; // 数字颜色也改为黑色
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(i === 0 ? '60' : i.toString(), textX, textY);
+        }
     }
 
     // 获取当前时间
@@ -129,8 +130,8 @@ function drawClock() {
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(
-        centerX + Math.cos(minuteAngle) * radius * 0.8,
-        centerY + Math.sin(minuteAngle) * radius * 0.8
+        centerX + Math.cos(minuteAngle) * radius * 0.7,
+        centerY + Math.sin(minuteAngle) * radius * 0.7
     );
     ctx.strokeStyle = '#6d8eff';
     ctx.lineWidth = 6;
