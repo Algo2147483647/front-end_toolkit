@@ -124,7 +124,7 @@ function drawClock() {
         centerX + Math.cos(hourAngle) * radius * 0.45,
         centerY + Math.sin(hourAngle) * radius * 0.45
     );
-    ctx.strokeStyle = '#4a6fff';
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -136,7 +136,7 @@ function drawClock() {
         centerX + Math.cos(minuteAngle) * radius * 0.95,
         centerY + Math.sin(minuteAngle) * radius * 0.95
     );
-    ctx.strokeStyle = '#6d8eff';
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
     ctx.stroke();
