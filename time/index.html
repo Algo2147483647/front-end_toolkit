@@ -18,6 +18,9 @@
             <button class="toggle-btn" id="calendar-btn">
                 <i class="fas fa-calendar-alt"></i> Calendar
             </button>
+            <button class="toggle-btn" id="globe-btn">
+                <i class="fas fa-globe"></i> Globe
+            </button>
         </div>
     </nav>
 
@@ -33,6 +36,23 @@
                     <div class="time-part" id="minutes">00</div>
                     <div class="time-separator">:</div>
                     <div class="time-part" id="seconds">00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Globe View -->
+        <div class="globe-view" id="globe-view" style="display:none;">
+            <div class="globe-container">
+                <canvas id="globe-canvas" class="globe-canvas"></canvas>
+                <div class="globe-overlay">
+                    <div class="coords">
+                        <div>Latitude: <span id="lat-value">0.00</span>°</div>
+                        <div>Longitude: <span id="lon-value">0.00</span>°</div>
+                    </div>
+                    <div class="globe-controls">
+                        <button id="globe-rotate-toggle" class="nav-btn">Pause</button>
+                        <button id="globe-center-location" class="nav-btn">Center On Me</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,6 +103,7 @@
 
     <script src="scripts/calendar.js"></script>
     <script src="scripts/clock.js"></script>
+    <script src="scripts/globe.js"></script>
     <script src="scripts/app.js"></script>
 </body>
 </html>

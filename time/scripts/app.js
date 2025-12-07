@@ -3,8 +3,10 @@ class TimeApp {
     constructor() {
         this.clockBtn = document.getElementById('clock-btn');
         this.calendarBtn = document.getElementById('calendar-btn');
+        this.globeBtn = document.getElementById('globe-btn');
         this.clockView = document.getElementById('clock-view');
         this.calendarView = document.getElementById('calendar-view');
+        this.globeView = document.getElementById('globe-view');
         this.toggleSlider = document.querySelector('.toggle-slider');
         this.sizeSlider = document.getElementById('size-slider');
         this.secondHandMotion = document.getElementById('second-hand-motion');
@@ -18,6 +20,7 @@ class TimeApp {
     bindEvents() {
         this.clockBtn.addEventListener('click', () => this.showClock());
         this.calendarBtn.addEventListener('click', () => this.showCalendar());
+        if (this.globeBtn) this.globeBtn.addEventListener('click', () => this.showGlobe());
         this.sizeSlider.addEventListener('input', () => this.onSizeChange());
         this.secondHandMotion.addEventListener('change', () => this.onMotionChange());
         this.settingsToggle.addEventListener('click', () => this.toggleSettings());
@@ -26,10 +29,12 @@ class TimeApp {
     showClock() {
         this.clockBtn.classList.add('active');
         this.calendarBtn.classList.remove('active');
+        if (this.globeBtn) this.globeBtn.classList.remove('active');
         this.toggleSlider.style.transform = 'translateX(0)';
 
         this.clockView.classList.remove('hidden');
         this.calendarView.classList.remove('active');
+        if (this.globeView) { this.globeView.style.display = 'none'; this.globeView.classList.remove('active'); }
 
         setTimeout(() => {
             this.clockView.classList.add('fade-in');
@@ -39,11 +44,30 @@ class TimeApp {
     showCalendar() {
         this.calendarBtn.classList.add('active');
         this.clockBtn.classList.remove('active');
+        if (this.globeBtn) this.globeBtn.classList.remove('active');
         this.toggleSlider.style.transform = 'translateX(100%)';
 
         this.clockView.classList.add('hidden');
         this.clockView.classList.remove('fade-in');
         this.calendarView.classList.add('active');
+        if (this.globeView) { this.globeView.style.display = 'none'; this.globeView.classList.remove('active'); }
+    }
+
+    showGlobe() {
+        if (!this.globeView) return;
+        this.globeBtn.classList.add('active');
+        this.clockBtn.classList.remove('active');
+        this.calendarBtn.classList.remove('active');
+        this.toggleSlider.style.transform = 'translateX(200%)';
+
+        this.clockView.classList.add('hidden');
+        this.clockView.classList.remove('fade-in');
+
+        this.calendarView.classList.remove('active');
+
+        this.globeView.style.display = 'block';
+        // allow CSS animation to pick up
+        setTimeout(() => this.globeView.classList.add('active'), 30);
     }
 
     onSizeChange() {
