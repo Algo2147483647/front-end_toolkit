@@ -35,17 +35,17 @@ function drawClock() {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
-        ctx.strokeStyle = i % 6 === 0 ? 'rgba(60, 60, 120, 0.8)' : 'rgba(100, 100, 180, 0.6)';
+        ctx.strokeStyle = i % 6 === 0 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)';
         ctx.lineWidth = i % 6 === 0 ? 3 : 2;
         ctx.stroke();
 
         // 绘制小时数字（24小时制）
-        const textRadius = outerRadius + 15;
+        const textRadius = outerRadius + 20;
         const textX = centerX + Math.sin(angle) * textRadius;
         const textY = centerY - Math.cos(angle) * textRadius;
 
-        ctx.font = i % 6 === 0 ? 'bold 18px Arial' : '16px Arial';
-        ctx.fillStyle = i % 6 === 0 ? 'rgba(30, 30, 90, 0.9)' : 'rgba(60, 60, 120, 0.8)';
+        ctx.font = i % 6 === 0 ? 'bold 20px "Times New Roman", serif' : '20px "Times New Roman", serif';
+        ctx.fillStyle = i % 6 === 0 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(i === 0 ? '24' : i.toString(), textX, textY);
@@ -76,7 +76,7 @@ function drawClock() {
             const textX = centerX + Math.sin(angle) * textRadius;
             const textY = centerY - Math.cos(angle) * textRadius;
             
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 24px "Times New Roman", serif';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; // 数字颜色也改为黑色
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
