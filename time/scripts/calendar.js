@@ -32,7 +32,7 @@ class Calendar {
         
         this.initElements();
         this.bindEvents();
-        this.initCalendar();
+        this.init(); // 调用新的初始化方法
     }
 
     initElements() {
@@ -61,6 +61,27 @@ class Calendar {
                 this.selectDate(dayElement);
             }
         });
+    }
+
+    // 新增初始化方法：计算初始索引为当月第一天所在的星期一
+    init() {
+        // 计算当月第一天
+        const firstOfMonth = new Date(this.currentYear, this.currentMonth, 1);
+        
+        // 计算当月第一天的星期一
+        const dayOfWeek = firstOfMonth.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+        const diffToMonday = (dayOfWeek + 6) % 7; // 计算到星期一需要减去的天数
+        
+        // 当月第一天的星期一作为初始索引日期
+        const initialMonday = new Date(firstOfMonth);
+        initialMonday.setDate(firstOfMonth.getDate() - diffToMonday);
+        
+        // 计算初始索引（相对于totalStartDate的周数）
+        const weeksFromStart = Math.floor((initialMonday - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        this.firstVisibleRow = weeksFromStart;
+        
+        // 初始化日历网格
+        this.initCalendar();
     }
 
     // 初始化日历
@@ -102,19 +123,12 @@ class Calendar {
         // Make daysContainer transparent to grid so its children (day cells) become grid items
         this.daysContainer.style.display = 'contents';
 
-        // compute initial pointer: Monday of the first day of the current month
-        const firstOfMonth = new Date(this.currentYear, this.currentMonth, 1);
-        const dayOfWeek = firstOfMonth.getDay();
-        const diffToMonday = (dayOfWeek + 6) % 7; // 0 if Monday, 1 if Tuesday, etc.
-        this.initialPointerDate = new Date(firstOfMonth);
-        this.initialPointerDate.setDate(firstOfMonth.getDate() - diffToMonday);
-
-        // set initial scroll position to place initialPointerDate at the top
-        const weeksBefore = Math.floor((this.initialPointerDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
-        const initialScrollTop = Math.max(0, weeksBefore * this.rowHeight);
+        // 设置初始滚动位置
+        const initialScrollTop = this.firstVisibleRow * this.rowHeight;
+        
         // set container virtual height
         const contentHeight = this.totalWeeks * this.rowHeight;
-        this.topSpacer.style.height = '0px';
+        this.topSpacer.style.height = initialScrollTop + 'px';
         this.bottomSpacer.style.height = (contentHeight - initialScrollTop) + 'px';
 
         // apply initial scroll after a tick so dimensions exist
@@ -122,16 +136,6 @@ class Calendar {
             this.calendarGrid.scrollTop = initialScrollTop;
             this.handleScroll();
         }, 0);
-    }
-
-    // 渲染所有月份
-    renderAllMonths() {
-        // No-op: replaced by virtualized rendering in `initCalendar` and `handleScroll`
-    }
-
-    // 渲染指定年月
-    renderMonth(year, month) {
-        // Legacy method kept for compatibility but not used in virtualization.
     }
 
     // Render a window of weeks starting at `firstWeekIndex` and rendering `numRows` rows (weeks)
@@ -399,6 +403,6 @@ class Calendar {
     // 重置日历
     resetCalendar() {
         // reinitialize virtualization and scroll to current month
-        this.initCalendar();
+        this.init();
     }
 }
