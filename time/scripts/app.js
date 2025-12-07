@@ -12,9 +12,14 @@ class TimeApp {
         this.secondHandMotion = document.getElementById('second-hand-motion');
         this.settingsToggle = document.getElementById('settings-toggle');
         this.settingsPanel = document.getElementById('settings-panel');
+        this.clockSettings = document.getElementById('clock-settings');
+        this.globeSettings = document.getElementById('globe-settings');
+        
+        this.currentView = 'clock'; // Track current view
         
         this.bindEvents();
         this.init();
+        this.updateSettingsVisibility(); // Initialize settings visibility
     }
 
     bindEvents() {
@@ -39,6 +44,9 @@ class TimeApp {
         setTimeout(() => {
             this.clockView.classList.add('fade-in');
         }, 50);
+        
+        this.currentView = 'clock';
+        this.updateSettingsVisibility();
     }
 
     showCalendar() {
@@ -51,6 +59,9 @@ class TimeApp {
         this.clockView.classList.remove('fade-in');
         this.calendarView.classList.add('active');
         if (this.globeView) { this.globeView.style.display = 'none'; this.globeView.classList.remove('active'); }
+        
+        this.currentView = 'calendar';
+        this.updateSettingsVisibility();
     }
 
     showGlobe() {
@@ -68,6 +79,9 @@ class TimeApp {
         this.globeView.style.display = 'block';
         // allow CSS animation to pick up
         setTimeout(() => this.globeView.classList.add('active'), 30);
+        
+        this.currentView = 'globe';
+        this.updateSettingsVisibility();
     }
 
     onSizeChange() {
@@ -81,6 +95,25 @@ class TimeApp {
 
     toggleSettings() {
         this.settingsPanel.classList.toggle('active');
+    }
+    
+    updateSettingsVisibility() {
+        // Hide all settings groups
+        if (this.clockSettings) this.clockSettings.classList.remove('active');
+        if (this.globeSettings) this.globeSettings.classList.remove('active');
+        
+        // Show settings for current view
+        switch(this.currentView) {
+            case 'clock':
+                if (this.clockSettings) this.clockSettings.classList.add('active');
+                break;
+            case 'globe':
+                if (this.globeSettings) this.globeSettings.classList.add('active');
+                break;
+            case 'calendar':
+                // No specific settings for calendar currently
+                break;
+        }
     }
 
     init() {

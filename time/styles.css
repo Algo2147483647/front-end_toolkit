@@ -450,12 +450,30 @@ body {
     gap: 15px;
 }
 
+.settings-content h3 {
+    margin: 0;
+    padding: 5px 0;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    font-size: 16px;
+}
+
 .settings-content label {
     font-size: 14px;
     color: rgba(200, 200, 255, 0.9);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 15px;
+}
+
+.settings-group {
+    display: none;
+}
+
+.settings-group.active {
+    display: flex;
+    flex-direction: column;
     gap: 15px;
 }
 
