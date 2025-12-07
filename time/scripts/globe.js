@@ -25,13 +25,18 @@
 
         let DPR = window.devicePixelRatio || 1;
         let width = 600, height = 600;
-        let R = 280; // will be updated on resize
-        let rotation = 0; // radians, central meridian
+        let R = 320; // will be updated on resize; default larger
+        // 3D rotations (radians)
+        let rotX = 0; // pitch
+        let rotY = 0; // yaw
+        let rotZ = 0; // roll
         let rotating = true;
-        const rotationSpeed = 0.0025; // rad per frame
+        const rotationSpeed = 0.0025; // rad per frame (applies to yaw)
 
         let lat = 0, lon = 0; // degrees for current location
         let hasLocation = false;
+        let isDragging = false;
+        let lastPointer = null;
 
         function resize() {
             const rect = canvas.getBoundingClientRect();
@@ -50,15 +55,34 @@
             ctx.clearRect(0, 0, width, height);
         }
 
-        function project(phiDeg, lambdaDeg, rot) {
-            // phi = latitude, lambda = longitude in degrees
-            const phi = phiDeg * Math.PI/180;
-            const lambda = lambdaDeg * Math.PI/180;
-            const rl = lambda - rot; // rotated longitude
-            const x = R * Math.cos(phi) * Math.sin(rl);
-            const y = R * Math.sin(phi);
-            const z = R * Math.cos(phi) * Math.cos(rl);
-            return {x: x, y: y, z: z};
+        function project3D(phiDeg, lambdaDeg) {
+            // Convert spherical to Cartesian (unit sphere scaled by R)
+            const phi = phiDeg * Math.PI/180; // lat
+            const lambda = lambdaDeg * Math.PI/180; // lon
+            // base coordinates
+            let x = Math.cos(phi) * Math.cos(lambda);
+            let y = Math.sin(phi);
+            let z = Math.cos(phi) * Math.sin(lambda);
+
+            // Rotate around X (pitch)
+            let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+            let y1 = y * cosX - z * sinX;
+            let z1 = y * sinX + z * cosX;
+            let x1 = x;
+
+            // Rotate around Y (yaw)
+            let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+            let x2 = x1 * cosY + z1 * sinY;
+            let z2 = -x1 * sinY + z1 * cosY;
+            let y2 = y1;
+
+            // Rotate around Z (roll)
+            let cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
+            let x3 = x2 * cosZ - y2 * sinZ;
+            let y3 = x2 * sinZ + y2 * cosZ;
+            let z3 = z2;
+
+            return { x: x3 * R, y: y3 * R, z: z3 * R };
         }
 
         function drawSphere() {
@@ -92,26 +116,26 @@
             const meridians = 24;
             for (let m=0;m<meridians;m++){
                 const lambda = (m/meridians)*360 - 180;
-                drawLongitude(lambda, rotation, 'rgba(60,80,120,0.18)');
+                drawLongitude(lambda, 'rgba(60,80,120,0.18)');
             }
 
             // Parallels
             const parallels = 13; // from -60 to 60 roughly
             for (let p=0;p<parallels;p++){
                 const phi = (p/(parallels-1))*180 - 90;
-                drawLatitude(phi, rotation, 'rgba(60,80,120,0.18)');
+                drawLatitude(phi, 'rgba(60,80,120,0.18)');
             }
 
             // Equator and prime meridian stronger
-            drawLatitude(0, rotation, 'rgba(40,60,120,0.45)', 1.4);
-            drawLongitude(0, rotation, 'rgba(40,60,120,0.45)', 1.4);
+            drawLatitude(0, 'rgba(40,60,120,0.45)', 1.4);
+            drawLongitude(0, 'rgba(40,60,120,0.45)', 1.4);
 
             // location marker and lines
             if (hasLocation) {
-                drawLongitude(lon, rotation, 'rgba(220,40,40,0.85)', 1.5);
-                drawLatitude(lat, rotation, 'rgba(220,40,40,0.85)', 1.5);
+                drawLongitude(lon, 'rgba(220,40,40,0.85)', 1.5);
+                drawLatitude(lat, 'rgba(220,40,40,0.85)', 1.5);
 
-                const p = project(lat, lon, rotation);
+                const p = project3D(lat, lon);
                 const visible = p.z > 0.15 * R; // some tolerance
                 if (visible) {
                     const sx = width/2 + p.x;
@@ -140,13 +164,13 @@
             ctx.stroke();
         }
 
-        function drawLongitude(lambdaDeg, rot, stroke, lw=0.9) {
+        function drawLongitude(lambdaDeg, stroke, lw=0.9) {
             const cx = width/2;
             const cy = height/2;
             ctx.beginPath();
             let first = true;
             for (let phi = -90; phi <= 90; phi += 2) {
-                const p = project(phi, lambdaDeg, rot);
+                const p = project3D(phi, lambdaDeg);
                 if (p.z <= 0) { first = true; continue; }
                 const sx = cx + p.x;
                 const sy = cy - p.y;
@@ -157,13 +181,13 @@
             ctx.stroke();
         }
 
-        function drawLatitude(phiDeg, rot, stroke, lw=0.9) {
+        function drawLatitude(phiDeg, stroke, lw=0.9) {
             const cx = width/2;
             const cy = height/2;
             ctx.beginPath();
             let first = true;
             for (let lambda = -180; lambda <= 180; lambda += 2) {
-                const p = project(phiDeg, lambda, rot);
+                const p = project3D(phiDeg, lambda);
                 if (p.z <= 0) { first = true; continue; }
                 const sx = cx + p.x;
                 const sy = cy - p.y;
@@ -176,7 +200,7 @@
 
         function update() {
             clear();
-            if (rotating) rotation += rotationSpeed;
+            if (rotating && !isDragging) rotY += rotationSpeed;
             drawSphere();
             requestAnimationFrame(update);
         }
@@ -203,14 +227,16 @@
 
         // center globe so that given longitude is at center
         function centerOnLongitude(targetLon) {
-            // rotation is in radians equal to central meridian
-            rotation = targetLon * Math.PI/180;
+            // Set yaw so the given longitude faces the viewer. Negative because of rotation direction.
+            rotY = - (targetLon * Math.PI/180);
         }
 
         // wire UI
         function wireUI() {
             const toggle = document.getElementById('globe-rotate-toggle');
             const centerBtn = document.getElementById('globe-center-location');
+            const rollInput = document.getElementById('globe-roll');
+            const sizeInput = document.getElementById('size-slider');
             if (toggle) {
                 toggle.addEventListener('click', () => {
                     rotating = !rotating;
@@ -223,6 +249,26 @@
                 });
             }
 
+            if (rollInput) {
+                rollInput.addEventListener('input', (e) => {
+                    rotZ = (parseFloat(e.target.value) || 0) * Math.PI/180;
+                });
+            }
+
+            if (sizeInput) {
+                // use the size slider to set canvas display size
+                const initialV = parseInt(sizeInput.value, 10) || 700;
+                canvas.style.width = initialV + 'px';
+                canvas.style.height = initialV + 'px';
+                sizeInput.addEventListener('input', () => {
+                    // set canvas CSS size to slider value (px)
+                    const v = parseInt(sizeInput.value, 10) || 700;
+                    canvas.style.width = v + 'px';
+                    canvas.style.height = v + 'px';
+                    resize();
+                });
+            }
+
             // If globe view is hidden/shown we should trigger a resize so canvas stays crisp
             const obsTarget = document.getElementById('globe-view');
             if (obsTarget && window.ResizeObserver) {
@@ -232,11 +278,42 @@
 
             // Also observe window resize
             window.addEventListener('resize', resize);
+
+            // Pointer drag for manual rotation (supports mouse and touch via pointer events)
+            canvas.addEventListener('pointerdown', (ev) => {
+                canvas.setPointerCapture(ev.pointerId);
+                isDragging = true;
+                lastPointer = { x: ev.clientX, y: ev.clientY };
+                // temporarily pause auto-rotation while dragging
+            });
+
+            canvas.addEventListener('pointermove', (ev) => {
+                if (!isDragging || !lastPointer) return;
+                const dx = ev.clientX - lastPointer.x;
+                const dy = ev.clientY - lastPointer.y;
+                lastPointer = { x: ev.clientX, y: ev.clientY };
+                const sens = 0.005; // sensitivity
+                rotY += dx * sens;
+                rotX += dy * sens;
+                // clamp pitch to avoid flipping
+                const maxPitch = Math.PI/2 - 0.01;
+                if (rotX > maxPitch) rotX = maxPitch;
+                if (rotX < -maxPitch) rotX = -maxPitch;
+            });
+
+            function endDrag(ev) {
+                if (ev && ev.pointerId) canvas.releasePointerCapture(ev.pointerId);
+                isDragging = false;
+                lastPointer = null;
+            }
+            canvas.addEventListener('pointerup', endDrag);
+            canvas.addEventListener('pointercancel', endDrag);
+            canvas.addEventListener('pointerleave', endDrag);
         }
 
         // init
-        resize();
         wireUI();
+        resize();
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(handleGeoSuccess, handleGeoError, {maximumAge: 600000, timeout: 8000});
         } else {
