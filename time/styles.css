@@ -1,0 +1,464 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #0c0c2e, #1a1a3e);
+    color: #f0f0f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 顶部导航栏 */
+.navbar {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(10, 10, 30, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(100, 100, 255, 0.2);
+}
+
+.nav-toggle {
+    display: flex;
+    background: rgba(20, 20, 50, 0.7);
+    border-radius: 50px;
+    padding: 5px;
+    position: relative;
+    border: 1px solid rgba(100, 100, 255, 0.3);
+}
+
+.toggle-btn {
+    padding: 12px 30px;
+    border-radius: 50px;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.toggle-btn.active {
+    color: #fff;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    height: calc(100% - 10px);
+    width: calc(50% - 10px);
+    background: linear-gradient(to right, #4a6fff, #6d8eff);
+    border-radius: 50px;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 4px 15px rgba(74, 111, 255, 0.4);
+}
+
+/* 主容器 */
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    position: relative;
+}
+
+/* 时钟视图 */
+.clock-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+}
+
+/* 时钟圆盘容器 */
+.clock-container {
+    position: relative;
+    margin-bottom: 30px;
+    transition: transform 0.3s ease;
+}
+
+/* 时钟圆盘 */
+.clock-face {
+    background: rgba(15, 15, 40, 0.7);
+    border-radius: 50%;
+    border: 2px solid rgba(100, 100, 255, 0.2);
+    box-shadow:
+        0 0 60px rgba(74, 111, 255, 0.2),
+        inset 0 0 30px rgba(20, 20, 50, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 24小时刻度 */
+.hour-marks {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.hour-mark {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 15px;
+    background: rgba(150, 150, 255, 0.7);
+    transform-origin: 0 50%;
+    border-radius: 1px;
+}
+
+/* 小时文本 */
+.hour-text {
+    position: absolute;
+    color: rgba(200, 200, 255, 0.9);
+    font-size: 18px;
+    font-weight: 600;
+    transform: translate(-50%, -50%);
+}
+
+/* 时钟指针 */
+.hour-hand, .minute-hand, .second-hand {
+    position: absolute;
+    transform-origin: center bottom;
+    border-radius: 4px 4px 0 0;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-100%);
+}
+
+.hour-hand {
+    width: 8px;
+    height: 30%;
+    background: linear-gradient(to top, #4a6fff, #8ba4ff);
+    z-index: 3;
+}
+
+.minute-hand {
+    width: 6px;
+    height: 40%;
+    background: linear-gradient(to top, #6d8eff, #a5c1ff);
+    z-index: 4;
+}
+
+.second-hand {
+    width: 2px;
+    height: 45%;
+    background: #ff4a4a;
+    z-index: 5;
+}
+
+/* 中心点 */
+.center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    z-index: 10;
+    box-shadow: 0 0 10px #fff;
+}
+
+/* 数字时钟 */
+.digital-clock {
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 30, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 15px 30px;
+    border-radius: 20px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(100, 100, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    gap: 10px;
+    z-index: 2;
+    min-width: 250px;
+    justify-content: center;
+}
+
+.time-part {
+    display: flex;
+    justify-content: center;
+}
+
+.time-separator {
+    opacity: 0.7;
+}
+
+/* 日历视图 */
+.calendar-view {
+    width: 100%;
+    max-width: 800px;
+    background: rgba(15, 15, 40, 0.8);
+    border-radius: 25px;
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(100, 100, 255, 0.2);
+    backdrop-filter: blur(10px);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.calendar-view.active {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: all;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(100, 100, 255, 0.2);
+}
+
+.calendar-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(30, 30, 70, 0.7);
+    border: 1px solid rgba(100, 100, 255, 0.3);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    background: rgba(74, 111, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.weekday {
+    text-align: center;
+    font-weight: 600;
+    color: rgba(200, 200, 255, 0.9);
+    padding: 15px 0;
+    font-size: 16px;
+}
+
+.calendar-day {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(30, 30, 70, 0.3);
+    border: 1px solid transparent;
+}
+
+.calendar-day:hover {
+    background: rgba(74, 111, 255, 0.2);
+    transform: translateY(-5px);
+}
+
+.calendar-day.today {
+    background: linear-gradient(135deg, #4a6fff, #6d8eff);
+    color: white;
+    box-shadow: 0 5px 15px rgba(74, 111, 255, 0.4);
+}
+
+.calendar-day.other-month {
+    color: rgba(255, 255, 255, 0.3);
+    background: rgba(30, 30, 70, 0.1);
+}
+
+/* 时钟尺寸控制 */
+.size-control {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(15, 15, 40, 0.8);
+    padding: 15px 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(100, 100, 255, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+.size-control label {
+    font-size: 14px;
+    color: rgba(200, 200, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.size-slider {
+    width: 200px;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(30, 30, 70, 0.8);
+    outline: none;
+}
+
+.size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(to right, #4a6fff, #6d8eff);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(74, 111, 255, 0.8);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .clock-face {
+        width: 300px !important;
+        height: 300px !important;
+    }
+
+    .digital-clock {
+        font-size: 22px;
+        padding: 12px 20px;
+        min-width: 200px;
+    }
+
+    .calendar-view {
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .calendar-day {
+        height: 50px;
+        font-size: 16px;
+    }
+
+    .size-control {
+        right: 20px;
+        bottom: 20px;
+        padding: 12px 15px;
+    }
+
+    .size-slider {
+        width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clock-face {
+        width: 250px !important;
+        height: 250px !important;
+    }
+
+    .digital-clock {
+        font-size: 18px;
+        padding: 10px 15px;
+        min-width: 170px;
+    }
+
+    .calendar-view {
+        padding: 15px;
+    }
+
+    .calendar-day {
+        height: 40px;
+        font-size: 14px;
+    }
+
+    .weekday {
+        font-size: 14px;
+        padding: 10px 0;
+    }
+
+    .size-control {
+        position: static;
+        margin: 20px auto;
+        width: 90%;
+    }
+
+    .size-slider {
+        width: 100%;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+/* 隐藏类 */
+.hidden {
+    display: none;
+}
+
+/* 时钟切换时的动画 */
+.clock-view.hidden {
+    transform: translateY(-30px);
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
