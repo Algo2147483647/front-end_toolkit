@@ -44,7 +44,7 @@ function drawClock() {
         const textX = centerX + Math.sin(angle) * textRadius;
         const textY = centerY - Math.cos(angle) * textRadius;
 
-        ctx.font = i % 6 === 0 ? 'bold 20px "Times New Roman", serif' : '20px "Times New Roman", serif';
+        ctx.font = i % 6 === 0 ? 'bold 20px "Times New Roman", serif' : '16px "Times New Roman", serif';
         ctx.fillStyle = i % 6 === 0 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -123,8 +123,8 @@ function drawClock() {
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(
-        centerX + Math.cos(minuteAngle) * radius * 0.7,
-        centerY + Math.sin(minuteAngle) * radius * 0.7
+        centerX + Math.cos(minuteAngle) * radius * 0.95,
+        centerY + Math.sin(minuteAngle) * radius * 0.95
     );
     ctx.strokeStyle = '#6d8eff';
     ctx.lineWidth = 6;
