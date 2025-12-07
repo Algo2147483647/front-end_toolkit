@@ -290,6 +290,15 @@ body {
     transform: scale(1.1);
 }
 
+/* 特别针对 Today 按钮的样式调整 */
+#today-btn.nav-btn {
+    width: auto;
+    padding: 0 15px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
 .calendar-weekdays,
 .calendar-grid {
     display: grid;
