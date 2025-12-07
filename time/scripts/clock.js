@@ -4,7 +4,7 @@ function drawClock() {
     const ctx = clockFace.getContext('2d');
     const centerX = clockFace.width / 2;
     const centerY = clockFace.height / 2;
-    const radius = clockFace.width / 2 - 10;
+    const radius = clockFace.width / 2;
 
     // 清空画布
     ctx.clearRect(0, 0, clockFace.width, clockFace.height);
@@ -20,13 +20,6 @@ function drawClock() {
     gradient.addColorStop(1, 'rgba(240, 240, 240, 0.85)');
     ctx.fillStyle = gradient;
     ctx.fill();
-
-    // 绘制外圆边框
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(100, 100, 255, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
     // 绘制24小时内圈刻度（在表盘半径的一半处）
     for (let i = 0; i < 24; i++) {
@@ -193,7 +186,7 @@ function updateClockSize() {
 
     // 调整数字时钟位置
     const digitalClockHeight = 60;
-    digitalClock.style.top = `${clockSize * 0.7}px`;
+    digitalClock.style.top = `${clockSize * 0.75}px`;
 
     drawClock();
 }
