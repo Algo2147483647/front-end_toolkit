@@ -93,10 +93,20 @@ function drawClock() {
 
     // 计算指针角度（24小时制）
     const hourAngle = (hours % 24 + minutes / 60) * Math.PI / 12 - Math.PI / 2;
-    const minuteAngle = (minutes + seconds / 60) * Math.PI / 30 - Math.PI / 2;
+    
+    // 根据设置决定分针运动方式
+    const motionSelect = document.getElementById('second-hand-motion');
+    let minuteAngle;
+    
+    if (motionSelect && motionSelect.value === 'smooth') {
+        // 平滑移动：包括秒和毫秒精度
+        minuteAngle = (minutes + (seconds + milliseconds / 1000) / 60) * Math.PI / 30 - Math.PI / 2;
+    } else {
+        // 一秒一跳：只使用分钟和秒钟
+        minuteAngle = (minutes + seconds / 60) * Math.PI / 30 - Math.PI / 2;
+    }
     
     // 根据设置决定秒针运动方式
-    const motionSelect = document.getElementById('second-hand-motion');
     let secondAngle;
     
     if (motionSelect && motionSelect.value === 'smooth') {
