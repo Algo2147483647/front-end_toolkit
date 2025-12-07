@@ -205,6 +205,9 @@ class Calendar {
         // 更新选中的日期
         const dateParts = dayElement.dataset.date.split('-');
         this.selectedDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        
+        // 更新标题显示距离今天多少天
+        this.updateDaysFromToday();
     }
 
     // 滚动到当前月份
@@ -287,6 +290,51 @@ class Calendar {
                 day.style.color = '';
             }
         });
+        
+        // 如果有选中的日期，更新天数差显示
+        if (this.selectedDate) {
+            this.updateDaysFromToday();
+        }
+    }
+
+    // 更新距离今天多少天的显示
+    updateDaysFromToday() {
+        if (!this.selectedDate) return;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const selectedDate = new Date(this.selectedDate);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        const timeDiff = selectedDate.getTime() - today.getTime();
+        const daysDiff = Math.round(timeDiff / (1000 * 3600 * 24));
+        
+        let daysText = '';
+        if (daysDiff === 0) {
+            daysText = '(今天)';
+        } else if (daysDiff > 0) {
+            daysText = `(${daysDiff}天后)`;
+        } else {
+            daysText = `(${Math.abs(daysDiff)}天前)`;
+        }
+        
+        // 在标题后添加天数差信息
+        const currentText = this.calendarMonthYear.textContent;
+        // 检查是否已经存在天数信息，如果有则替换，否则添加
+        if (currentText.includes('(')) {
+            this.calendarMonthYear.textContent = currentText.replace(/\(.*\)/, daysText);
+        } else {
+            this.calendarMonthYear.textContent = `${currentText} ${daysText}`;
+        }
+    }
+    
+    // 清除距离今天多少天的显示
+    clearDaysFromToday() {
+        const currentText = this.calendarMonthYear.textContent;
+        if (currentText.includes('(')) {
+            this.calendarMonthYear.textContent = currentText.replace(/\s*\(.*\)/, '');
+        }
     }
 
     // 上一个月
@@ -343,6 +391,9 @@ class Calendar {
                 }, 1000);
             }
         }, 200);
+        
+        // 清除选中日期的天数差显示
+        this.clearDaysFromToday();
     }
 
     // 重置日历
