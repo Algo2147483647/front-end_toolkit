@@ -7,6 +7,7 @@ class Calendar {
         this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         this.monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                           'July', 'August', 'September', 'October', 'November', 'December'];
+        this.titleUpdateTimer = null; // 添加防抖计时器
         
         this.initElements();
         this.bindEvents();
@@ -154,8 +155,16 @@ class Calendar {
             this.loadMoreFutureMonths();
         }
         
-        // 更新当前显示的月份标题
-        this.updateCurrentMonthTitle();
+        // 使用防抖更新当前显示的月份标题
+        this.debounceUpdateTitle();
+    }
+
+    // 防抖函数用于优化性能
+    debounceUpdateTitle() {
+        clearTimeout(this.titleUpdateTimer);
+        this.titleUpdateTimer = setTimeout(() => {
+            this.updateCurrentMonthTitle();
+        }, 50);
     }
 
     // 加载更多过去的月份
@@ -176,6 +185,7 @@ class Calendar {
             }
             
             // 检查是否已经渲染过该月份
+            const separators = this.calendarGrid.querySelectorAll('.month-separator');
             const isRendered = Array.from(separators).some(separator => 
                 parseInt(separator.dataset.year) === year && 
                 parseInt(separator.dataset.month) === month
@@ -206,6 +216,7 @@ class Calendar {
             }
             
             // 检查是否已经渲染过该月份
+            const separators = this.calendarGrid.querySelectorAll('.month-separator');
             const isRendered = Array.from(separators).some(separator => 
                 parseInt(separator.dataset.year) === year && 
                 parseInt(separator.dataset.month) === month
@@ -284,15 +295,20 @@ class Calendar {
         const { scrollTop, clientHeight } = this.calendarGrid;
         const middleY = scrollTop + clientHeight / 2;
         const monthBlocks = this.calendarGrid.querySelectorAll('.month-block');
-        for (let block of monthBlocks) {
+        
+        // 查找包含middleY位置的月份块
+        for (let i = 0; i < monthBlocks.length; i++) {
+            const block = monthBlocks[i];
             const top = block.offsetTop;
             const bottom = top + block.offsetHeight;
+            
             if (middleY >= top && middleY <= bottom) {
                 const sep = block.querySelector('.month-separator');
                 if (sep) {
                     const year = parseInt(sep.dataset.year);
                     const month = parseInt(sep.dataset.month);
                     this.calendarMonthYear.textContent = `${this.monthNames[month]} ${year}`;
+                    return; // 找到后立即返回
                 }
                 break;
             }
