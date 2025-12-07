@@ -52,7 +52,6 @@
                     <div class="globe-controls">
                         <button id="globe-rotate-toggle" class="nav-btn">Pause</button>
                         <button id="globe-center-location" class="nav-btn">Center On Me</button>
-                        <label class="globe-roll-label">Roll: <input id="globe-roll" type="range" min="-180" max="180" value="0"></label>
                     </div>
                 </div>
             </div>
@@ -110,6 +109,11 @@
                         Globe Size
                         <input type="range" min="200" max="1200" value="700" class="size-slider" id="globe-size">
                     </label>
+                    <label>
+                        Globe Tilt
+                        <input type="range" min="-45" max="45" value="23.5" step="0.1" class="tilt-slider" id="globe-tilt">
+                    </label>
+                    <button id="reset-tilt" class="nav-btn">Reset Tilt</button>
                 </div>
             </div>
         </div>

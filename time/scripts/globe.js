@@ -33,6 +33,10 @@
         let rotating = true;
         const rotationSpeed = 0.0025; // rad per frame (applies to yaw)
 
+        // Earth's axial tilt in radians (approximately 23.5 degrees)
+        const earthAxialTilt = 23.5 * Math.PI / 180;
+        rotZ = earthAxialTilt; // Set initial tilt to Earth's axial tilt
+
         let lat = 0, lon = 0; // degrees for current location
         let hasLocation = false;
         let isDragging = false;
@@ -235,8 +239,10 @@
         function wireUI() {
             const toggle = document.getElementById('globe-rotate-toggle');
             const centerBtn = document.getElementById('globe-center-location');
-            const rollInput = document.getElementById('globe-roll');
             const globeSizeInput = document.getElementById('globe-size');
+            const globeTiltInput = document.getElementById('globe-tilt');
+            const resetTiltBtn = document.getElementById('reset-tilt');
+            
             if (toggle) {
                 toggle.addEventListener('click', () => {
                     rotating = !rotating;
@@ -249,9 +255,21 @@
                 });
             }
 
-            if (rollInput) {
-                rollInput.addEventListener('input', (e) => {
+            if (globeTiltInput) {
+                // Set initial slider value to Earth's tilt in degrees
+                globeTiltInput.value = 23.5;
+                
+                globeTiltInput.addEventListener('input', (e) => {
                     rotZ = (parseFloat(e.target.value) || 0) * Math.PI/180;
+                });
+            }
+
+            if (resetTiltBtn) {
+                resetTiltBtn.addEventListener('click', () => {
+                    rotZ = earthAxialTilt;
+                    if (globeTiltInput) {
+                        globeTiltInput.value = 23.5;
+                    }
                 });
             }
 

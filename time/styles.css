@@ -504,7 +504,18 @@ body {
     outline: none;
 }
 
-.size-slider::-webkit-slider-thumb {
+.tilt-slider {
+    width: 150px;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(240, 240, 240, 0.9);
+    outline: none;
+}
+
+.size-slider::-webkit-slider-thumb,
+.tilt-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 22px;
     height: 22px;
@@ -512,6 +523,15 @@ body {
     background: linear-gradient(to right, #6a9eff, #a3c1ff);
     cursor: pointer;
     box-shadow: 0 0 10px rgba(106, 158, 255, 0.8);
+}
+
+#reset-tilt {
+    align-self: flex-start;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: rgba(240, 240, 240, 0.9);
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    cursor: pointer;
 }
 
 /* 响应式设计 */
