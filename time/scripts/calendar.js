@@ -13,12 +13,22 @@ class Calendar {
         this.endYear = 2030;
         this.rowHeight = 70; // px per week-row (matches .calendar-day height)
         this.bufferRows = 3; // extra rows to render above/below viewport
-        this.totalStartDate = new Date(this.startYear, 0, 1);
-        this.totalEndDate = new Date(this.endYear + 1, 0, 1); // exclusive
+        // Align totalStartDate to the Sunday at or before Jan 1 of startYear
+        const rawStart = new Date(this.startYear, 0, 1);
+        const startOffset = rawStart.getDay(); // 0=Sun..6=Sat
+        this.totalStartDate = new Date(rawStart);
+        this.totalStartDate.setDate(rawStart.getDate() - startOffset);
+
+        // Align totalEndDate to the Saturday at or after Jan 1 of (endYear+1)
+        const rawEnd = new Date(this.endYear + 1, 0, 1);
+        const endOffset = (6 - rawEnd.getDay() + 7) % 7; // days to next Saturday
+        this.totalEndDate = new Date(rawEnd);
+        this.totalEndDate.setDate(rawEnd.getDate() + endOffset + 1); // exclusive past the last Saturday
 
         // runtime state for virtualization
         this.firstVisibleRow = 0; // row index (week index) currently at top
-        this.totalWeeks = Math.ceil((this.totalEndDate - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
+        const msPerWeek = 1000 * 60 * 60 * 24 * 7;
+        this.totalWeeks = Math.ceil((this.totalEndDate - this.totalStartDate) / msPerWeek);
         
         this.initElements();
         this.bindEvents();
