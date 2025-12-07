@@ -1,5 +1,9 @@
 // 获取DOM元素
-const clockElement = document.getElementById('clock');
+const clockFace = document.querySelector('.clock-face');
+const hourHand = document.querySelector('.hour-hand');
+const minuteHand = document.querySelector('.minute-hand');
+const secondHand = document.querySelector('.second-hand');
+const digitalClock = document.getElementById('digital-clock');
 const dateElement = document.getElementById('date');
 const dayElement = document.getElementById('day');
 const calendarContainer = document.getElementById('calendar-container');
@@ -21,14 +25,75 @@ let currentYear = currentDate.getFullYear();
 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
-// 更新时钟显示
-function updateClock() {
+// 创建时钟刻度
+function createClockMarkers() {
+    for (let i = 1; i <= 24; i++) {
+        const marker = document.createElement('div');
+        marker.className = 'marker';
+        marker.style.position = 'absolute';
+        marker.style.top = '50%';
+        marker.style.left = '50%';
+        marker.style.width = i % 6 === 0 ? '4px' : i % 3 === 0 ? '2px' : '1px';
+        marker.style.height = i % 6 === 0 ? '12px' : '8px';
+        marker.style.background = 'white';
+        marker.style.transformOrigin = '50% 0';
+        marker.style.transform = `translateX(-50%) rotate(${i * 15}deg)`;
+        marker.style.borderRadius = '2px';
+        clockFace.appendChild(marker);
+    }
+    
+    // 添加数字标识
+    for (let i = 0; i < 12; i++) {
+        const number = document.createElement('div');
+        number.className = 'number';
+        number.style.position = 'absolute';
+        number.style.top = '50%';
+        number.style.left = '50%';
+        number.style.transform = `translate(-50%, -50%) rotate(${i * 30}deg)`;
+        number.style.transformOrigin = '50% 130px';
+        number.style.textAlign = 'center';
+        number.style.width = '20px';
+        number.style.height = '20px';
+        number.style.color = 'white';
+        number.style.fontWeight = 'bold';
+        number.style.fontSize = '14px';
+        number.textContent = i === 0 ? '24' : i * 2;
+        clockFace.appendChild(number);
+    }
+}
+
+// 更新模拟时钟显示
+function updateAnalogClock() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const milliseconds = now.getMilliseconds();
+    
+    // 计算角度（24小时制）
+    const hourDeg = (hours % 24) * 15 + minutes * 0.25; // 每小时15度
+    const minuteDeg = minutes * 6 + seconds * 0.1; // 每分钟6度
+    const secondDeg = seconds * 6 + milliseconds * 0.006; // 每秒6度
+    
+    // 应用旋转
+    hourHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
+    minuteHand.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
+    secondHand.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+}
+
+// 更新数字时钟显示
+function updateDigitalClock() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
     
-    clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    digitalClock.textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+// 更新日期显示
+function updateDateDisplay() {
+    const now = new Date();
     
     // 只在日期改变时更新日期和星期
     if (now.getDate() !== currentDate.getDate()) {
@@ -41,6 +106,13 @@ function updateClock() {
         dateElement.textContent = `${year}年${month}月${date}日`;
         dayElement.textContent = `星期${day}`;
     }
+}
+
+// 更新时钟显示（模拟+数字）
+function updateClock() {
+    updateAnalogClock();
+    updateDigitalClock();
+    updateDateDisplay();
 }
 
 // 渲染日历
@@ -143,6 +215,9 @@ function nextMonth() {
 
 // 初始化页面
 function init() {
+    // 创建时钟刻度
+    createClockMarkers();
+    
     // 设置星期标题
     weekdays.forEach(day => {
         const dayElement = document.createElement('div');

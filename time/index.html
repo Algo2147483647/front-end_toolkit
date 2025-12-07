@@ -17,7 +17,15 @@
   <main class="main-content">
     <!-- 时钟视图 -->
     <div id="clock-container" class="clock-container">
-      <div id="clock" class="clock"></div>
+      <div class="analog-clock">
+        <div class="clock-face">
+          <div class="hand hour-hand"></div>
+          <div class="hand minute-hand"></div>
+          <div class="hand second-hand"></div>
+          <div class="center-dot"></div>
+        </div>
+        <div class="digital-clock" id="digital-clock"></div>
+      </div>
       <div id="date" class="date"></div>
       <div id="day" class="day"></div>
     </div>
