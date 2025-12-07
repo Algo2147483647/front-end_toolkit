@@ -16,8 +16,8 @@ function drawClock() {
         centerX, centerY, radius * 0.5,
         centerX, centerY, radius
     );
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-    gradient.addColorStop(1, 'rgba(240, 240, 240, 0.9)');
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    gradient.addColorStop(1, 'rgba(240, 240, 240, 0.85)');
     ctx.fillStyle = gradient;
     ctx.fill();
 

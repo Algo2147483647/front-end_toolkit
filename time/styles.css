@@ -96,7 +96,7 @@ body {
 
 /* 时钟圆盘 */
 .clock-face {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.85);
     border-radius: 50%;
     border: 2px solid rgba(200, 200, 200, 0.7);
     box-shadow:
@@ -186,9 +186,9 @@ body {
     top: 70%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.3);
     color: #333;
-    border: 1px solid rgba(200, 200, 200, 0.5);
+    border: 1px solid rgba(200, 200, 200, 0.2);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     display: flex;
     gap: 10px;
@@ -200,6 +200,7 @@ body {
     font-size: 28px;
     font-weight: 700;
     letter-spacing: 2px;
+    backdrop-filter: blur(2px);
 }
 
 .time-part {
