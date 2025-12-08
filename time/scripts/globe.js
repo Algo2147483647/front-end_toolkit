@@ -401,7 +401,7 @@
             lon = fromLon;
             hasLocation = true;
             
-            // 更新输入框和滑块的值
+            // Update input boxes and sliders
             const latitudeInput = document.getElementById('latitude-input');
             const longitudeInput = document.getElementById('longitude-input');
             const latitudeSlider = document.getElementById('latitude-slider');
@@ -424,6 +424,15 @@
             }
         }
 
+        // Expose lat and lon globally so they can be accessed from settings
+        Object.defineProperty(window, 'lat', {
+            get: function() { return lat; }
+        });
+        
+        Object.defineProperty(window, 'lon', {
+            get: function() { return lon; }
+        });
+
         function handleGeoSuccess(pos) {
             const p = pos.coords;
             setLocation(p.latitude, p.longitude);
@@ -438,6 +447,10 @@
             // Set yaw so the given longitude faces the viewer. Negative because of rotation direction.
             rotY = - (targetLon * Math.PI/180);
         }
+
+        // Expose centerOnLongitude globally so it can be called from settings
+        window.centerOnLongitude = centerOnLongitude;
+        window.hasLocation = () => hasLocation;
 
         // wire UI
         function wireUI() {

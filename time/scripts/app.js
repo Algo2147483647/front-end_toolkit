@@ -29,6 +29,16 @@ class TimeApp {
         this.sizeSlider.addEventListener('input', () => this.onSizeChange());
         this.secondHandMotion.addEventListener('change', () => this.onMotionChange());
         this.settingsToggle.addEventListener('click', () => this.toggleSettings());
+        
+        // Bind the center on location button in settings
+        const centerBtn = document.getElementById('globe-center-location');
+        if (centerBtn) {
+            centerBtn.addEventListener('click', () => {
+                if (window.hasLocation && window.hasLocation()) {
+                    window.centerOnLongitude(window.lon);
+                }
+            });
+        }
     }
 
     showClock() {
