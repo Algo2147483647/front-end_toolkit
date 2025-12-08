@@ -434,17 +434,18 @@ body {
     position: absolute;
     bottom: 60px;
     right: 0;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(200, 200, 200, 0.5);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    width: 280px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    padding: 25px;
+    width: 320px;
     transform: translateY(20px);
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
 .settings-panel.active {
@@ -456,24 +457,38 @@ body {
 .settings-content {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 25px;
 }
 
 .settings-content h3 {
-    margin: 0;
-    padding: 5px 0;
-    color: #333;
-    border-bottom: 1px solid #ddd;
-    font-size: 16px;
+    margin: 0 0 10px 0;
+    padding: 8px 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #eee;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-align: center;
+    background: linear-gradient(90deg, transparent, rgba(106, 158, 255, 0.1), transparent);
+    border-radius: 4px;
 }
 
 .settings-content label {
-    font-size: 14px;
-    color: rgba(200, 200, 255, 0.9);
+    font-size: 15px;
+    color: #34495e;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.setting-label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+    letter-spacing: 0.3px;
 }
 
 .settings-group {
@@ -484,24 +499,40 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    animation: slideIn 0.3s ease-out;
 }
 
-.motion-select {
-    padding: 4px 8px;
-    border-radius: 4px;
+.motion-select, .settings-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
     border: 1px solid rgba(200, 200, 200, 0.5);
     background: rgba(240, 240, 240, 0.9);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    color: #34495e;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.motion-select:focus, .settings-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(106, 158, 255, 0.3);
+}
+
+.motion-select:hover, .settings-btn:hover {
+    background: rgba(230, 230, 230, 0.9);
+    transform: translateY(-1px);
 }
 
 .size-slider,
 .tilt-slider,
 .speed-slider {
-    width: 150px;
+    width: 100%;
     appearance: none;
     -webkit-appearance: none;
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(240, 240, 240, 0.9);
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(200, 200, 200, 0.3);
     outline: none;
 }
 
@@ -509,81 +540,80 @@ body {
 .tilt-slider::-webkit-slider-thumb,
 .speed-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: linear-gradient(to right, #6a9eff, #a3c1ff);
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(106, 158, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(106, 158, 255, 0.5);
+    border: 2px solid white;
+    transition: all 0.2s ease;
 }
 
-.settings-btn {
-    align-self: flex-start;
-    padding: 8px 16px;
-    border-radius: 4px;
-    background: rgba(240, 240, 240, 0.9);
-    border: 1px solid rgba(200, 200, 200, 0.5);
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+.size-slider::-webkit-slider-thumb:hover,
+.tilt-slider::-webkit-slider-thumb:hover,
+.speed-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(106, 158, 255, 0.7);
 }
 
 .coordinate-control {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
 }
 
 .coordinate-input-container {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
+    width: 100%;
 }
 
 .coordinate-input {
     width: 80px;
-    padding: 5px;
-    border-radius: 4px;
+    padding: 8px 10px;
+    border-radius: 8px;
     border: 1px solid rgba(200, 200, 200, 0.5);
     background: rgba(240, 240, 240, 0.9);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    color: #34495e;
+    text-align: center;
+    font-weight: 500;
+}
+
+.coordinate-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(106, 158, 255, 0.3);
 }
 
 .coordinate-slider {
     flex: 1;
     appearance: none;
     -webkit-appearance: none;
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(240, 240, 240, 0.9);
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(200, 200, 200, 0.3);
     outline: none;
 }
 
 .coordinate-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: linear-gradient(to right, #6a9eff, #a3c1ff);
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(106, 158, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(106, 158, 255, 0.5);
+    border: 2px solid white;
+    transition: all 0.2s ease;
 }
 
-#reset-tilt {
-    align-self: flex-start;
-    padding: 8px 16px;
-    border-radius: 4px;
-    background: rgba(240, 240, 240, 0.9);
-    border: 1px solid rgba(200, 200, 200, 0.5);
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+.coordinate-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(106, 158, 255, 0.7);
 }
 
 /* 响应式设计 */
@@ -663,6 +693,11 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
 .fade-in {
     animation: fadeIn 0.6s ease forwards;
 }
@@ -678,4 +713,26 @@ body {
     opacity: 0;
     pointer-events: none;
     position: absolute;
+}
+
+#reset-tilt {
+    align-self: flex-start;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(240, 240, 240, 0.9);
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #34495e;
+    transition: all 0.2s ease;
+}
+
+#reset-tilt:hover {
+    background: rgba(230, 230, 230, 0.9);
+    transform: translateY(-1px);
 }
