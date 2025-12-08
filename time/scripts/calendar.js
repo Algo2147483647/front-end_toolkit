@@ -276,6 +276,11 @@ class Calendar {
                 day.classList.add('other-month');
             }
 
+            // 确保选中日期的文字颜色是白色
+            if (day.classList.contains('selected')) {
+                day.style.color = 'white';
+            }
+
             if (day.classList.contains('today')) {
                 day.style.color = '';
             }
