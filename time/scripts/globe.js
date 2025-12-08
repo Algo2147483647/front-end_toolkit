@@ -38,6 +38,9 @@
         const earthAxialTilt = 23.5 * Math.PI / 180;
         rotZ = earthAxialTilt; // Set initial tilt to Earth's axial tilt
 
+        // Show/hide terminator line
+        let showTerminator = true;
+
         let lat = 0, lon = 0; // degrees for current location
         let hasLocation = false;
         let isDragging = false;
@@ -90,6 +93,73 @@
             return { x: x3 * R, y: y3 * R, z: z3 * R };
         }
 
+        // Calculate the solar declination angle for a given date (in radians)
+        function calculateSolarDeclination(date) {
+            const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            // Approximate formula for solar declination
+            return 23.45 * Math.PI / 180 * Math.sin(2 * Math.PI * (dayOfYear - 81) / 365);
+        }
+
+        // Calculate the hour angle for a given longitude and time (in radians)
+        function calculateHourAngle(date, longitude) {
+            // UTC time
+            const utcHours = date.getUTCHours();
+            const utcMinutes = date.getUTCMinutes();
+            const utcSeconds = date.getUTCSeconds();
+            
+            // Total hours in decimal
+            const totalHours = utcHours + utcMinutes / 60 + utcSeconds / 3600;
+            
+            // Hour angle calculation (in degrees)
+            // Formula: HA = (UTC_hours - 12) * 15 + longitude
+            const hourAngleDeg = (totalHours - 12) * 15 + longitude;
+            
+            // Convert to radians
+            return hourAngleDeg * Math.PI / 180;
+        }
+
+        // Calculate the terminator line points
+        function calculateTerminatorLine() {
+            const points = [];
+            const now = new Date();
+            const solarDeclination = calculateSolarDeclination(now);
+            
+            // Calculate points for both day and night sides
+            for (let i = 0; i <= 360; i += 2) {
+                const longitude = i - 180; // From -180 to 180
+                
+                // Calculate the latitude where the sun is at the horizon (sun altitude = 0)
+                // This uses the formula: sin(altitude) = sin(lat)*sin(dec) + cos(lat)*cos(dec)*cos(HA)
+                // For altitude = 0: cos(lat) = -tan(dec) * tan(HA)
+                // But we'll use a simpler approach that works well for visualization
+                
+                // Calculate hour angle for this longitude
+                const hourAngle = calculateHourAngle(now, longitude);
+                
+                // Calculate latitude where sun is at horizon
+                // Using formula: sin(0) = sin(lat)*sin(dec) + cos(lat)*cos(dec)*cos(HA)
+                // Rearranging: tan(lat) = -cos(dec)*cos(HA) / sin(dec)
+                // Which simplifies to: lat = arctan(-cos(dec)*cos(HA) / sin(dec))
+                
+                // Special case handling near poles
+                let latitude;
+                if (Math.abs(solarDeclination) > 0.01) {
+                    latitude = Math.atan(-Math.cos(solarDeclination) * Math.cos(hourAngle) / Math.sin(solarDeclination));
+                    latitude = latitude * 180 / Math.PI; // Convert to degrees
+                    
+                    // Clamp to realistic values
+                    latitude = Math.max(Math.min(latitude, 90), -90);
+                } else {
+                    // Near equinox, terminator is nearly vertical
+                    latitude = longitude > 0 ? 90 : -90;
+                }
+                
+                points.push({ lat: latitude, lon: longitude });
+            }
+            
+            return points;
+        }
+
         function drawSphere() {
             const cx = width/2;
             const cy = height/2;
@@ -103,6 +173,38 @@
             ctx.beginPath();
             ctx.arc(cx, cy, R, 0, Math.PI*2);
             ctx.fill();
+
+            // Draw terminator (day/night boundary)
+            if (showTerminator) {
+                const terminatorPoints = calculateTerminatorLine();
+                if (terminatorPoints.length > 0) {
+                    ctx.beginPath();
+                    let first = true;
+                    
+                    for (const point of terminatorPoints) {
+                        const p = project3D(point.lat, point.lon);
+                        // Only draw points on the visible side of the globe
+                        if (p.z <= 0) { 
+                            first = true; 
+                            continue; 
+                        }
+                        
+                        const sx = cx + p.x;
+                        const sy = cy - p.y;
+                        
+                        if (first) { 
+                            ctx.moveTo(sx, sy); 
+                            first = false; 
+                        } else { 
+                            ctx.lineTo(sx, sy); 
+                        }
+                    }
+                    
+                    ctx.strokeStyle = 'rgba(30, 30, 60, 0.7)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
 
             // subtle edge shading
             const edgeGrad = ctx.createRadialGradient(cx, cy, R*0.6, cx, cy, R);
@@ -244,6 +346,7 @@
             const resetTiltBtn = document.getElementById('reset-tilt');
             const globeSpeedInput = document.getElementById('globe-speed');
             const toggleBtn = document.getElementById('globe-rotate-toggle');
+            const terminatorToggle = document.getElementById('terminator-toggle');
             
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
@@ -284,6 +387,13 @@
                     const speedValue = parseFloat(e.target.value) || 0;
                     // Map slider value (0-10) to rotation speed (0-2x base speed)
                     rotationSpeed = baseRotationSpeed * (speedValue / 2.5);
+                });
+            }
+
+            if (terminatorToggle) {
+                terminatorToggle.addEventListener('click', () => {
+                    showTerminator = !showTerminator;
+                    terminatorToggle.textContent = showTerminator ? 'Hide Terminator' : 'Show Terminator';
                 });
             }
 
