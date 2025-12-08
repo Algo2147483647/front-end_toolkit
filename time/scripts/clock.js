@@ -2,6 +2,11 @@
 function drawClock() {
     const clockFace = document.getElementById('clock-face');
     const ctx = clockFace.getContext('2d');
+    
+    // 启用抗锯齿
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
     const centerX = clockFace.width / 2;
     const centerY = clockFace.height / 2;
     const radius = clockFace.width / 2;
