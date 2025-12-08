@@ -666,7 +666,7 @@
                     const hrs = Math.floor(abs / 60);
                     const mins = abs % 60;
                     const padded = mins.toString().padStart(2, '0');
-                    tzEl.textContent = `UTC${sign}${hrs}${mins ? ':' + padded : ':00'} (approx)`;
+                    tzEl.textContent = `UTC${sign}${hrs}${mins ? ':' + padded : ':00'}`;
                 } catch (e) {
                     tzEl.textContent = 'UTC (unknown)';
                 }
