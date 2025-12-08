@@ -119,6 +119,24 @@
                     </label>
                     <button id="globe-rotate-toggle" class="settings-btn">Pause Rotation</button>
                     <button id="terminator-toggle" class="settings-btn">Hide Terminator</button>
+                    <div class="coordinate-control">
+                        <label>
+                            Latitude
+                            <div class="coordinate-input-container">
+                                <input type="number" id="latitude-input" class="coordinate-input" min="-90" max="90" step="0.1" value="0">
+                                <input type="range" id="latitude-slider" class="coordinate-slider" min="-90" max="90" step="0.1" value="0">
+                            </div>
+                        </label>
+                    </div>
+                    <div class="coordinate-control">
+                        <label>
+                            Longitude
+                            <div class="coordinate-input-container">
+                                <input type="number" id="longitude-input" class="coordinate-input" min="-180" max="180" step="0.1" value="0">
+                                <input type="range" id="longitude-slider" class="coordinate-slider" min="-180" max="180" step="0.1" value="0">
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>

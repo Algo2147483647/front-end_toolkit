@@ -392,10 +392,19 @@
             lat = fromLat;
             lon = fromLon;
             hasLocation = true;
-            const latEl = document.getElementById('lat-value');
-            const lonEl = document.getElementById('lon-value');
-            if (latEl) latEl.textContent = lat.toFixed(2);
-            if (lonEl) lonEl.textContent = lon.toFixed(2);
+            
+            // 更新输入框和滑块的值
+            const latitudeInput = document.getElementById('latitude-input');
+            const longitudeInput = document.getElementById('longitude-input');
+            const latitudeSlider = document.getElementById('latitude-slider');
+            const longitudeSlider = document.getElementById('longitude-slider');
+            
+            if (latitudeInput) latitudeInput.value = lat.toFixed(1);
+            if (longitudeInput) longitudeInput.value = lon.toFixed(1);
+            if (latitudeSlider) latitudeSlider.value = lat.toFixed(1);
+            if (longitudeSlider) longitudeSlider.value = lon.toFixed(1);
+            
+            updateCoordinateDisplay();
         }
 
         function handleGeoSuccess(pos) {
@@ -422,6 +431,12 @@
             const globeSpeedInput = document.getElementById('globe-speed');
             const toggleBtn = document.getElementById('globe-rotate-toggle');
             const terminatorToggle = document.getElementById('terminator-toggle');
+            
+            // 新增的经纬度控制元素
+            const latitudeInput = document.getElementById('latitude-input');
+            const longitudeInput = document.getElementById('longitude-input');
+            const latitudeSlider = document.getElementById('latitude-slider');
+            const longitudeSlider = document.getElementById('longitude-slider');
             
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
@@ -483,6 +498,59 @@
                     resize();
                 });
             }
+            
+            // 绑定经纬度控制事件
+            if (latitudeInput && latitudeSlider) {
+                // 初始化值
+                latitudeInput.value = lat.toFixed(1);
+                latitudeSlider.value = lat.toFixed(1);
+                
+                // 输入框事件
+                latitudeInput.addEventListener('input', (e) => {
+                    let value = parseFloat(e.target.value) || 0;
+                    // 限制范围
+                    value = Math.max(-90, Math.min(90, value));
+                    lat = value;
+                    latitudeSlider.value = value.toFixed(1);
+                    hasLocation = true;
+                    updateCoordinateDisplay();
+                });
+                
+                // 滑块事件
+                latitudeSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    lat = value;
+                    latitudeInput.value = value.toFixed(1);
+                    hasLocation = true;
+                    updateCoordinateDisplay();
+                });
+            }
+            
+            if (longitudeInput && longitudeSlider) {
+                // 初始化值
+                longitudeInput.value = lon.toFixed(1);
+                longitudeSlider.value = lon.toFixed(1);
+                
+                // 输入框事件
+                longitudeInput.addEventListener('input', (e) => {
+                    let value = parseFloat(e.target.value) || 0;
+                    // 限制范围
+                    value = Math.max(-180, Math.min(180, value));
+                    lon = value;
+                    longitudeSlider.value = value.toFixed(1);
+                    hasLocation = true;
+                    updateCoordinateDisplay();
+                });
+                
+                // 滑块事件
+                longitudeSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    lon = value;
+                    longitudeInput.value = value.toFixed(1);
+                    hasLocation = true;
+                    updateCoordinateDisplay();
+                });
+            }
 
             // If globe view is hidden/shown we should trigger a resize so canvas stays crisp
             const obsTarget = document.getElementById('globe-view');
@@ -524,6 +592,14 @@
             canvas.addEventListener('pointerup', endDrag);
             canvas.addEventListener('pointercancel', endDrag);
             canvas.addEventListener('pointerleave', endDrag);
+        }
+        
+        // 更新坐标显示
+        function updateCoordinateDisplay() {
+            const latEl = document.getElementById('lat-value');
+            const lonEl = document.getElementById('lon-value');
+            if (latEl) latEl.textContent = lat.toFixed(2);
+            if (lonEl) lonEl.textContent = lon.toFixed(2);
         }
 
         // init

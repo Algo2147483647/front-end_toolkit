@@ -531,6 +531,47 @@ body {
     max-width: 100%;
 }
 
+.coordinate-control {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.coordinate-input-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.coordinate-input {
+    width: 80px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid rgba(200, 200, 200, 0.5);
+    background: rgba(240, 240, 240, 0.9);
+}
+
+.coordinate-slider {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(240, 240, 240, 0.9);
+    outline: none;
+}
+
+.coordinate-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(to right, #6a9eff, #a3c1ff);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(106, 158, 255, 0.8);
+}
+
 #reset-tilt {
     align-self: flex-start;
     padding: 8px 16px;
