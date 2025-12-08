@@ -655,6 +655,22 @@
             const lonEl = document.getElementById('lon-value');
             if (latEl) latEl.textContent = lat.toFixed(2);
             if (lonEl) lonEl.textContent = lon.toFixed(2);
+            // update timezone label (approximate) if element exists
+            const tzEl = document.getElementById('timezone-display');
+            if (tzEl) {
+                try {
+                    const tzOffset = computeTimezoneOffsetMinutes(lon);
+                    window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                    const sign = tzOffset >= 0 ? '+' : '-';
+                    const abs = Math.abs(tzOffset);
+                    const hrs = Math.floor(abs / 60);
+                    const mins = abs % 60;
+                    const padded = mins.toString().padStart(2, '0');
+                    tzEl.textContent = `UTC${sign}${hrs}${mins ? ':' + padded : ':00'} (approx)`;
+                } catch (e) {
+                    tzEl.textContent = 'UTC (unknown)';
+                }
+            }
         }
 
         // init
