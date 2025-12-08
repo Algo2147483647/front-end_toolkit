@@ -7,9 +7,12 @@ function drawClock() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     
-    const centerX = clockFace.width / 2;
-    const centerY = clockFace.height / 2;
-    const radius = clockFace.width / 2;
+    // 获取设备像素比率以处理高分辨率屏幕
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    const centerX = clockFace.width / (2 * devicePixelRatio);
+    const centerY = clockFace.height / (2 * devicePixelRatio);
+    const radius = (clockFace.width / (2 * devicePixelRatio)) ;
 
     // 清空画布
     ctx.clearRect(0, 0, clockFace.width, clockFace.height);
@@ -31,7 +34,7 @@ function drawClock() {
         const angle = (i * Math.PI * 2) / 24;
         const innerRadius = radius * 0.45; // 刻度位于半径的一半处
         const outerRadius = innerRadius + (i % 6 === 0 ? 12 : 8); // 大刻度和小刻度长度不同
-        
+
         const startX = centerX + Math.sin(angle) * innerRadius;
         const startY = centerY - Math.cos(angle) * innerRadius;
         const endX = centerX + Math.sin(angle) * outerRadius;
@@ -49,7 +52,7 @@ function drawClock() {
         const textX = centerX + Math.sin(angle) * textRadius;
         const textY = centerY - Math.cos(angle) * textRadius;
 
-        ctx.font = i % 6 === 0 ? 'bold 20px "Times New Roman", serif' : '16px "Times New Roman", serif';
+        ctx.font = i % 6 === 0 ? 'bold 20px \"Times New Roman\", serif' : '16px \"Times New Roman\", serif';
         ctx.fillStyle = i % 6 === 0 ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -61,7 +64,7 @@ function drawClock() {
         const angle = (i * Math.PI * 2) / 60;
         const outerRadius = radius - 5; // 刻度位于外圆内侧
         const innerRadius = outerRadius - (i % 5 === 0 ? 15 : 8); // 大刻度和小刻度长度不同
-        
+
         const startX = centerX + Math.sin(angle) * innerRadius;
         const startY = centerY - Math.cos(angle) * innerRadius;
         const endX = centerX + Math.sin(angle) * outerRadius;
@@ -80,8 +83,8 @@ function drawClock() {
             const textRadius = innerRadius - 20;
             const textX = centerX + Math.sin(angle) * textRadius;
             const textY = centerY - Math.cos(angle) * textRadius;
-            
-            ctx.font = 'bold 24px "Times New Roman", serif';
+
+            ctx.font = 'bold 24px \"Times New Roman\", serif';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; // 数字颜色也改为黑色
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -98,11 +101,11 @@ function drawClock() {
 
     // 计算指针角度（24小时制）
     const hourAngle = (hours % 24 + minutes / 60) * Math.PI / 12 - Math.PI / 2;
-    
+
     // 根据设置决定分针运动方式
     const motionSelect = document.getElementById('second-hand-motion');
     let minuteAngle;
-    
+
     if (motionSelect && motionSelect.value === 'smooth') {
         // 平滑移动：包括秒和毫秒精度
         minuteAngle = (minutes + (seconds + milliseconds / 1000) / 60) * Math.PI / 30 - Math.PI / 2;
@@ -110,10 +113,10 @@ function drawClock() {
         // 一秒一跳：只使用分钟和秒钟
         minuteAngle = (minutes + seconds / 60) * Math.PI / 30 - Math.PI / 2;
     }
-    
+
     // 根据设置决定秒针运动方式
     let secondAngle;
-    
+
     if (motionSelect && motionSelect.value === 'smooth') {
         // 平滑移动：包括毫秒精度
         secondAngle = (seconds + milliseconds / 1000) * Math.PI / 30 - Math.PI / 2;
@@ -191,13 +194,21 @@ function updateClockSize() {
     const sizeSlider = document.getElementById('size-slider');
     const clockFace = document.getElementById('clock-face');
     const digitalClock = document.getElementById('digital-clock');
-    
+
     let clockSize = parseInt(sizeSlider.value);
-    
-    clockFace.width = clockSize;
-    clockFace.height = clockSize;
+
+    // 处理高分辨率屏幕显示模糊问题
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    // 设置实际显示尺寸
+    clockFace.width = clockSize * devicePixelRatio;
+    clockFace.height = clockSize * devicePixelRatio;
     clockFace.style.width = `${clockSize}px`;
     clockFace.style.height = `${clockSize}px`;
+
+    // 缩放上下文以适应高DPI屏幕
+    const ctx = clockFace.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
 
     // 调整数字时钟位置
     const digitalClockHeight = 60;
