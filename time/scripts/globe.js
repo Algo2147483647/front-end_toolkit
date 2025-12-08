@@ -41,6 +41,11 @@
         // Show/hide terminator line
         let showTerminator = true;
 
+        // Centering animation state
+        let targetRotY = null;
+        let prevRotating = null;
+        let centerAnimating = false;
+
         let lat = 0, lon = 0; // degrees for current location
         let hasLocation = false;
         let isDragging = false;
@@ -152,6 +157,15 @@
             const rz = Math.atan2(sinZ, cosZ);
 
             return [rx, ry, rz];
+        }
+
+        // Normalize angle to range [-PI, PI]
+        function normalizeAngle(a) {
+            const TWO_PI = Math.PI * 2;
+            let v = a;
+            while (v <= -Math.PI) v += TWO_PI;
+            while (v > Math.PI) v -= TWO_PI;
+            return v;
         }
 
         // Calculate the solar declination angle for a given date (in radians)
@@ -376,7 +390,25 @@
 
         function update() {
             clear();
-            if (rotating && !isDragging) {
+
+            // If we're animating a center-on-longitude, drive rotY toward targetRotY
+            if (centerAnimating && targetRotY !== null) {
+                const delta = normalizeAngle(targetRotY - rotY);
+                const stepFactor = 0.18; // interpolation factor (0..1)
+                if (Math.abs(delta) < 0.0008) {
+                    rotY = targetRotY;
+                    centerAnimating = false;
+                    targetRotY = null;
+                    // restore previous auto-rotation state
+                    if (prevRotating !== null) {
+                        rotating = prevRotating;
+                        prevRotating = null;
+                    }
+                } else {
+                    rotY = normalizeAngle(rotY + delta * stepFactor);
+                }
+
+            } else if (rotating && !isDragging) {
                 // Rotate around the globe's physical axis (local Y axis transformed
                 // by the current orientation). Build a quaternion from current
                 // Euler angles, rotate about the axis in world space, then convert
@@ -391,6 +423,7 @@
                 const e = quatToEulerXYZ(newOrient);
                 rotX = e[0]; rotY = e[1]; rotZ = e[2];
             }
+
             drawSphere();
             requestAnimationFrame(update);
         }
@@ -444,8 +477,19 @@
 
         // center globe so that given longitude is at center
         function centerOnLongitude(targetLon) {
-            // Set yaw so the given longitude faces the viewer. Negative because of rotation direction.
-            rotY = - (targetLon * Math.PI/180);
+            // Compute yaw so the given longitude faces the viewer.
+            // With our spherical coordinates and rotation convention the
+            // longitude that faces the viewer when rotY === 0 is +90°,
+            // so the yaw required to bring `targetLon` to the front is
+            // rotY = targetLon - 90° (in radians).
+            const targetRad = (targetLon || 0) * Math.PI / 180;
+            const desired = targetRad - Math.PI/2;
+
+            // Smoothly animate to the target yaw instead of snapping.
+            prevRotating = rotating;
+            rotating = false;
+            centerAnimating = true;
+            targetRotY = normalizeAngle(desired);
         }
 
         // Expose centerOnLongitude globally so it can be called from settings
