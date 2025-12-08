@@ -441,7 +441,16 @@
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
                     rotating = !rotating;
-                    toggleBtn.textContent = rotating ? 'Pause Rotation' : 'Resume Rotation';
+                    const icon = toggleBtn.querySelector('i');
+                    if (icon) {
+                        if (rotating) {
+                            icon.className = 'fas fa-pause';
+                            toggleBtn.title = 'Pause Rotation';
+                        } else {
+                            icon.className = 'fas fa-play';
+                            toggleBtn.title = 'Resume Rotation';
+                        }
+                    }
                 });
             }
             
@@ -465,6 +474,15 @@
                     rotZ = earthAxialTilt;
                     if (globeTiltInput) {
                         globeTiltInput.value = 23.5;
+                    }
+                    
+                    // 添加一个重置动画效果
+                    const icon = resetTiltBtn.querySelector('i');
+                    if (icon) {
+                        icon.style.transform = 'rotate(360deg)';
+                        setTimeout(() => {
+                            icon.style.transform = 'rotate(0deg)';
+                        }, 500);
                     }
                 });
             }
