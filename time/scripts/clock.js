@@ -84,8 +84,8 @@ function drawClock() {
         }
     }
 
-    // 获取当前时间
-    const now = new Date();
+    // 获取当前时间（受全局时区偏移影响，如果已设置）
+    const now = getNowInTimezone();
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
@@ -167,7 +167,7 @@ function drawClock() {
 
 // 更新数字时钟
 function updateDigitalClock() {
-    const now = new Date();
+    const now = getNowInTimezone();
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
     const seconds = now.getSeconds().toString().padStart(2, '0');
@@ -200,3 +200,24 @@ function updateClockSize() {
 
     drawClock();
 }
+
+// Return a Date object adjusted to `window.APP_TIMEZONE_OFFSET_MINUTES` if present.
+function getNowInTimezone() {
+    const now = new Date();
+    const tz = window.APP_TIMEZONE_OFFSET_MINUTES;
+    if (typeof tz === 'number') {
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utc + tz * 60000);
+    }
+    return now;
+}
+
+// Redraw immediately when timezone changes
+window.addEventListener('timezoneChanged', () => {
+    try {
+        drawClock();
+        updateDigitalClock();
+    } catch (e) {
+        console.warn('Clock refresh on timezone change failed', e);
+    }
+});

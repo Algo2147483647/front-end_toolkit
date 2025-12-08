@@ -179,6 +179,14 @@
             return hourAngleDeg * Math.PI / 180;
         }
 
+        // Compute timezone offset minutes from longitude (approximate):
+        // Each 15° of longitude corresponds to one hour offset from UTC.
+        function computeTimezoneOffsetMinutes(longitude) {
+            // round to nearest timezone meridian
+            const hours = Math.round(longitude / 15);
+            return hours * 60;
+        }
+
         // Calculate the terminator line points
         function calculateTerminatorLine() {
             const points = [];
@@ -405,6 +413,15 @@
             if (longitudeSlider) longitudeSlider.value = lon.toFixed(1);
             
             updateCoordinateDisplay();
+
+            // Update global timezone offset (approximate) and notify listeners
+            try {
+                const tzOffset = computeTimezoneOffsetMinutes(lon);
+                window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                window.dispatchEvent(new CustomEvent('timezoneChanged', { detail: { offsetMinutes: tzOffset } }));
+            } catch (e) {
+                console.warn('Failed to set timezone from location', e);
+            }
         }
 
         function handleGeoSuccess(pos) {
@@ -532,6 +549,11 @@
                     latitudeSlider.value = value.toFixed(1);
                     hasLocation = true;
                     updateCoordinateDisplay();
+
+                    // update timezone and broadcast
+                    const tzOffset = computeTimezoneOffsetMinutes(lon);
+                    window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                    window.dispatchEvent(new CustomEvent('timezoneChanged', { detail: { offsetMinutes: tzOffset } }));
                 });
                 
                 // 滑块事件
@@ -541,6 +563,11 @@
                     latitudeInput.value = value.toFixed(1);
                     hasLocation = true;
                     updateCoordinateDisplay();
+
+                    // update timezone and broadcast
+                    const tzOffset = computeTimezoneOffsetMinutes(lon);
+                    window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                    window.dispatchEvent(new CustomEvent('timezoneChanged', { detail: { offsetMinutes: tzOffset } }));
                 });
             }
             
@@ -558,6 +585,11 @@
                     longitudeSlider.value = value.toFixed(1);
                     hasLocation = true;
                     updateCoordinateDisplay();
+
+                    // update timezone and broadcast
+                    const tzOffset = computeTimezoneOffsetMinutes(lon);
+                    window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                    window.dispatchEvent(new CustomEvent('timezoneChanged', { detail: { offsetMinutes: tzOffset } }));
                 });
                 
                 // 滑块事件
@@ -567,6 +599,11 @@
                     longitudeInput.value = value.toFixed(1);
                     hasLocation = true;
                     updateCoordinateDisplay();
+
+                    // update timezone and broadcast
+                    const tzOffset = computeTimezoneOffsetMinutes(lon);
+                    window.APP_TIMEZONE_OFFSET_MINUTES = tzOffset;
+                    window.dispatchEvent(new CustomEvent('timezoneChanged', { detail: { offsetMinutes: tzOffset } }));
                 });
             }
 

@@ -1,7 +1,19 @@
 // Calendar functionality
+
+// Helper to get current Date adjusted by `window.APP_TIMEZONE_OFFSET_MINUTES` when set
+function getNowInTZ() {
+    const now = new Date();
+    const tz = window.APP_TIMEZONE_OFFSET_MINUTES;
+    if (typeof tz === 'number') {
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utc + tz * 60000);
+    }
+    return now;
+}
+
 class Calendar {
     constructor() {
-        this.currentDate = new Date();
+        this.currentDate = getNowInTZ();
         this.currentYear = this.currentDate.getFullYear();
         this.currentMonth = this.currentDate.getMonth();
         this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -33,6 +45,9 @@ class Calendar {
         this.initElements();
         this.bindEvents();
         this.init(); // 调用新的初始化方法
+
+        // Listen for timezone changes and reinitialize the calendar view
+        window.addEventListener('timezoneChanged', () => this.handleTimezoneChange());
     }
 
     initElements() {
@@ -151,7 +166,7 @@ class Calendar {
         // clear days container
         this.daysContainer.innerHTML = '';
 
-        const today = new Date();
+        const today = getNowInTZ();
 
         for (let r = 0; r < rowsToRender; r++) {
             const weekIndex = startRow + r;
@@ -296,7 +311,7 @@ class Calendar {
     updateDaysFromToday() {
         if (!this.selectedDate) return;
         
-        const today = new Date();
+        const today = getNowInTZ();
         today.setHours(0, 0, 0, 0);
         
         const selectedDate = new Date(this.selectedDate);
@@ -368,7 +383,7 @@ class Calendar {
     // 回到今天
     goToToday() {
         // 直接滚动到今天的日期
-        const today = new Date();
+        const today = getNowInTZ();
         const weeksBefore = Math.floor((new Date(today.getFullYear(), today.getMonth(), today.getDate()) - this.totalStartDate) / (1000 * 60 * 60 * 24 * 7));
         this.calendarGrid.scrollTop = Math.max(0, weeksBefore * this.rowHeight);
         this.handleScroll();
@@ -389,6 +404,19 @@ class Calendar {
         
         // 清除选中日期的天数差显示
         this.clearDaysFromToday();
+    }
+
+    // Handle timezone change: update current date and reinit calendar
+    handleTimezoneChange() {
+        try {
+            this.currentDate = getNowInTZ();
+            this.currentYear = this.currentDate.getFullYear();
+            this.currentMonth = this.currentDate.getMonth();
+            // Recompute initial firstVisibleRow and reinitialize
+            this.init();
+        } catch (e) {
+            console.warn('Calendar failed to handle timezone change', e);
+        }
     }
 
 }
