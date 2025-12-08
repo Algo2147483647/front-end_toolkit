@@ -72,25 +72,86 @@
             let y = Math.sin(phi);
             let z = Math.cos(phi) * Math.sin(lambda);
 
-            // Rotate around X (pitch)
+            // Apply current orientation (Euler angles) to the point by constructing
+            // the same rotation order as used elsewhere: rotate X (pitch), then Y (yaw), then Z (roll).
+            // For performance we keep the simple Euler rotations here (they are updated
+            // from the quaternion when auto-rotating).
             let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
             let y1 = y * cosX - z * sinX;
             let z1 = y * sinX + z * cosX;
             let x1 = x;
 
-            // Rotate around Y (yaw)
             let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
             let x2 = x1 * cosY + z1 * sinY;
             let z2 = -x1 * sinY + z1 * cosY;
             let y2 = y1;
 
-            // Rotate around Z (roll)
             let cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
             let x3 = x2 * cosZ - y2 * sinZ;
             let y3 = x2 * sinZ + y2 * cosZ;
             let z3 = z2;
 
             return { x: x3 * R, y: y3 * R, z: z3 * R };
+        }
+
+        // --- Quaternion helpers ---
+        function quatFromAxisAngle(ax, ay, az, angle) {
+            const half = angle / 2;
+            const s = Math.sin(half);
+            const len = Math.hypot(ax, ay, az) || 1;
+            return { w: Math.cos(half), x: (ax/len) * s, y: (ay/len) * s, z: (az/len) * s };
+        }
+
+        function quatMultiply(a, b) {
+            return {
+                w: a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z,
+                x: a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+                y: a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+                z: a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w
+            };
+        }
+
+        function quatConjugate(q) {
+            return { w: q.w, x: -q.x, y: -q.y, z: -q.z };
+        }
+
+        function rotateVecByQuat(q, v) {
+            // v' = q * v_quat * q_conj
+            const vq = { w: 0, x: v.x, y: v.y, z: v.z };
+            const t = quatMultiply(q, vq);
+            const r = quatMultiply(t, quatConjugate(q));
+            return { x: r.x, y: r.y, z: r.z };
+        }
+
+        function quatFromEulerXYZ(rx, ry, rz) {
+            // Build quaternion equivalent to Rz * Ry * Rx (apply Rx, then Ry, then Rz)
+            const qx = quatFromAxisAngle(1,0,0, rx);
+            const qy = quatFromAxisAngle(0,1,0, ry);
+            const qz = quatFromAxisAngle(0,0,1, rz);
+            return quatMultiply(qz, quatMultiply(qy, qx));
+        }
+
+        function quatToEulerXYZ(q) {
+            // Convert quaternion to Euler angles with rotation order X then Y then Z
+            // (intrinsic rotations). Returns [rx, ry, rz].
+            const w = q.w, x = q.x, y = q.y, z = q.z;
+
+            // X (pitch)
+            const sinX = 2*(w*x + y*z);
+            const cosX = 1 - 2*(x*x + y*y);
+            const rx = Math.atan2(sinX, cosX);
+
+            // Y (yaw)
+            let sinY = 2*(w*y - z*x);
+            sinY = Math.max(-1, Math.min(1, sinY));
+            const ry = Math.asin(sinY);
+
+            // Z (roll)
+            const sinZ = 2*(w*z + x*y);
+            const cosZ = 1 - 2*(y*y + z*z);
+            const rz = Math.atan2(sinZ, cosZ);
+
+            return [rx, ry, rz];
         }
 
         // Calculate the solar declination angle for a given date (in radians)
@@ -307,7 +368,21 @@
 
         function update() {
             clear();
-            if (rotating && !isDragging) rotY += rotationSpeed;
+            if (rotating && !isDragging) {
+                // Rotate around the globe's physical axis (local Y axis transformed
+                // by the current orientation). Build a quaternion from current
+                // Euler angles, rotate about the axis in world space, then convert
+                // back to Euler for rendering code that still expects rotX/rotY/rotZ.
+                const orient = quatFromEulerXYZ(rotX, rotY, rotZ);
+                // local north axis
+                const localAxis = { x: 0, y: 1, z: 0 };
+                const axisWorld = rotateVecByQuat(orient, localAxis);
+                // small rotation quaternion about axisWorld
+                const qAxis = quatFromAxisAngle(axisWorld.x, axisWorld.y, axisWorld.z, rotationSpeed);
+                const newOrient = quatMultiply(qAxis, orient);
+                const e = quatToEulerXYZ(newOrient);
+                rotX = e[0]; rotY = e[1]; rotZ = e[2];
+            }
             drawSphere();
             requestAnimationFrame(update);
         }
