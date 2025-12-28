@@ -46,17 +46,18 @@ function renderTimeline() {
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
   
-  // 设置SVG尺寸和边距
+  // 设置SVG尺寸和边距 - 增加高度为原来的5倍
   const width = 1200;
-  const height = Math.max(800, mathHistoryData.length * 80); // 根据事件数量调整高度
+  const height = Math.max(2000, (maxYear - minYear) * 10); // 根据年份范围调整高度，至少4000px
   svgElement.setAttribute('height', height);
   
   const margin = { top: 50, right: 50, bottom: 50, left: 150 }; // 增加左边距以容纳时间轴
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   
-  // 计算年份到位置的映射
+  // 计算年份到位置的映射 - 扩展映射以适应更长的时间轴
   const yearScale = (year) => {
+    // 使用线性映射，扩展时间轴
     return margin.top + ((year - minYear) / (maxYear - minYear)) * innerHeight;
   };
   
@@ -74,27 +75,30 @@ function renderTimeline() {
   for (let year = Math.ceil(minYear / yearInterval) * yearInterval; year <= maxYear; year += yearInterval) {
     const y = yearScale(year);
     
-    // 刻度线
-    const tickLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    tickLine.setAttribute('x1', margin.left - 5);
-    tickLine.setAttribute('y1', y);
-    tickLine.setAttribute('x2', margin.left + 5);
-    tickLine.setAttribute('y2', y);
-    tickLine.setAttribute('stroke', '#7986cb');
-    tickLine.setAttribute('stroke-width', 1);
-    svgElement.appendChild(tickLine);
-    
-    // 年份标签
-    const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    yearLabel.setAttribute('x', margin.left - 10);
-    yearLabel.setAttribute('y', y + 4);
-    yearLabel.setAttribute('text-anchor', 'end');
-    yearLabel.setAttribute('font-size', '10');
-    yearLabel.setAttribute('fill', '#555');
-    
-    let yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
-    yearLabel.textContent = yearDisplay;
-    svgElement.appendChild(yearLabel);
+    // 只在可见范围内绘制刻度
+    if (y >= margin.top && y <= height - margin.bottom) {
+      // 刻度线
+      const tickLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tickLine.setAttribute('x1', margin.left - 5);
+      tickLine.setAttribute('y1', y);
+      tickLine.setAttribute('x2', margin.left + 5);
+      tickLine.setAttribute('y2', y);
+      tickLine.setAttribute('stroke', '#7986cb');
+      tickLine.setAttribute('stroke-width', 1);
+      svgElement.appendChild(tickLine);
+      
+      // 年份标签 - 使用正负号代替BC/AD
+      const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yearLabel.setAttribute('x', margin.left - 10);
+      yearLabel.setAttribute('y', y + 4);
+      yearLabel.setAttribute('text-anchor', 'end');
+      yearLabel.setAttribute('font-size', '10');
+      yearLabel.setAttribute('fill', '#555');
+      
+      let yearDisplay = year < 0 ? `-${Math.abs(year)}` : `+${year}`;
+      yearLabel.textContent = yearDisplay;
+      svgElement.appendChild(yearLabel);
+    }
   }
   
   // 计算事件位置（在时间轴右侧）
@@ -112,75 +116,78 @@ function renderTimeline() {
   
   // 绘制每个事件
   timelineData.forEach(event => {
-    // 绘制事件连接线
-    const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    connector.setAttribute('x1', margin.left);
-    connector.setAttribute('y1', event.y);
-    connector.setAttribute('x2', event.x - 10);
-    connector.setAttribute('y2', event.y);
-    connector.setAttribute('stroke', '#3949ab');
-    connector.setAttribute('stroke-width', 1);
-    connector.setAttribute('stroke-dasharray', '4,2');
-    svgElement.appendChild(connector);
-    
-    // 绘制事件圆点
-    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    marker.setAttribute('cx', margin.left);
-    marker.setAttribute('cy', event.y);
-    marker.setAttribute('r', 6);
-    marker.setAttribute('class', 'timeline-marker');
-    svgElement.appendChild(marker);
-    
-    // 绘制事件卡片
-    const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    cardGroup.setAttribute('class', 'event-card');
-    cardGroup.addEventListener('click', () => showEventDetails(event));
-    
-    // 卡片背景
-    const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    cardBg.setAttribute('x', event.x);
-    cardBg.setAttribute('y', event.y - 30);
-    cardBg.setAttribute('width', 200);
-    cardBg.setAttribute('height', 60);
-    cardBg.setAttribute('rx', 8);
-    cardBg.setAttribute('ry', 8);
-    cardBg.setAttribute('fill', 'white');
-    cardBg.setAttribute('stroke', '#e0e0e0');
-    cardBg.setAttribute('stroke-width', 1);
-    cardGroup.appendChild(cardBg);
-    
-    // 事件标题
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    title.setAttribute('x', event.x + 100);
-    title.setAttribute('y', event.y - 15);
-    title.setAttribute('text-anchor', 'middle');
-    title.setAttribute('class', 'event-title');
-    title.textContent = truncateText(event.data.event || 'N/A', 25);
-    cardGroup.appendChild(title);
-    
-    // 年份标签
-    const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    yearLabel.setAttribute('x', event.x + 100);
-    yearLabel.setAttribute('y', event.y + 5);
-    yearLabel.setAttribute('text-anchor', 'middle');
-    yearLabel.setAttribute('class', 'event-year');
-    
-    let yearDisplay = parseInt(event.time[0]) < 0 ? `${Math.abs(parseInt(event.time[0]))} BC` : `${parseInt(event.time[0])} AD`;
-    yearLabel.textContent = yearDisplay;
-    cardGroup.appendChild(yearLabel);
-    
-    // 人物信息
-    if (event.data.persons) {
-      const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      persons.setAttribute('x', event.x + 100);
-      persons.setAttribute('y', event.y + 20);
-      persons.setAttribute('text-anchor', 'middle');
-      persons.setAttribute('class', 'event-persons');
-      persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
-      cardGroup.appendChild(persons);
+    // 只绘制在可见范围内的事件
+    if (event.y >= margin.top && event.y <= height - margin.bottom) {
+      // 绘制事件连接线
+      const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      connector.setAttribute('x1', margin.left);
+      connector.setAttribute('y1', event.y);
+      connector.setAttribute('x2', event.x - 10);
+      connector.setAttribute('y2', event.y);
+      connector.setAttribute('stroke', '#3949ab');
+      connector.setAttribute('stroke-width', 1);
+      connector.setAttribute('stroke-dasharray', '4,2');
+      svgElement.appendChild(connector);
+      
+      // 绘制事件圆点
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('cx', margin.left);
+      marker.setAttribute('cy', event.y);
+      marker.setAttribute('r', 6);
+      marker.setAttribute('class', 'timeline-marker');
+      svgElement.appendChild(marker);
+      
+      // 绘制事件卡片
+      const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      cardGroup.setAttribute('class', 'event-card');
+      cardGroup.addEventListener('click', () => showEventDetails(event));
+      
+      // 卡片背景
+      const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      cardBg.setAttribute('x', event.x);
+      cardBg.setAttribute('y', event.y - 30);
+      cardBg.setAttribute('width', 200);
+      cardBg.setAttribute('height', 60);
+      cardBg.setAttribute('rx', 8);
+      cardBg.setAttribute('ry', 8);
+      cardBg.setAttribute('fill', 'white');
+      cardBg.setAttribute('stroke', '#e0e0e0');
+      cardBg.setAttribute('stroke-width', 1);
+      cardGroup.appendChild(cardBg);
+      
+      // 事件标题
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      title.setAttribute('x', event.x + 100);
+      title.setAttribute('y', event.y - 15);
+      title.setAttribute('text-anchor', 'middle');
+      title.setAttribute('class', 'event-title');
+      title.textContent = truncateText(event.data.event || 'N/A', 25);
+      cardGroup.appendChild(title);
+      
+      // 年份标签 - 使用正负号
+      const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yearLabel.setAttribute('x', event.x + 100);
+      yearLabel.setAttribute('y', event.y + 5);
+      yearLabel.setAttribute('text-anchor', 'middle');
+      yearLabel.setAttribute('class', 'event-year');
+      
+      let yearDisplay = parseInt(event.time[0]) < 0 ? `-${Math.abs(parseInt(event.time[0]))}` : `+${parseInt(event.time[0])}`;
+      yearLabel.textContent = yearDisplay;
+      cardGroup.appendChild(yearLabel);
+      
+      // 人物信息
+      if (event.data.persons) {
+        const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        persons.setAttribute('x', event.x + 100);
+        persons.setAttribute('y', event.y + 20);
+        persons.setAttribute('text-anchor', 'middle');
+        persons.setAttribute('class', 'event-persons');
+        persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
+        cardGroup.appendChild(persons);
+      }
+      
+      svgElement.appendChild(cardGroup);
     }
-    
-    svgElement.appendChild(cardGroup);
   });
 }
 
