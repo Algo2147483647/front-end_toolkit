@@ -1,8 +1,7 @@
 // 定义全局变量存储数据
 let mathHistoryData = [];
-
-// 默认颜色
-const defaultColor = "#757575";
+let svgElement;
+let timelineData = [];
 
 // 从example.json加载数据
 async function loadMathHistoryData() {
@@ -27,91 +26,223 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 按时间排序
   mathHistoryData.sort((a, b) => parseInt(a.time[0]) - parseInt(b.time[0]));
 
+  // 初始化SVG
+  svgElement = document.getElementById('timeline-svg');
+  
   // 渲染时间轴
   renderTimeline();
-
+  
   // 设置事件监听器
   setupEventListeners();
 });
 
-// 渲染时间轴
-function renderTimeline(filter = "all") {
-  const timeline = document.querySelector('.timeline');
-
-  // 清除现有事件（除了时间线和时代标签）
-  const existingEvents = timeline.querySelectorAll('.timeline-event, .timeline-marker');
-  existingEvents.forEach(el => el.remove());
-
-  // 计算同一时间点的事件数量，用于避免重叠
-  const yearGroups = {};
-
-  // 过滤事件
-  const filteredEvents = mathHistoryData ?
-          mathHistoryData.filter(event => {
-            if (filter === "all") return true;
-            return true; // 由于删除了category，暂时不过滤
-          }) : [];
-
-  // 为每个事件计算位置
-  filteredEvents.forEach((event, index) => {
-    // 计算事件位置（基于时间）
-    const minYear = Math.min(...filteredEvents.map(e => parseInt(e.time[0])));
-    const maxYear = Math.max(...filteredEvents.map(e => parseInt(e.time[0])));
-    const year = parseInt(event.time[0]);
+// 渲染SVG时间轴
+function renderTimeline() {
+  // 清空SVG
+  svgElement.innerHTML = '';
+  
+  // 获取年份范围
+  const years = mathHistoryData.map(event => parseInt(event.time[0]));
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  
+  // 设置SVG尺寸和边距
+  const width = 1200;
+  const height = 800;
+  const margin = { top: 50, right: 50, bottom: 100, left: 50 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+  
+  // 计算年份到位置的映射
+  const yearScale = (year) => {
+    return margin.left + ((year - minYear) / (maxYear - minYear)) * innerWidth;
+  };
+  
+  // 绘制时间轴线
+  const timelineLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  timelineLine.setAttribute('x1', margin.left);
+  timelineLine.setAttribute('y1', height / 2);
+  timelineLine.setAttribute('x2', width - margin.right);
+  timelineLine.setAttribute('y2', height / 2);
+  timelineLine.setAttribute('class', 'timeline-line');
+  svgElement.appendChild(timelineLine);
+  
+  // 添加年份刻度
+  const yearInterval = Math.ceil((maxYear - minYear) / 20); // 最多显示20个刻度
+  for (let year = Math.ceil(minYear / yearInterval) * yearInterval; year <= maxYear; year += yearInterval) {
+    const x = yearScale(year);
     
-    // 计算在时间轴上的位置百分比，增加一些间隔以避免重叠
-    const position = maxYear === minYear ? 50 : ((year - minYear) / (maxYear - minYear)) * 90 + 5; // 5% 到 95% 之间，避免贴边
-    event.position = position;
-    event.side = index % 2 === 0 ? 'left' : 'right'; // 简单分配左右侧
-  });
-
-  // 为每个事件创建DOM元素
-  filteredEvents.forEach((event, index) => {
-    const year = parseInt(event.time[0]);
-
-    // 创建时间标记
-    const marker = document.createElement('div');
-    marker.className = 'timeline-marker';
-    marker.style.top = `${event.position}%`;
-    marker.setAttribute('data-year', year);
-    timeline.appendChild(marker);
-
-    // 创建事件卡片
-    const eventElement = document.createElement('div');
-    eventElement.className = `timeline-event ${event.side}`;
-    eventElement.style.top = `${event.position}%`;
-    eventElement.setAttribute('data-key', event.key);
-
-    const color = defaultColor;
-    eventElement.style.borderTop = `4px solid ${color}`;
-
-    // 构建年份显示（处理公元前）
+    // 刻度线
+    const tickLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    tickLine.setAttribute('x1', x);
+    tickLine.setAttribute('y1', height / 2 - 10);
+    tickLine.setAttribute('x2', x);
+    tickLine.setAttribute('y2', height / 2 + 10);
+    tickLine.setAttribute('stroke', '#7986cb');
+    tickLine.setAttribute('stroke-width', 1);
+    svgElement.appendChild(tickLine);
+    
+    // 年份标签
+    const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yearLabel.setAttribute('x', x);
+    yearLabel.setAttribute('y', height / 2 + 25);
+    yearLabel.setAttribute('text-anchor', 'middle');
+    yearLabel.setAttribute('font-size', '10');
+    yearLabel.setAttribute('fill', '#555');
+    
     let yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
-
-    // 事件内容
-    eventElement.innerHTML = `
-                  <div class="event-year" style="color: ${color}">${yearDisplay}</div>
-                  <div class="event-title">${event.data.event}</div>
-                  ${event.data.persons ? `<div class="event-persons">${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}</div>` : ''}
-                  ${event.data.paper ? `<div class="event-paper">${event.data.paper}</div>` : ''}
-              `;
-
-    timeline.appendChild(eventElement);
-
-    // 添加点击事件显示详情
-    eventElement.addEventListener('click', () => showEventDetails(event));
+    yearLabel.textContent = yearDisplay;
+    svgElement.appendChild(yearLabel);
+  }
+  
+  // 计算事件位置（左右交替）
+  timelineData = mathHistoryData.map((event, index) => {
+    const year = parseInt(event.time[0]);
+    const x = yearScale(year);
+    const side = index % 2 === 0 ? 'top' : 'bottom';
+    const y = side === 'top' ? height / 2 - 80 : height / 2 + 40;
+    
+    return {
+      ...event,
+      x,
+      y,
+      side
+    };
   });
+  
+  // 绘制每个事件
+  timelineData.forEach(event => {
+    // 绘制事件连接线
+    const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    connector.setAttribute('x1', event.x);
+    connector.setAttribute('y1', height / 2);
+    connector.setAttribute('x2', event.x);
+    connector.setAttribute('y2', event.y + (event.side === 'top' ? 40 : 0));
+    connector.setAttribute('stroke', '#3949ab');
+    connector.setAttribute('stroke-width', 1);
+    connector.setAttribute('stroke-dasharray', '4,2');
+    svgElement.appendChild(connector);
+    
+    // 绘制事件圆点
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    marker.setAttribute('cx', event.x);
+    marker.setAttribute('cy', event.side === 'top' ? height / 2 - 10 : height / 2 + 10);
+    marker.setAttribute('r', 6);
+    marker.setAttribute('class', 'timeline-marker');
+    svgElement.appendChild(marker);
+    
+    // 绘制事件卡片
+    const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    cardGroup.setAttribute('class', 'event-card');
+    cardGroup.addEventListener('click', () => showEventDetails(event));
+    
+    // 卡片背景
+    const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    cardBg.setAttribute('x', event.x - 80);
+    cardBg.setAttribute('y', event.y);
+    cardBg.setAttribute('width', 160);
+    cardBg.setAttribute('height', 80);
+    cardBg.setAttribute('rx', 8);
+    cardBg.setAttribute('ry', 8);
+    cardBg.setAttribute('fill', 'white');
+    cardBg.setAttribute('stroke', '#e0e0e0');
+    cardBg.setAttribute('stroke-width', 1);
+    cardGroup.appendChild(cardBg);
+    
+    // 年份标签
+    const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yearLabel.setAttribute('x', event.x);
+    yearLabel.setAttribute('y', event.y + 15);
+    yearLabel.setAttribute('text-anchor', 'middle');
+    yearLabel.setAttribute('class', 'event-year');
+    
+    let yearDisplay = parseInt(event.time[0]) < 0 ? `${Math.abs(parseInt(event.time[0]))} BC` : `${parseInt(event.time[0])} AD`;
+    yearLabel.textContent = yearDisplay;
+    cardGroup.appendChild(yearLabel);
+    
+    // 事件标题
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    title.setAttribute('x', event.x);
+    title.setAttribute('y', event.y + 35);
+    title.setAttribute('text-anchor', 'middle');
+    title.setAttribute('class', 'event-title');
+    title.textContent = truncateText(event.data.event || 'N/A', 18);
+    cardGroup.appendChild(title);
+    
+    // 人物信息
+    if (event.data.persons) {
+      const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      persons.setAttribute('x', event.x);
+      persons.setAttribute('y', event.y + 50);
+      persons.setAttribute('text-anchor', 'middle');
+      persons.setAttribute('class', 'event-persons');
+      persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 20);
+      cardGroup.appendChild(persons);
+    }
+    
+    // 论文/资料信息
+    if (event.data.paper) {
+      const paper = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      paper.setAttribute('x', event.x);
+      paper.setAttribute('y', event.y + 65);
+      paper.setAttribute('text-anchor', 'middle');
+      paper.setAttribute('class', 'event-paper');
+      paper.textContent = truncateText(event.data.paper, 25);
+      cardGroup.appendChild(paper);
+    }
+    
+    svgElement.appendChild(cardGroup);
+  });
+}
+
+// 截断文本以适应空间
+function truncateText(text, maxLength) {
+  if (!text) return '';
+  text = text.toString();
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
 
 // 显示事件详情
 function showEventDetails(event) {
-  // 创建详情弹窗或在页面中显示详情
-  console.log('Event details:', event);
-  alert(`事件: ${event.data.event}\n时间: ${event.time[0]}\n人物: ${event.data.persons || 'N/A'}\n资料: ${event.data.paper || 'N/A'}`);
+  let details = `事件: ${event.data.event || 'N/A'}\n`;
+  details += `时间: ${event.time[0]}\n`;
+  if (event.data.persons) {
+    details += `人物: ${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}\n`;
+  }
+  if (event.data.paper) {
+    details += `资料: ${event.data.paper}\n`;
+  }
+  alert(details);
 }
 
 // 设置事件监听器
 function setupEventListeners() {
-  // 这里可以添加过滤器、搜索功能等事件监听器
-  console.log('Event listeners set up');
+  // 下载SVG按钮
+  document.getElementById('download-btn').addEventListener('click', downloadSVG);
+  
+  // 缩放功能
+  let scale = 1;
+  document.getElementById('zoom-in').addEventListener('click', () => {
+    scale = Math.min(scale * 1.2, 3);
+    svgElement.style.transform = `scale(${scale})`;
+  });
+  
+  document.getElementById('zoom-out').addEventListener('click', () => {
+    scale = Math.max(scale / 1.2, 0.5);
+    svgElement.style.transform = `scale(${scale})`;
+  });
+}
+
+// 下载SVG文件
+function downloadSVG() {
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  const svgBlob = new Blob([svgData], {type: 'image/svg+xml'});
+  const svgUrl = URL.createObjectURL(svgBlob);
+  
+  const downloadLink = document.createElement('a');
+  downloadLink.href = svgUrl;
+  downloadLink.download = 'math-history-timeline.svg';
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
 }
