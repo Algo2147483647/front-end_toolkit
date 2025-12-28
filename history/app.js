@@ -70,9 +70,15 @@ function renderTimeline() {
   timelineLine.setAttribute('class', 'timeline-line');
   svgElement.appendChild(timelineLine);
   
-  // 添加年份刻度
-  const yearInterval = Math.ceil((maxYear - minYear) / Math.min(20, mathHistoryData.length)); // 根据事件数量调整刻度
-  for (let year = Math.ceil(minYear / yearInterval) * yearInterval; year <= maxYear; year += yearInterval) {
+  // 添加年份刻度 - 每十年标记一次
+  const yearInterval = 10; // 固定每十年标记一次
+  // 计算第一个标记年份，使其为10的倍数
+  let firstYear = Math.ceil(minYear / 10) * 10;
+  // 如果第一个年份超出了范围，调整为范围内的第一个10的倍数
+  if (firstYear > maxYear) {
+    firstYear = Math.floor(minYear / 10) * 10;
+  }
+  for (let year = firstYear; year <= maxYear; year += yearInterval) {
     const y = yearScale(year);
     
     // 只在可见范围内绘制刻度
