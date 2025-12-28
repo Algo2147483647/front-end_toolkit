@@ -1,9 +1,9 @@
-// 定义全局变量存储数据
+// Define global variables to store data
 let mathHistoryData = [];
 let svgElement;
 let timelineData = [];
 
-// 从example.json加载数据
+// Load data from example.json
 async function loadMathHistoryData() {
   try {
     const response = await fetch('example.json');
@@ -18,7 +18,7 @@ async function loadMathHistoryData() {
   }
 }
 
-// 初始化页面
+// Initialize page
 document.addEventListener('DOMContentLoaded', async function() {
   // 加载数据
   mathHistoryData = await loadMathHistoryData();
@@ -29,39 +29,39 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 初始化SVG
   svgElement = document.getElementById('timeline-svg');
   
-  // 渲染时间轴
+  // Render timeline
   renderTimeline();
   
-  // 设置事件监听器
+  // Set up event listeners
   setupEventListeners();
 });
 
-// 渲染SVG时间轴
+// Render SVG timeline
 function renderTimeline() {
-  // 清空SVG
+  // Clear SVG
   svgElement.innerHTML = '';
   
-  // 获取年份范围
+  // Get year range
   const years = mathHistoryData.map(event => parseInt(event.time[0]));
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
   
-  // 设置SVG尺寸和边距 - 增加高度为原来的5倍
+  // Set SVG dimensions and margins - increase height to 5 times the original
   const width = 1200;
   const height = Math.max(2000, (maxYear - minYear) * 10); // 根据年份范围调整高度，至少4000px
   svgElement.setAttribute('height', height);
   
-  const margin = { top: 50, right: 50, bottom: 50, left: 150 }; // 增加左边距以容纳时间轴
+  const margin = { top: 50, right: 50, bottom: 50, left: 150 }; // Increase left margin to accommodate timeline
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   
-  // 计算年份到位置的映射 - 扩展映射以适应更长的时间轴
+  // Calculate year-to-position mapping - extend mapping to accommodate longer timeline
   const yearScale = (year) => {
-    // 使用线性映射，扩展时间轴
+    // Use linear mapping, extend timeline
     return margin.top + ((year - minYear) / (maxYear - minYear)) * innerHeight;
   };
   
-  // 绘制垂直时间轴线
+  // Draw vertical timeline
   const timelineLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   timelineLine.setAttribute('x1', margin.left);
   timelineLine.setAttribute('y1', margin.top);
@@ -70,11 +70,11 @@ function renderTimeline() {
   timelineLine.setAttribute('class', 'timeline-line');
   svgElement.appendChild(timelineLine);
   
-  // 添加年份刻度 - 每十年标记一次
-  const yearInterval = 10; // 固定每十年标记一次
-  // 计算第一个标记年份，使其为10的倍数
+  // Add year ticks - mark every ten years
+  const yearInterval = 10; // Fixed interval of 10 years
+  // Calculate the first marked year to be a multiple of 10
   let firstYear = Math.ceil(minYear / 10) * 10;
-  // 如果第一个年份超出了范围，调整为范围内的第一个10的倍数
+  // If the first year is out of range, adjust to the first multiple of 10 within the range
   if (firstYear > maxYear) {
     firstYear = Math.floor(minYear / 10) * 10;
   }
@@ -93,7 +93,7 @@ function renderTimeline() {
       tickLine.setAttribute('stroke-width', 1);
       svgElement.appendChild(tickLine);
       
-      // 年份标签 - 使用正负号代替BC/AD
+      // Year label - use plus/minus signs instead of BC/AD
       const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       yearLabel.setAttribute('x', margin.left - 10);
       yearLabel.setAttribute('y', y + 4);
@@ -107,11 +107,11 @@ function renderTimeline() {
     }
   }
   
-  // 计算事件位置（在时间轴右侧）
+  // Calculate event positions (to the right of the timeline)
   timelineData = mathHistoryData.map((event, index) => {
     const year = parseInt(event.time[0]);
     const y = yearScale(year);
-    const x = margin.left + 40; // 在时间轴右侧
+    const x = margin.left + 40; // To the right of the timeline
     
     return {
       ...event,
@@ -120,11 +120,11 @@ function renderTimeline() {
     };
   });
   
-  // 绘制每个事件
+  // Draw each event
   timelineData.forEach(event => {
-    // 只绘制在可见范围内的事件
+    // Only draw events within the visible range
     if (event.y >= margin.top && event.y <= height - margin.bottom) {
-      // 绘制事件连接线
+      // Draw event connector line
       const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       connector.setAttribute('x1', margin.left);
       connector.setAttribute('y1', event.y);
@@ -135,7 +135,7 @@ function renderTimeline() {
       connector.setAttribute('stroke-dasharray', '4,2');
       svgElement.appendChild(connector);
       
-      // 绘制事件圆点
+      // Draw event dot
       const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       marker.setAttribute('cx', margin.left);
       marker.setAttribute('cy', event.y);
@@ -143,12 +143,12 @@ function renderTimeline() {
       marker.setAttribute('class', 'timeline-marker');
       svgElement.appendChild(marker);
       
-      // 绘制事件卡片
+      // Draw event card
       const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       cardGroup.setAttribute('class', 'event-card');
       cardGroup.addEventListener('click', () => showEventDetails(event));
       
-      // 卡片背景
+      // Card background
       const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       cardBg.setAttribute('x', event.x);
       cardBg.setAttribute('y', event.y - 30);
@@ -161,7 +161,7 @@ function renderTimeline() {
       cardBg.setAttribute('stroke-width', 1);
       cardGroup.appendChild(cardBg);
       
-      // 事件标题
+      // Event title
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       title.setAttribute('x', event.x + 100);
       title.setAttribute('y', event.y - 15);
@@ -170,7 +170,7 @@ function renderTimeline() {
       title.textContent = truncateText(event.data.event || 'N/A', 25);
       cardGroup.appendChild(title);
       
-      // 年份标签 - 使用正负号
+      // Year label - use plus/minus signs
       const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       yearLabel.setAttribute('x', event.x + 100);
       yearLabel.setAttribute('y', event.y + 5);
@@ -181,7 +181,7 @@ function renderTimeline() {
       yearLabel.textContent = yearDisplay;
       cardGroup.appendChild(yearLabel);
       
-      // 人物信息
+      // Person information
       if (event.data.persons) {
         const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         persons.setAttribute('x', event.x + 100);
@@ -197,32 +197,32 @@ function renderTimeline() {
   });
 }
 
-// 截断文本以适应空间
+// Truncate text to fit space
 function truncateText(text, maxLength) {
   if (!text) return '';
   text = text.toString();
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
 
-// 显示事件详情
+// Show event details
 function showEventDetails(event) {
-  let details = `事件: ${event.data.event || 'N/A'}\n`;
-  details += `时间: ${event.time[0]}\n`;
+  let details = `Event: ${event.data.event || 'N/A'}\n`;
+  details += `Time: ${event.time[0]}\n`;
   if (event.data.persons) {
-    details += `人物: ${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}\n`;
+    details += `People: ${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}\n`;
   }
   if (event.data.paper) {
-    details += `资料: ${event.data.paper}\n`;
+    details += `Reference: ${event.data.paper}\n`;
   }
   alert(details);
 }
 
-// 设置事件监听器
+// Set up event listeners
 function setupEventListeners() {
-  // 下载SVG按钮
+  // Download SVG button
   document.getElementById('download-btn').addEventListener('click', downloadSVG);
   
-  // 缩放功能
+  // Zoom functionality
   let scale = 1;
   document.getElementById('zoom-in').addEventListener('click', () => {
     scale = Math.min(scale * 1.2, 3);
@@ -235,7 +235,7 @@ function setupEventListeners() {
   });
 }
 
-// 下载SVG文件
+// Download SVG file
 function downloadSVG() {
   const svgData = new XMLSerializer().serializeToString(svgElement);
   const svgBlob = new Blob([svgData], {type: 'image/svg+xml'});

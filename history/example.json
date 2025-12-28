@@ -14,7 +14,7 @@
     "space": [],
     "data": {
       "persons": ["Πυθαγόρας"],
-      "event": "毕达哥拉斯定律"
+      "event": "Pythagorean Theorem"
     },
     "parents": ["early_math"]
   },
@@ -24,7 +24,7 @@
     "space": [],
     "data": {
       "persons": ["Πυθαγόρας"],
-      "event": "毕达哥拉斯定律"
+      "event": "Pythagorean Theorem"
     },
     "parents": []
   },
@@ -34,7 +34,7 @@
     "space": [],
     "data": {
       "persons": ["Hippasus of Metapontum"],
-      "event": "无理数"
+      "event": "Irrational Numbers"
     },
     "parents": []
   },
@@ -44,7 +44,7 @@
     "space": [],
     "data": {
       "persons": ["Δημόκριτος"],
-      "event": "锥体体积公式"
+      "event": "Cone Volume Formula"
     },
     "parents": []
   },
@@ -53,7 +53,7 @@
     "time": ["-429"],
     "space": [],
     "data": {
-      "event": "倍立方问题"
+      "event": "Doubling the Cube Problem"
     },
     "parents": []
   },
@@ -63,7 +63,7 @@
     "space": [],
     "data": {
       "persons": ["Plato"],
-      "event": "证明正多面体只能有4,6,8,20,12"
+      "event": "Proof that regular polyhedra can only have 4,6,8,20,12 faces"
     },
     "parents": []
   },
@@ -73,8 +73,8 @@
     "space": [],
     "data": {
       "persons": ["Εὐκλείδης"],
-      "paper": "几何原本",
-      "event": "欧氏几何"
+      "paper": "Elements",
+      "event": "Euclidean Geometry"
     },
     "parents": []
   },
@@ -84,7 +84,7 @@
     "space": [],
     "data": {
       "persons": ["Apollonius of Perga"],
-      "event": "圆锥曲线"
+      "event": "Conic Sections"
     },
     "parents": []
   },
@@ -94,7 +94,7 @@
     "space": [],
     "data": {
       "paper": "Metrica",
-      "event": "海伦秦九韶公式"
+      "event": "Heron's Formula"
     },
     "parents": []
   },
@@ -103,8 +103,8 @@
     "time": ["0429"],
     "space": [],
     "data": {
-      "persons": ["祖冲之"],
-      "event": "圆周率3.1415926"
+      "persons": ["Zu Chongzhi"],
+      "event": "Pi Calculation 3.1415926"
     },
     "parents": []
   },
@@ -115,7 +115,7 @@
     "data": {
       "persons": ["Fibonacci"],
       "paper": "Liber Abaci",
-      "event": "斐波那契数列"
+      "event": "Fibonacci Sequence"
     },
     "parents": []
   },
@@ -124,8 +124,8 @@
     "time": ["1545"],
     "space": [],
     "data": {
-      "persons": ["卡尔达诺"],
-      "event": "三次方程求根公式"
+      "persons": ["Cardano"],
+      "event": "Cubic Equation Formula"
     },
     "parents": []
   },
@@ -134,9 +134,9 @@
     "time": ["1614"],
     "space": [],
     "data": {
-      "persons": ["纳皮尔"],
+      "persons": ["Napier"],
       "paper": "A Description of the Wonderful Rule of Logarithms",
-      "event": "对数"
+      "event": "Logarithms"
     },
     "parents": []
   },
@@ -145,7 +145,7 @@
     "time": ["1615"],
     "space": [],
     "data": {
-      "event": "韦达定理"
+      "event": "Vieta's Formula"
     },
     "parents": []
   },
@@ -164,7 +164,7 @@
     "time": ["1637"],
     "space": [],
     "data": {
-      "event": "费马猜想"
+      "event": "Fermat's Last Theorem"
     },
     "parents": []
   },
@@ -174,7 +174,7 @@
     "space": [],
     "data": {
       "persons": ["René Descartes"],
-      "event": "解析几何"
+      "event": "Analytic Geometry"
     },
     "parents": []
   },
@@ -184,7 +184,7 @@
     "space": [],
     "data": {
       "persons": ["René Descartes"],
-      "event": "虚数i"
+      "event": "Imaginary Number i"
     },
     "parents": []
   },
@@ -193,8 +193,8 @@
     "time": ["1654"],
     "space": [],
     "data": {
-      "persons": ["费马", "帕斯卡"],
-      "event": "期望"
+      "persons": ["Fermat", "Pascal"],
+      "event": "Mathematical Expectation"
     },
     "parents": []
   },
@@ -203,7 +203,7 @@
     "time": ["1654"],
     "space": [],
     "data": {
-      "event": "帕斯卡-杨辉三角"
+      "event": "Pascal's Triangle"
     },
     "parents": []
   },
@@ -223,7 +223,7 @@
     "space": [],
     "data": {
       "persons": ["Leibniz"],
-      "event": "二进制"
+      "event": "Binary System"
     },
     "parents": []
   },
@@ -233,7 +233,7 @@
     "space": [],
     "data": {
       "persons": ["Jacob Bernoulli"],
-      "event": "自然常数e"
+      "event": "Euler's Number e"
     },
     "parents": []
   },
@@ -243,7 +243,7 @@
     "space": [],
     "data": {
       "persons": ["Newton", "Leibniz"],
-      "event": "微积分"
+      "event": "Calculus"
     },
     "parents": []
   },
@@ -252,8 +252,8 @@
     "time": ["1696"],
     "space": [],
     "data": {
-      "persons": ["约翰伯努利"],
-      "event": "洛必达法则"
+      "persons": ["Johann Bernoulli"],
+      "event": "L'Hôpital's Rule"
     },
     "parents": []
   },
@@ -262,8 +262,8 @@
     "time": ["1713"],
     "space": [],
     "data": {
-      "persons": ["雅各布伯努利"],
-      "event": "大数定律"
+      "persons": ["Jacob Bernoulli"],
+      "event": "Law of Large Numbers"
     },
     "parents": []
   },
@@ -293,7 +293,7 @@
     "space": [],
     "data": {
       "persons": ["Leonhard Euler"],
-      "event": "图论,哥尼斯堡七桥问题"
+      "event": "Graph Theory, Seven Bridges of Königsberg"
     },
     "parents": []
   },
@@ -312,8 +312,8 @@
     "time": ["1743"],
     "space": [],
     "data": {
-      "persons": ["达朗贝尔"],
-      "event": "波动方程"
+      "persons": ["d'Alembert"],
+      "event": "Wave Equation"
     },
     "parents": []
   },
@@ -323,8 +323,8 @@
     "space": [],
     "data": {
       "persons": ["Leonhard Euler"],
-      "paper": "无穷小分析引论",
-      "event": "欧拉公式"
+      "paper": "Introductio in analysin infinitorum",
+      "event": "Euler's Formula"
     },
     "parents": []
   },
@@ -333,8 +333,8 @@
     "time": ["1755"],
     "space": [],
     "data": {
-      "persons": ["拉格朗日"],
-      "event": "变分法"
+      "persons": ["Lagrange"],
+      "event": "Calculus of Variations"
     },
     "parents": []
   },
@@ -354,7 +354,7 @@
     "space": [],
     "data": {
       "persons": ["Gauß"],
-      "event": "最小二乘法"
+      "event": "Least Squares Method"
     },
     "parents": []
   },
@@ -364,7 +364,7 @@
     "space": [],
     "data": {
       "persons": ["Gauß"],
-      "event": "正17边形尺规作图"
+      "event": "Heptadecagon Construction with Ruler and Compass"
     },
     "parents": []
   },
@@ -373,8 +373,8 @@
     "time": ["1795"],
     "space": [],
     "data": {
-      "persons": ["拉格朗日"],
-      "event": "拉格朗日插值"
+      "persons": ["Lagrange"],
+      "event": "Lagrange Interpolation"
     },
     "parents": []
   },
@@ -383,8 +383,8 @@
     "time": ["1798"],
     "space": [],
     "data": {
-      "persons": ["勒让德"],
-      "event": "素数定理"
+      "persons": ["Legendre"],
+      "event": "Prime Number Theorem"
     },
     "parents": []
   },
@@ -394,7 +394,7 @@
     "space": [],
     "data": {
       "persons": ["Gauß"],
-      "event": "代数基本定理"
+      "event": "Fundamental Theorem of Algebra"
     },
     "parents": []
   },
@@ -403,8 +403,8 @@
     "time": ["1810"],
     "space": [],
     "data": {
-      "persons": ["拉普拉斯"],
-      "event": "中心极限定理"
+      "persons": ["Laplace"],
+      "event": "Central Limit Theorem"
     },
     "parents": []
   },
@@ -413,8 +413,8 @@
     "time": ["1820"],
     "space": [],
     "data": {
-      "persons": ["柯西"],
-      "event": "极限定义"
+      "persons": ["Cauchy"],
+      "event": "Limit Definition"
     },
     "parents": []
   },
@@ -433,8 +433,8 @@
     "time": ["1824"],
     "space": [],
     "data": {
-      "persons": ["伽罗瓦", "阿贝尔"],
-      "event": "群论"
+      "persons": ["Galois", "Abel"],
+      "event": "Group Theory"
     },
     "parents": []
   },
@@ -443,7 +443,7 @@
     "time": ["1828"],
     "space": [],
     "data": {
-      "event": "格林公式"
+      "event": "Green's Theorem"
     },
     "parents": []
   },
@@ -452,8 +452,8 @@
     "time": ["1829"],
     "space": [],
     "data": {
-      "persons": ["罗巴切夫斯基"],
-      "event": "双曲几何"
+      "persons": ["Lobachevsky"],
+      "event": "Hyperbolic Geometry"
     },
     "parents": []
   },
@@ -472,8 +472,8 @@
     "time": ["1844"],
     "space": [],
     "data": {
-      "persons": ["刘维尔"],
-      "event": "超越数"
+      "persons": ["Liouville"],
+      "event": "Transcendental Numbers"
     },
     "parents": []
   },
@@ -492,8 +492,8 @@
     "time": ["1854"],
     "space": [],
     "data": {
-      "persons": ["黎曼"],
-      "event": "流形"
+      "persons": ["Riemann"],
+      "event": "Manifold"
     },
     "parents": []
   },
@@ -502,8 +502,8 @@
     "time": ["1858"],
     "space": [],
     "data": {
-      "persons": ["凯莱"],
-      "event": "矩阵"
+      "persons": ["Cayley"],
+      "event": "Matrix"
     },
     "parents": []
   },
@@ -512,7 +512,7 @@
     "time": ["1859"],
     "space": [],
     "data": {
-      "event": "黎曼猜想"
+      "event": "Riemann Hypothesis"
     },
     "parents": []
   },
@@ -521,8 +521,8 @@
     "time": ["1871"],
     "space": [],
     "data": {
-      "persons": ["德摩根"],
-      "event": "德摩根定律"
+      "persons": ["De Morgan"],
+      "event": "De Morgan's Laws"
     },
     "parents": []
   },
@@ -531,8 +531,8 @@
     "time": ["1874"],
     "space": [],
     "data": {
-      "persons": ["康托"],
-      "event": "集合论"
+      "persons": ["Cantor"],
+      "event": "Set Theory"
     },
     "parents": []
   },
@@ -550,8 +550,8 @@
     "time": ["1900"],
     "space": [],
     "data": {
-      "persons": ["皮尔逊"],
-      "event": "卡方检验"
+      "persons": ["Pearson"],
+      "event": "Chi-Square Test"
     },
     "parents": []
   },
@@ -560,7 +560,7 @@
     "time": ["1901"],
     "space": [],
     "data": {
-      "event": "Russell's paradox"
+      "event": "Russell's Paradox"
     },
     "parents": []
   },
@@ -569,8 +569,8 @@
     "time": ["1904"],
     "space": [],
     "data": {
-      "persons": ["勒贝格"],
-      "event": "测度论"
+      "persons": ["Lebesgue"],
+      "event": "Measure Theory"
     },
     "parents": []
   },
@@ -579,7 +579,7 @@
     "time": ["1904"],
     "space": [],
     "data": {
-      "event": "庞加莱猜想"
+      "event": "Poincaré Conjecture"
     },
     "parents": []
   },
@@ -588,7 +588,7 @@
     "time": ["1906"],
     "space": [],
     "data": {
-      "event": "马尔科夫过程，随机过程"
+      "event": "Markov Process, Stochastic Process"
     },
     "parents": []
   },
@@ -597,8 +597,8 @@
     "time": ["1914"],
     "space": [],
     "data": {
-      "persons": ["豪斯道夫"],
-      "event": "点集拓扑"
+      "persons": ["Hausdorff"],
+      "event": "Point-Set Topology"
     },
     "parents": []
   },
@@ -607,7 +607,7 @@
     "time": ["1931"],
     "space": [],
     "data": {
-      "event": "哥德尔不完备定理"
+      "event": "Gödel's Incompleteness Theorems"
     },
     "parents": []
   },
@@ -616,8 +616,8 @@
     "time": ["1931"],
     "space": [],
     "data": {
-      "persons": ["柯尔莫哥洛夫"],
-      "event": "公理化概率论"
+      "persons": ["Kolmogorov"],
+      "event": "Axiomatic Probability Theory"
     },
     "parents": []
   },
@@ -626,8 +626,8 @@
     "time": ["1934"],
     "space": [],
     "data": {
-      "persons": ["勒维"],
-      "event": "鞅"
+      "persons": ["Lévy"],
+      "event": "Martingale"
     },
     "parents": []
   },
@@ -646,7 +646,7 @@
     "time": ["1961"],
     "space": [],
     "data": {
-      "event": "蝴蝶效应，吸引子"
+      "event": "Butterfly Effect, Attractor"
     },
     "parents": []
   },
@@ -655,8 +655,8 @@
     "time": ["1995"],
     "space": [],
     "data": {
-      "persons": ["怀尔斯"],
-      "event": "证明费马大定理"
+      "persons": ["Wiles"],
+      "event": "Proof of Fermat's Last Theorem"
     },
     "parents": []
   },
@@ -665,8 +665,8 @@
     "time": ["2003"],
     "space": [],
     "data": {
-      "persons": ["佩雷尔奥"],
-      "event": "证明庞加莱猜想"
+      "persons": ["Perelman"],
+      "event": "Proof of Poincaré Conjecture"
     },
     "parents": []
   }
