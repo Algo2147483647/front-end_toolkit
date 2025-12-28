@@ -1,0 +1,233 @@
+// 定义全局变量存储数据
+let mathHistoryData = [];
+
+// 为每个事件分配类别
+const categories = {
+    "geometry": ["pythagorean_theorem", "euclidean_geometry", "conic_sections", "heron_qin_formula", "pi_calculation",
+        "platonic_solids_proof", "cone_volume_formula", "doubling_the_cube", "analytic_geometry",
+        "heptadecagon", "hyperbolic_geometry", "green_theorem"],
+    "algebra": ["irrational_numbers", "cubic_equation", "vieta_formula", "fundamental_theorem_of_algebra",
+        "imaginary_number", "quaternions", "transcendental_numbers", "boolean_algebra",
+        "matrix_theory", "demorgans_law", "fibonacci_sequence", "binary_system"],
+    "analysis": ["calculus", "lhopitals_rule", "taylor_theorem", "euler_formula", "limit_definition",
+        "fourier_series", "calculus_of_variations", "lagrange_interpolation", "wave_equation"],
+    "probability": ["expectation", "law_of_large_numbers", "normal_distribution", "bayes_theorem",
+        "least_squares", "central_limit_theorem", "chi_square_test", "axiomatic_probability",
+        "markov_process", "martingale", "nash_equilibrium"],
+    "modern": ["group_theory", "manifold", "riemann_hypothesis", "set_theory", "lie_group",
+        "russells_paradox", "measure_theory", "poincare_conjecture", "hausdorff_topology",
+        "godel_incompleteness", "butterfly_effect", "fermat_last_theorem_proof",
+        "poincare_conjecture_proof", "graph_theory_bridges", "goldbach_conjecture",
+        "euler_polyhedron_formula", "fermats_last_theorem", "pascal_yang_hui_triangle",
+        "infinity_symbol", "euler_number", "logarithms", "prime_number_theorem"]
+};
+
+// 从example.json加载数据
+async function loadMathHistoryData() {
+    try {
+        const response = await fetch('data/example.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error loading math history data:', error);
+        return [];
+    }
+}
+
+// 初始化页面
+document.addEventListener('DOMContentLoaded', async function() {
+    // 加载数据
+    mathHistoryData = await loadMathHistoryData();
+
+    // 为所有事件添加类别
+    mathHistoryData.forEach(event => {
+        event.category = "other";
+        for (const [category, keys] of Object.entries(categories)) {
+            if (keys.includes(event.key)) {
+                event.category = category;
+                break;
+            }
+        }
+
+        // 计算时间轴位置（将年份转换为百分比位置）
+        const year = parseInt(event.time[0]);
+        // 时间范围：从-500到2020
+        const minYear = -500;
+        const maxYear = 2020;
+        event.position = ((year - minYear) / (maxYear - minYear)) * 100;
+
+        // 确定左右位置（交替排列避免重叠）
+        event.side = Math.random() > 0.5 ? "left" : "right";
+    });
+
+    // 按时间排序
+    mathHistoryData.sort((a, b) => parseInt(a.time[0]) - parseInt(b.time[0]));
+
+    // 渲染时间轴
+    renderTimeline();
+
+    // 设置事件监听器
+    setupEventListeners();
+});
+
+// 渲染时间轴
+function renderTimeline(filter = "all") {
+    const timeline = document.querySelector('.timeline');
+
+    // 清除现有事件（除了时间线和时代标签）
+    const existingEvents = timeline.querySelectorAll('.timeline-event, .timeline-marker');
+    existingEvents.forEach(el => el.remove());
+
+    // 计算同一时间点的事件数量，用于避免重叠
+    const yearGroups = {};
+
+    // 过滤事件
+    const filteredEvents = mathHistoryData ? 
+        mathHistoryData.filter(event => {
+            if (filter === "all") return true;
+            return event.category === filter;
+        }) : [];
+
+    // 为每个事件创建DOM元素
+    filteredEvents.forEach((event, index) => {
+        const year = parseInt(event.time[0]);
+
+        // 创建时间标记
+        const marker = document.createElement('div');
+        marker.className = 'timeline-marker';
+        marker.style.top = `${event.position}%`;
+        marker.setAttribute('data-year', year);
+        timeline.appendChild(marker);
+
+        // 创建事件卡片
+        const eventElement = document.createElement('div');
+        eventElement.className = `timeline-event ${event.side}`;
+        eventElement.style.top = `${event.position}%`;
+        eventElement.setAttribute('data-key', event.key);
+        eventElement.setAttribute('data-category', event.category);
+
+        // 根据类别设置不同的颜色
+        const categoryColors = {
+            "geometry": "#3949ab",
+            "algebra": "#d81b60",
+            "analysis": "#00897b",
+            "probability": "#ff8f00",
+            "modern": "#5e35b1",
+            "other": "#757575"
+        };
+
+        const color = categoryColors[event.category] || "#757575";
+        eventElement.style.borderTop = `4px solid ${color}`;
+
+        // 构建年份显示（处理公元前）
+        let yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
+
+        // 事件内容
+        eventElement.innerHTML = `
+                <div class="event-year" style="color: ${color}">${yearDisplay}</div>
+                <div class="event-title">${event.data.event}</div>
+                ${event.data.persons ? `<div class="event-persons">${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}</div>` : ''}
+                ${event.data.paper ? `<div class="event-paper">${event.data.paper}</div>` : ''}
+                <div class="event-category" style="background-color: ${color}20; color: ${color}">${getCategoryName(event.category)}</div>
+            `;
+
+        timeline.appendChild(eventElement);
+
+        // 添加点击事件显示详情
+        eventElement.addEventListener('click', () => showEventDetails(event));
+    });
+}
+
+// 显示事件详情
+function showEventDetails(event) {
+    const detailsPanel = document.getElementById('eventDetails');
+    const year = parseInt(event.time[0]);
+    const yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
+
+    // 设置详情内容
+    document.getElementById('detailTitle').textContent = event.data.event;
+    document.getElementById('detailTime').textContent = yearDisplay;
+    document.getElementById('detailPersons').textContent = event.data.persons ?
+        (Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons) :
+        '未知';
+    document.getElementById('detailEvent').textContent = event.data.event;
+    document.getElementById('detailPaper').textContent = event.data.paper || '无相关著作记录';
+
+    // 显示详情面板
+    detailsPanel.style.display = 'block';
+
+    // 滚动到详情面板
+    detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 设置事件监听器
+function setupEventListeners() {
+    // 搜索功能
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const events = document.querySelectorAll('.timeline-event');
+
+            events.forEach(event => {
+                const text = event.textContent.toLowerCase();
+                const isVisible = text.includes(searchTerm);
+                event.style.display = isVisible ? 'block' : 'none';
+
+                // 显示/隐藏对应的时间标记
+                const year = event.style.top;
+                const markers = document.querySelectorAll('.timeline-marker');
+                markers.forEach(marker => {
+                    if (marker.style.top === year) {
+                        marker.style.display = isVisible ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+    }
+
+    // 筛选按钮
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // 移除其他按钮的active类
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+
+            // 添加active类到当前按钮
+            this.classList.add('active');
+
+            // 获取筛选条件
+            const filter = this.getAttribute('data-filter');
+
+            // 重新渲染时间轴
+            renderTimeline(filter);
+        });
+    });
+
+    // 关闭详情面板
+    const closeDetails = document.getElementById('closeDetails');
+    if (closeDetails) {
+        closeDetails.addEventListener('click', function() {
+            const detailsPanel = document.getElementById('eventDetails');
+            if (detailsPanel) {
+                detailsPanel.style.display = 'none';
+            }
+        });
+    }
+}
+
+// 获取类别名称
+function getCategoryName(category) {
+    const names = {
+        "geometry": "几何",
+        "algebra": "代数",
+        "analysis": "分析",
+        "probability": "概率统计",
+        "modern": "现代数学",
+        "other": "其他"
+    };
+    return names[category] || "其他";
+}
