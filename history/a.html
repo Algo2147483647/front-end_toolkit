@@ -98,7 +98,6 @@
                     <div class="event-title">${event.data.event}</div>
                     ${event.data.persons ? `<div class="event-persons">${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}</div>` : ''}
                     ${event.data.paper ? `<div class="event-paper">${event.data.paper}</div>` : ''}
-                    <div class="event-category" style="background-color: ${color}20; color: ${color}">${getCategoryName(event.category)}</div>
                 `;
 
       timeline.appendChild(eventElement);
