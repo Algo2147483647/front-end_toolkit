@@ -41,27 +41,6 @@
     // 加载数据
     mathHistoryData = await loadMathHistoryData();
 
-    // 为所有事件添加类别
-    mathHistoryData.forEach(event => {
-      event.category = "other";
-      for (const [category, keys] of Object.entries(categories)) {
-        if (keys.includes(event.key)) {
-          event.category = category;
-          break;
-        }
-      }
-
-      // 计算时间轴位置（将年份转换为百分比位置）
-      const year = parseInt(event.time[0]);
-      // 时间范围：从-500到2020
-      const minYear = -500;
-      const maxYear = 2020;
-      event.position = ((year - minYear) / (maxYear - minYear)) * 100;
-
-      // 确定左右位置（交替排列避免重叠）
-      event.side = Math.random() > 0.5 ? "left" : "right";
-    });
-
     // 按时间排序
     mathHistoryData.sort((a, b) => parseInt(a.time[0]) - parseInt(b.time[0]));
 
@@ -106,17 +85,6 @@
       eventElement.className = `timeline-event ${event.side}`;
       eventElement.style.top = `${event.position}%`;
       eventElement.setAttribute('data-key', event.key);
-      eventElement.setAttribute('data-category', event.category);
-
-      // 根据类别设置不同的颜色
-      const categoryColors = {
-        "geometry": "#3949ab",
-        "algebra": "#d81b60",
-        "analysis": "#00897b",
-        "probability": "#ff8f00",
-        "modern": "#5e35b1",
-        "other": "#757575"
-      };
 
       const color = categoryColors[event.category] || "#757575";
       eventElement.style.borderTop = `4px solid ${color}`;
@@ -138,84 +106,6 @@
       // 添加点击事件显示详情
       eventElement.addEventListener('click', () => showEventDetails(event));
     });
-  }
-
-  // 显示事件详情
-  function showEventDetails(event) {
-    const detailsPanel = document.getElementById('eventDetails');
-    const year = parseInt(event.time[0]);
-    const yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
-
-    // 设置详情内容
-    document.getElementById('detailTitle').textContent = event.data.event;
-    document.getElementById('detailTime').textContent = yearDisplay;
-    document.getElementById('detailPersons').textContent = event.data.persons ?
-            (Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons) :
-            '未知';
-    document.getElementById('detailEvent').textContent = event.data.event;
-    document.getElementById('detailPaper').textContent = event.data.paper || '无相关著作记录';
-
-    // 显示详情面板
-    detailsPanel.style.display = 'block';
-
-    // 滚动到详情面板
-    detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // 设置事件监听器
-  function setupEventListeners() {
-    // 搜索功能
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const events = document.querySelectorAll('.timeline-event');
-
-        events.forEach(event => {
-          const text = event.textContent.toLowerCase();
-          const isVisible = text.includes(searchTerm);
-          event.style.display = isVisible ? 'block' : 'none';
-
-          // 显示/隐藏对应的时间标记
-          const year = event.style.top;
-          const markers = document.querySelectorAll('.timeline-marker');
-          markers.forEach(marker => {
-            if (marker.style.top === year) {
-              marker.style.display = isVisible ? 'block' : 'none';
-            }
-          });
-        });
-      });
-    }
-
-    // 筛选按钮
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        // 移除其他按钮的active类
-        filterButtons.forEach(btn => btn.classList.remove('active'));
-
-        // 添加active类到当前按钮
-        this.classList.add('active');
-
-        // 获取筛选条件
-        const filter = this.getAttribute('data-filter');
-
-        // 重新渲染时间轴
-        renderTimeline(filter);
-      });
-    });
-
-    // 关闭详情面板
-    const closeDetails = document.getElementById('closeDetails');
-    if (closeDetails) {
-      closeDetails.addEventListener('click', function() {
-        const detailsPanel = document.getElementById('eventDetails');
-        if (detailsPanel) {
-          detailsPanel.style.display = 'none';
-        }
-      });
-    }
   }
 </script>
 </body>
