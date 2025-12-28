@@ -19,8 +19,9 @@ body {
 
 .timeline-container {
     position: relative;
-    min-height: 800px;
+    min-height: 1200px;
     overflow-x: auto;
+    overflow-y: auto;
 }
 
 .timeline {
@@ -28,6 +29,7 @@ body {
     padding: 40px 0;
     width: 100%;
     min-width: 1200px;
+    min-height: 1100px;
 }
 
 .timeline-line {
@@ -35,10 +37,10 @@ body {
     left: 50%;
     top: 0;
     bottom: 0;
-    width: 6px;
+    width: 8px;
     background: linear-gradient(to bottom, #3949ab, #5c6bc0, #7986cb, #9fa8da);
     transform: translateX(-50%);
-    border-radius: 3px;
+    border-radius: 4px;
     z-index: 1;
 }
 

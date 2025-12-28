@@ -54,13 +54,13 @@ function renderTimeline(filter = "all") {
 
   // 为每个事件计算位置
   filteredEvents.forEach((event, index) => {
-    // 简单计算事件位置（基于时间）
+    // 计算事件位置（基于时间）
     const minYear = Math.min(...filteredEvents.map(e => parseInt(e.time[0])));
     const maxYear = Math.max(...filteredEvents.map(e => parseInt(e.time[0])));
     const year = parseInt(event.time[0]);
     
-    // 计算在时间轴上的位置百分比
-    const position = maxYear === minYear ? 50 : ((year - minYear) / (maxYear - minYear)) * 100;
+    // 计算在时间轴上的位置百分比，增加一些间隔以避免重叠
+    const position = maxYear === minYear ? 50 : ((year - minYear) / (maxYear - minYear)) * 90 + 5; // 5% 到 95% 之间，避免贴边
     event.position = position;
     event.side = index % 2 === 0 ? 'left' : 'right'; // 简单分配左右侧
   });
