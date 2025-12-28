@@ -9,6 +9,15 @@
     "kids": ["pythagorean_theorem"]
   },
   {
+    "key": "early_math2",
+    "time": ["1495","2800"],
+    "space": [],
+    "data": {
+    },
+    "parents": [""],
+    "kids": ["pythagorean_theorem"]
+  },
+  {
     "key": "pythagorean_theorem",
     "time": ["-495"],
     "space": [],

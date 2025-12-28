@@ -136,171 +136,172 @@ function renderTimeline() {
     };
   });
   
-  // Group events by year to handle overlapping events
-  const eventsByYear = {};
-  timelineData.forEach(event => {
-    const year = event.startTime;
-    if (!eventsByYear[year]) {
-      eventsByYear[year] = [];
+  // Separate time ranges and single points to handle horizontal positioning properly
+  const timeRanges = timelineData.filter(event => event.isTimeRange);
+  const singlePoints = timelineData.filter(event => !event.isTimeRange);
+  
+  // Draw time ranges first
+  timeRanges.forEach((event, idx) => {
+    // Calculate position considering all time ranges
+    const baseX = margin.left + 40 + (idx * 16); // Horizontal offset for each time range
+    const x = baseX;
+    
+    // Only draw events within the visible range
+    if (event.startY >= margin.top && event.startY <= height - margin.bottom) {
+      if (event.isTimeRange) {
+        // For time ranges, draw a narrow rectangle
+        const rectHeight = Math.abs(event.endY - event.startY);
+        const rectY = Math.min(event.startY, event.endY);
+        
+        // Generate random color for time range rectangle
+        const randomColor = getRandomColor();
+        
+        // Time range rectangle
+        const rangeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rangeRect.setAttribute('x', x - 8); // Narrow rectangle
+        rangeRect.setAttribute('y', rectY);
+        rangeRect.setAttribute('width', 16);
+        rangeRect.setAttribute('height', rectHeight);
+        rangeRect.setAttribute('fill', randomColor);
+        rangeRect.setAttribute('stroke', '#3949ab');
+        rangeRect.setAttribute('stroke-width', 1);
+
+        rangeRect.setAttribute('class', 'timeline-range');
+        svgElement.appendChild(rangeRect);
+        
+        // Event card - position it at the start of the time range
+        const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        cardGroup.setAttribute('class', 'event-card');
+        cardGroup.addEventListener('click', () => showEventDetails(event));
+        
+        // Card background
+        const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        cardBg.setAttribute('x', x + 20);
+        cardBg.setAttribute('y', event.startY - 30);
+        cardBg.setAttribute('width', 200);
+        cardBg.setAttribute('height', 60);
+        cardBg.setAttribute('rx', 8);
+        cardBg.setAttribute('ry', 8);
+        cardBg.setAttribute('fill', 'white');
+        cardBg.setAttribute('stroke', '#e0e0e0');
+        cardBg.setAttribute('stroke-width', 1);
+        cardGroup.appendChild(cardBg);
+        
+        // Event title
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        title.setAttribute('x', x + 120);
+        title.setAttribute('y', event.startY - 15);
+        title.setAttribute('text-anchor', 'middle');
+        title.setAttribute('class', 'event-title');
+        title.textContent = truncateText(event.key || 'N/A', 25);
+        cardGroup.appendChild(title);
+        
+        // Year range label
+        const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        yearLabel.setAttribute('x', x + 120);
+        yearLabel.setAttribute('y', event.startY + 5);
+        yearLabel.setAttribute('text-anchor', 'middle');
+        yearLabel.setAttribute('class', 'event-year');
+        
+        let yearDisplay = `${event.startTime < 0 ? `-${Math.abs(event.startTime)}` : `+${event.startTime}`} - ${event.endTime < 0 ? `-${Math.abs(event.endTime)}` : `+${event.endTime}`}`;
+        yearLabel.textContent = yearDisplay;
+        cardGroup.appendChild(yearLabel);
+        
+        // Person information
+        if (event.data.persons) {
+          const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          persons.setAttribute('x', x + 120);
+          persons.setAttribute('y', event.startY + 20);
+          persons.setAttribute('text-anchor', 'middle');
+          persons.setAttribute('class', 'event-persons');
+          persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
+          cardGroup.appendChild(persons);
+        }
+        
+        svgElement.appendChild(cardGroup);
+      }
     }
-    eventsByYear[year].push(event);
   });
   
-  // Draw each event
-  Object.entries(eventsByYear).forEach(([year, events]) => {
-    events.forEach((event, idx) => {
-      // Calculate position considering overlapping events
-      const baseX = margin.left + 40;
-      const offset = idx * 25; // Horizontal offset for overlapping events
-      const x = baseX + offset;
+  // Draw single points separately
+  singlePoints.forEach((event, idx) => {
+    // Calculate position considering all single points
+    const baseX = margin.left + 40 + (idx * 16); // Start after time ranges
+    const x = baseX;
+    
+    // Only draw events within the visible range
+    if (event.startY >= margin.top && event.startY <= height - margin.bottom) {
+      // For single points, draw a circle
+      // Draw event connector line
+      const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      connector.setAttribute('x1', margin.left);
+      connector.setAttribute('y1', event.startY);
+      connector.setAttribute('x2', x - 10);
+      connector.setAttribute('y2', event.startY);
+      connector.setAttribute('stroke', '#3949ab');
+      connector.setAttribute('stroke-width', 1);
+      connector.setAttribute('stroke-dasharray', '4,2');
+      svgElement.appendChild(connector);
       
-      // Only draw events within the visible range
-      if (event.startY >= margin.top && event.startY <= height - margin.bottom) {
-        if (event.isTimeRange) {
-          // For time ranges, draw a narrow rectangle
-          const rectHeight = Math.abs(event.endY - event.startY);
-          const rectY = Math.min(event.startY, event.endY);
-          
-          // Generate random color for time range rectangle
-          const randomColor = getRandomColor();
-          
-          // Time range rectangle
-          const rangeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          rangeRect.setAttribute('x', x - 8); // Narrow rectangle
-          rangeRect.setAttribute('y', rectY);
-          rangeRect.setAttribute('width', 16);
-          rangeRect.setAttribute('height', rectHeight);
-          rangeRect.setAttribute('fill', randomColor);
-          rangeRect.setAttribute('stroke', '#3949ab');
-          rangeRect.setAttribute('stroke-width', 1);
-
-          rangeRect.setAttribute('class', 'timeline-range');
-          svgElement.appendChild(rangeRect);
-          
-          // Event card
-          const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          cardGroup.setAttribute('class', 'event-card');
-          cardGroup.addEventListener('click', () => showEventDetails(event));
-          
-          // Card background
-          const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          cardBg.setAttribute('x', x + 20);
-          cardBg.setAttribute('y', event.startY - 30);
-          cardBg.setAttribute('width', 200);
-          cardBg.setAttribute('height', 60);
-          cardBg.setAttribute('rx', 8);
-          cardBg.setAttribute('ry', 8);
-          cardBg.setAttribute('fill', 'white');
-          cardBg.setAttribute('stroke', '#e0e0e0');
-          cardBg.setAttribute('stroke-width', 1);
-          cardGroup.appendChild(cardBg);
-          
-          // Event title
-          const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          title.setAttribute('x', x + 120);
-          title.setAttribute('y', event.startY - 15);
-          title.setAttribute('text-anchor', 'middle');
-          title.setAttribute('class', 'event-title');
-          title.textContent = truncateText(event.data.event || 'N/A', 25);
-          cardGroup.appendChild(title);
-          
-          // Year range label
-          const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          yearLabel.setAttribute('x', x + 120);
-          yearLabel.setAttribute('y', event.startY + 5);
-          yearLabel.setAttribute('text-anchor', 'middle');
-          yearLabel.setAttribute('class', 'event-year');
-          
-          let yearDisplay = `${event.startTime < 0 ? `-${Math.abs(event.startTime)}` : `+${event.startTime}`} - ${event.endTime < 0 ? `-${Math.abs(event.endTime)}` : `+${event.endTime}`}`;
-          yearLabel.textContent = yearDisplay;
-          cardGroup.appendChild(yearLabel);
-          
-          // Person information
-          if (event.data.persons) {
-            const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            persons.setAttribute('x', x + 120);
-            persons.setAttribute('y', event.startY + 20);
-            persons.setAttribute('text-anchor', 'middle');
-            persons.setAttribute('class', 'event-persons');
-            persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
-            cardGroup.appendChild(persons);
-          }
-          
-          svgElement.appendChild(cardGroup);
-        } else {
-          // For single points, draw a circle
-          // Draw event connector line
-          const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          connector.setAttribute('x1', margin.left);
-          connector.setAttribute('y1', event.startY);
-          connector.setAttribute('x2', x - 10);
-          connector.setAttribute('y2', event.startY);
-          connector.setAttribute('stroke', '#3949ab');
-          connector.setAttribute('stroke-width', 1);
-          connector.setAttribute('stroke-dasharray', '4,2');
-          svgElement.appendChild(connector);
-          
-          // Draw event dot
-          const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          marker.setAttribute('cx', x);
-          marker.setAttribute('cy', event.startY);
-          marker.setAttribute('r', 6);
-          marker.setAttribute('class', 'timeline-marker');
-          svgElement.appendChild(marker);
-          
-          // Event card
-          const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          cardGroup.setAttribute('class', 'event-card');
-          cardGroup.addEventListener('click', () => showEventDetails(event));
-          
-          // Card background
-          const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          cardBg.setAttribute('x', x + 20);
-          cardBg.setAttribute('y', event.startY - 30);
-          cardBg.setAttribute('width', 200);
-          cardBg.setAttribute('height', 60);
-          cardBg.setAttribute('rx', 8);
-          cardBg.setAttribute('ry', 8);
-          cardBg.setAttribute('fill', 'white');
-          cardBg.setAttribute('stroke', '#e0e0e0');
-          cardBg.setAttribute('stroke-width', 1);
-          cardGroup.appendChild(cardBg);
-          
-          // Event title
-          const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          title.setAttribute('x', x + 120);
-          title.setAttribute('y', event.startY - 15);
-          title.setAttribute('text-anchor', 'middle');
-          title.setAttribute('class', 'event-title');
-          title.textContent = truncateText(event.data.event || 'N/A', 25);
-          cardGroup.appendChild(title);
-          
-          // Year label - use plus/minus signs
-          const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          yearLabel.setAttribute('x', x + 120);
-          yearLabel.setAttribute('y', event.startY + 5);
-          yearLabel.setAttribute('text-anchor', 'middle');
-          yearLabel.setAttribute('class', 'event-year');
-          
-          let yearDisplay = event.startTime < 0 ? `-${Math.abs(event.startTime)}` : `+${event.startTime}`;
-          yearLabel.textContent = yearDisplay;
-          cardGroup.appendChild(yearLabel);
-          
-          // Person information
-          if (event.data.persons) {
-            const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            persons.setAttribute('x', x + 120);
-            persons.setAttribute('y', event.startY + 20);
-            persons.setAttribute('text-anchor', 'middle');
-            persons.setAttribute('class', 'event-persons');
-            persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
-            cardGroup.appendChild(persons);
-          }
-          
-          svgElement.appendChild(cardGroup);
-        }
+      // Draw event dot
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('cx', x);
+      marker.setAttribute('cy', event.startY);
+      marker.setAttribute('r', 6);
+      marker.setAttribute('class', 'timeline-marker');
+      svgElement.appendChild(marker);
+      
+      // Event card
+      const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      cardGroup.setAttribute('class', 'event-card');
+      cardGroup.addEventListener('click', () => showEventDetails(event));
+      
+      // Card background
+      const cardBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      cardBg.setAttribute('x', x + 20);
+      cardBg.setAttribute('y', event.startY - 30);
+      cardBg.setAttribute('width', 200);
+      cardBg.setAttribute('height', 60);
+      cardBg.setAttribute('rx', 8);
+      cardBg.setAttribute('ry', 8);
+      cardBg.setAttribute('fill', 'white');
+      cardBg.setAttribute('stroke', '#e0e0e0');
+      cardBg.setAttribute('stroke-width', 1);
+      cardGroup.appendChild(cardBg);
+      
+      // Event title
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      title.setAttribute('x', x + 120);
+      title.setAttribute('y', event.startY - 15);
+      title.setAttribute('text-anchor', 'middle');
+      title.setAttribute('class', 'event-title');
+      title.textContent = truncateText(event.key || 'N/A', 25);
+      cardGroup.appendChild(title);
+      
+      // Year label - use plus/minus signs
+      const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yearLabel.setAttribute('x', x + 120);
+      yearLabel.setAttribute('y', event.startY + 5);
+      yearLabel.setAttribute('text-anchor', 'middle');
+      yearLabel.setAttribute('class', 'event-year');
+      
+      let yearDisplay = event.startTime < 0 ? `-${Math.abs(event.startTime)}` : `+${event.startTime}`;
+      yearLabel.textContent = yearDisplay;
+      cardGroup.appendChild(yearLabel);
+      
+      // Person information
+      if (event.data.persons) {
+        const persons = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        persons.setAttribute('x', x + 120);
+        persons.setAttribute('y', event.startY + 20);
+        persons.setAttribute('text-anchor', 'middle');
+        persons.setAttribute('class', 'event-persons');
+        persons.textContent = truncateText(Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons, 25);
+        cardGroup.appendChild(persons);
       }
-    });
+      
+      svgElement.appendChild(cardGroup);
+    }
   });
 }
 
@@ -313,7 +314,7 @@ function truncateText(text, maxLength) {
 
 // Show event details
 function showEventDetails(event) {
-  let details = `Event: ${event.data.event || 'N/A'}\n`;
+  let details = `Event: ${event.key || 'N/A'}\n`;
   details += `Time: ${event.time.join(' - ')}\n`;
   if (event.data.persons) {
     details += `People: ${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}\n`;
