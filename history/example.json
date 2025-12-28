@@ -1,5 +1,24 @@
 [
   {
+    "key": "early_math",
+    "time": ["-495","1800"],
+    "space": [],
+    "data": {
+    },
+    "parents": [""],
+    "kids": ["pythagorean_theorem"]
+  },
+  {
+    "key": "pythagorean_theorem",
+    "time": ["-495"],
+    "space": [],
+    "data": {
+      "persons": ["Πυθαγόρας"],
+      "event": "毕达哥拉斯定律"
+    },
+    "parents": ["early_math"]
+  },
+  {
     "key": "pythagorean_theorem",
     "time": ["-495"],
     "space": [],
