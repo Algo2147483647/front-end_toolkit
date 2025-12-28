@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: #3949ab;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.2);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7b8793;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 18px;
+            background-color: #f1f3f9;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #555;
+        }
+
+        .filter-btn:hover {
+            background-color: #e4e8f7;
+        }
+
+        .filter-btn.active {
+            background-color: #3949ab;
+            color: white;
+        }
+
+        .timeline-container {
+            position: relative;
+            min-height: 800px;
+            overflow-x: auto;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 40px 0;
+            width: 100%;
+            min-width: 1200px;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(to bottom, #3949ab, #5c6bc0, #7986cb, #9fa8da);
+            transform: translateX(-50%);
+            border-radius: 3px;
+            z-index: 1;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background-color: #3949ab;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            border: 4px solid white;
+            box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.3);
+        }
+
+        .timeline-event {
+            position: absolute;
+            width: 220px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .timeline-event:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .timeline-event.left {
+            left: calc(50% - 250px);
+        }
+
+        .timeline-event.right {
+            left: calc(50% + 30px);
+        }
+
+        .event-year {
+            font-size: 0.85rem;
+            color: #3949ab;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .event-year::before {
+            content: "•";
+            font-size: 1.5rem;
+            line-height: 0;
+        }
+
+        .event-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #222;
+            line-height: 1.3;
+        }
+
+        .event-persons {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .event-paper {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .event-category {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: #e8eaf6;
+            color: #3949ab;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .era-label {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 20px;
+            background-color: rgba(57, 73, 171, 0.1);
+            color: #3949ab;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            z-index: 2;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .timeline-info {
+            margin-top: 40px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: none;
+        }
+
+        .event-details h3 {
+            color: #3949ab;
+            margin-bottom: 15px;
+            font-size: 1.6rem;
+            border-bottom: 2px solid #e8eaf6;
+            padding-bottom: 10px;
+        }
+
+        .event-details-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .details-section {
+            margin-bottom: 20px;
+        }
+
+        .details-section h4 {
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .details-section p {
+            color: #777;
+        }
+
+        .close-details {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-details:hover {
+            color: #3949ab;
+        }
+
+        .time-scale {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 20px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+            border-top: 1px solid #e1e5eb;
+        }
+
+        @media (max-width: 1200px) {
+            .timeline-event {
+                width: 200px;
+            }
+
+            .timeline-event.left {
+                left: calc(50% - 230px);
+            }
+
+            .timeline-event.right {
+                left: calc(50% + 30px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .filter-controls {
+                justify-content: center;
+            }
+
+            .event-details-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="timeline-container">
+        <div class="timeline">
+            <div class="timeline-line"></div>
+            <!-- 时间轴事件将通过JavaScript动态生成 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // 数学史数据
+    const mathHistoryData = [
+        {
+            "key": "early_math",
+            "time": ["-495","1800"],
+            "space": [],
+            "data": {
+                "persons": ["Πυθαγόρας"],
+                "event": "毕达哥拉斯定律"
+            },
+            "parents": [""],
+            "kids": ["pythagorean_theorem"]
+        },
+        {
+            "key": "pythagorean_theorem",
+            "time": ["-495"],
+            "space": [],
+            "data": {
+                "persons": ["Πυθαγόρας"],
+                "event": "毕达哥拉斯定律"
+            },
+            "parents": ["early_math"]
+        },
+        {
+            "key": "irrational_numbers",
+            "time": ["-450"],
+            "space": [],
+            "data": {
+                "persons": ["Hippasus of Metapontum"],
+                "event": "无理数"
+            },
+            "parents": []
+        },
+        {
+            "key": "cone_volume_formula",
+            "time": ["-460"],
+            "space": [],
+            "data": {
+                "persons": ["Δημόκριτος"],
+                "event": "锥体体积公式"
+            },
+            "parents": []
+        },
+        {
+            "key": "doubling_the_cube",
+            "time": ["-429"],
+            "space": [],
+            "data": {
+                "event": "倍立方问题"
+            },
+            "parents": []
+        },
+        {
+            "key": "platonic_solids_proof",
+            "time": ["-425"],
+            "space": [],
+            "data": {
+                "persons": ["Plato"],
+                "event": "证明正多面体只能有4,6,8,20,12"
+            },
+            "parents": []
+        },
+        {
+            "key": "euclidean_geometry",
+            "time": ["-265"],
+            "space": [],
+            "data": {
+                "persons": ["Εὐκλείδης"],
+                "paper": "几何原本",
+                "event": "欧氏几何"
+            },
+            "parents": []
+        },
+        {
+            "key": "conic_sections",
+            "time": ["-200"],
+            "space": [],
+            "data": {
+                "persons": ["Apollonius of Perga"],
+                "event": "圆锥曲线"
+            },
+            "parents": []
+        },
+        {
+            "key": "heron_qin_formula",
+            "time": ["0060"],
+            "space": [],
+            "data": {
+                "paper": "Metrica",
+                "event": "海伦秦九韶公式"
+            },
+            "parents": []
+        },
+        {
+            "key": "pi_calculation",
+            "time": ["0429"],
+            "space": [],
+            "data": {
+                "persons": ["祖冲之"],
+                "event": "圆周率3.1415926"
+            },
+            "parents": []
+        },
+        {
+            "key": "fibonacci_sequence",
+            "time": ["1202"],
+            "space": [],
+            "data": {
+                "persons": ["Fibonacci"],
+                "paper": "Liber Abaci",
+                "event": "斐波那契数列"
+            },
+            "parents": []
+        },
+        {
+            "key": "cubic_equation",
+            "time": ["1545"],
+            "space": [],
+            "data": {
+                "persons": ["卡尔达诺"],
+                "event": "三次方程求根公式"
+            },
+            "parents": []
+        },
+        {
+            "key": "logarithms",
+            "time": ["1614"],
+            "space": [],
+            "data": {
+                "persons": ["纳皮尔"],
+                "paper": "A Description of the Wonderful Rule of Logarithms",
+                "event": "对数"
+            },
+            "parents": []
+        },
+        {
+            "key": "vieta_formula",
+            "time": ["1615"],
+            "space": [],
+            "data": {
+                "event": "韦达定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "euler_polyhedron_formula",
+            "time": ["1619"],
+            "space": [],
+            "data": {
+                "persons": ["Euler"],
+                "event": "V+F-E=2"
+            },
+            "parents": []
+        },
+        {
+            "key": "fermats_last_theorem",
+            "time": ["1637"],
+            "space": [],
+            "data": {
+                "event": "费马猜想"
+            },
+            "parents": []
+        },
+        {
+            "key": "analytic_geometry",
+            "time": ["1637"],
+            "space": [],
+            "data": {
+                "persons": ["René Descartes"],
+                "event": "解析几何"
+            },
+            "parents": []
+        },
+        {
+            "key": "imaginary_number",
+            "time": ["1650"],
+            "space": [],
+            "data": {
+                "persons": ["René Descartes"],
+                "event": "虚数i"
+            },
+            "parents": []
+        },
+        {
+            "key": "expectation",
+            "time": ["1654"],
+            "space": [],
+            "data": {
+                "persons": ["费马", "帕斯卡"],
+                "event": "期望"
+            },
+            "parents": []
+        },
+        {
+            "key": "pascal_yang_hui_triangle",
+            "time": ["1654"],
+            "space": [],
+            "data": {
+                "event": "帕斯卡-杨辉三角"
+            },
+            "parents": []
+        },
+        {
+            "key": "infinity_symbol",
+            "time": ["1655"],
+            "space": [],
+            "data": {
+                "persons": ["John Wallis"],
+                "event": "∞"
+            },
+            "parents": []
+        },
+        {
+            "key": "binary_system",
+            "time": ["1679"],
+            "space": [],
+            "data": {
+                "persons": ["Leibniz"],
+                "event": "二进制"
+            },
+            "parents": []
+        },
+        {
+            "key": "euler_number",
+            "time": ["1683"],
+            "space": [],
+            "data": {
+                "persons": ["Jacob Bernoulli"],
+                "event": "自然常数e"
+            },
+            "parents": []
+        },
+        {
+            "key": "calculus",
+            "time": ["1684"],
+            "space": [],
+            "data": {
+                "persons": ["Newton", "Leibniz"],
+                "event": "微积分"
+            },
+            "parents": []
+        },
+        {
+            "key": "lhopitals_rule",
+            "time": ["1696"],
+            "space": [],
+            "data": {
+                "persons": ["约翰伯努利"],
+                "event": "洛必达法则"
+            },
+            "parents": []
+        },
+        {
+            "key": "law_of_large_numbers",
+            "time": ["1713"],
+            "space": [],
+            "data": {
+                "persons": ["雅各布伯努利"],
+                "event": "大数定律"
+            },
+            "parents": []
+        },
+        {
+            "key": "taylor_theorem",
+            "time": ["1715"],
+            "space": [],
+            "data": {
+                "persons": ["Taylor"],
+                "event": "Taylor's theorem"
+            },
+            "parents": []
+        },
+        {
+            "key": "normal_distribution",
+            "time": ["1718"],
+            "space": [],
+            "data": {
+                "persons": ["Abraham de Moivre"],
+                "event": "Normal distribution"
+            },
+            "parents": []
+        },
+        {
+            "key": "graph_theory_bridges",
+            "time": ["1736"],
+            "space": [],
+            "data": {
+                "persons": ["Leonhard Euler"],
+                "event": "图论,哥尼斯堡七桥问题"
+            },
+            "parents": []
+        },
+        {
+            "key": "goldbach_conjecture",
+            "time": ["1742"],
+            "space": [],
+            "data": {
+                "persons": ["Goldbach"],
+                "event": "Goldbach's conjecture"
+            },
+            "parents": []
+        },
+        {
+            "key": "wave_equation",
+            "time": ["1743"],
+            "space": [],
+            "data": {
+                "persons": ["达朗贝尔"],
+                "event": "波动方程"
+            },
+            "parents": []
+        },
+        {
+            "key": "euler_formula",
+            "time": ["1748"],
+            "space": [],
+            "data": {
+                "persons": ["Leonhard Euler"],
+                "paper": "无穷小分析引论",
+                "event": "欧拉公式"
+            },
+            "parents": []
+        },
+        {
+            "key": "calculus_of_variations",
+            "time": ["1755"],
+            "space": [],
+            "data": {
+                "persons": ["拉格朗日"],
+                "event": "变分法"
+            },
+            "parents": []
+        },
+        {
+            "key": "bayes_theorem",
+            "time": ["1763"],
+            "space": [],
+            "data": {
+                "persons": ["Bayes"],
+                "event": "Bayes' theorem"
+            },
+            "parents": []
+        },
+        {
+            "key": "least_squares",
+            "time": ["1795"],
+            "space": [],
+            "data": {
+                "persons": ["Gauß"],
+                "event": "最小二乘法"
+            },
+            "parents": []
+        },
+        {
+            "key": "heptadecagon",
+            "time": ["1795"],
+            "space": [],
+            "data": {
+                "persons": ["Gauß"],
+                "event": "正17边形尺规作图"
+            },
+            "parents": []
+        },
+        {
+            "key": "lagrange_interpolation",
+            "time": ["1795"],
+            "space": [],
+            "data": {
+                "persons": ["拉格朗日"],
+                "event": "拉格朗日插值"
+            },
+            "parents": []
+        },
+        {
+            "key": "prime_number_theorem",
+            "time": ["1798"],
+            "space": [],
+            "data": {
+                "persons": ["勒让德"],
+                "event": "素数定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "fundamental_theorem_of_algebra",
+            "time": ["1799"],
+            "space": [],
+            "data": {
+                "persons": ["Gauß"],
+                "event": "代数基本定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "central_limit_theorem",
+            "time": ["1810"],
+            "space": [],
+            "data": {
+                "persons": ["拉普拉斯"],
+                "event": "中心极限定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "limit_definition",
+            "time": ["1820"],
+            "space": [],
+            "data": {
+                "persons": ["柯西"],
+                "event": "极限定义"
+            },
+            "parents": []
+        },
+        {
+            "key": "fourier_series",
+            "time": ["1822"],
+            "space": [],
+            "data": {
+                "persons": ["Fourier"],
+                "event": "Fourier series"
+            },
+            "parents": []
+        },
+        {
+            "key": "group_theory",
+            "time": ["1824"],
+            "space": [],
+            "data": {
+                "persons": ["伽罗瓦", "阿贝尔"],
+                "event": "群论"
+            },
+            "parents": []
+        },
+        {
+            "key": "green_theorem",
+            "time": ["1828"],
+            "space": [],
+            "data": {
+                "event": "格林公式"
+            },
+            "parents": []
+        },
+        {
+            "key": "hyperbolic_geometry",
+            "time": ["1829"],
+            "space": [],
+            "data": {
+                "persons": ["罗巴切夫斯基"],
+                "event": "双曲几何"
+            },
+            "parents": []
+        },
+        {
+            "key": "quaternions",
+            "time": ["1843"],
+            "space": [],
+            "data": {
+                "persons": ["Hamilton"],
+                "event": "Quaternion"
+            },
+            "parents": []
+        },
+        {
+            "key": "transcendental_numbers",
+            "time": ["1844"],
+            "space": [],
+            "data": {
+                "persons": ["刘维尔"],
+                "event": "超越数"
+            },
+            "parents": []
+        },
+        {
+            "key": "boolean_algebra",
+            "time": ["1847"],
+            "space": [],
+            "data": {
+                "persons": ["George Boole"],
+                "event": "Boolean algebra"
+            },
+            "parents": []
+        },
+        {
+            "key": "manifold",
+            "time": ["1854"],
+            "space": [],
+            "data": {
+                "persons": ["黎曼"],
+                "event": "流形"
+            },
+            "parents": []
+        },
+        {
+            "key": "matrix_theory",
+            "time": ["1858"],
+            "space": [],
+            "data": {
+                "persons": ["凯莱"],
+                "event": "矩阵"
+            },
+            "parents": []
+        },
+        {
+            "key": "riemann_hypothesis",
+            "time": ["1859"],
+            "space": [],
+            "data": {
+                "event": "黎曼猜想"
+            },
+            "parents": []
+        },
+        {
+            "key": "demorgans_law",
+            "time": ["1871"],
+            "space": [],
+            "data": {
+                "persons": ["德摩根"],
+                "event": "德摩根定律"
+            },
+            "parents": []
+        },
+        {
+            "key": "set_theory",
+            "time": ["1874"],
+            "space": [],
+            "data": {
+                "persons": ["康托"],
+                "event": "集合论"
+            },
+            "parents": []
+        },
+        {
+            "key": "lie_group",
+            "time": ["1873"],
+            "space": [],
+            "data": {
+                "event": "Lie group"
+            },
+            "parents": []
+        },
+        {
+            "key": "chi_square_test",
+            "time": ["1900"],
+            "space": [],
+            "data": {
+                "persons": ["皮尔逊"],
+                "event": "卡方检验"
+            },
+            "parents": []
+        },
+        {
+            "key": "russells_paradox",
+            "time": ["1901"],
+            "space": [],
+            "data": {
+                "event": "Russell's paradox"
+            },
+            "parents": []
+        },
+        {
+            "key": "measure_theory",
+            "time": ["1904"],
+            "space": [],
+            "data": {
+                "persons": ["勒贝格"],
+                "event": "测度论"
+            },
+            "parents": []
+        },
+        {
+            "key": "poincare_conjecture",
+            "time": ["1904"],
+            "space": [],
+            "data": {
+                "event": "庞加莱猜想"
+            },
+            "parents": []
+        },
+        {
+            "key": "markov_process",
+            "time": ["1906"],
+            "space": [],
+            "data": {
+                "event": "马尔科夫过程，随机过程"
+            },
+            "parents": []
+        },
+        {
+            "key": "hausdorff_topology",
+            "time": ["1914"],
+            "space": [],
+            "data": {
+                "persons": ["豪斯道夫"],
+                "event": "点集拓扑"
+            },
+            "parents": []
+        },
+        {
+            "key": "godel_incompleteness",
+            "time": ["1931"],
+            "space": [],
+            "data": {
+                "event": "哥德尔不完备定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "axiomatic_probability",
+            "time": ["1931"],
+            "space": [],
+            "data": {
+                "persons": ["柯尔莫哥洛夫"],
+                "event": "公理化概率论"
+            },
+            "parents": []
+        },
+        {
+            "key": "martingale",
+            "time": ["1934"],
+            "space": [],
+            "data": {
+                "persons": ["勒维"],
+                "event": "鞅"
+            },
+            "parents": []
+        },
+        {
+            "key": "nash_equilibrium",
+            "time": ["1950"],
+            "space": [],
+            "data": {
+                "persons": ["Nash"],
+                "event": "Nash Equilibrium"
+            },
+            "parents": []
+        },
+        {
+            "key": "butterfly_effect",
+            "time": ["1961"],
+            "space": [],
+            "data": {
+                "event": "蝴蝶效应，吸引子"
+            },
+            "parents": []
+        },
+        {
+            "key": "fermat_last_theorem_proof",
+            "time": ["1995"],
+            "space": [],
+            "data": {
+                "persons": ["怀尔斯"],
+                "event": "证明费马大定理"
+            },
+            "parents": []
+        },
+        {
+            "key": "poincare_conjecture_proof",
+            "time": ["2003"],
+            "space": [],
+            "data": {
+                "persons": ["佩雷尔奥"],
+                "event": "证明庞加莱猜想"
+            },
+            "parents": []
+        }
+    ];
+
+    // 为每个事件分配类别
+    const categories = {
+        "geometry": ["pythagorean_theorem", "euclidean_geometry", "conic_sections", "heron_qin_formula", "pi_calculation",
+            "platonic_solids_proof", "cone_volume_formula", "doubling_the_cube", "analytic_geometry",
+            "heptadecagon", "hyperbolic_geometry", "green_theorem"],
+        "algebra": ["irrational_numbers", "cubic_equation", "vieta_formula", "fundamental_theorem_of_algebra",
+            "imaginary_number", "quaternions", "transcendental_numbers", "boolean_algebra",
+            "matrix_theory", "demorgans_law", "fibonacci_sequence", "binary_system"],
+        "analysis": ["calculus", "lhopitals_rule", "taylor_theorem", "euler_formula", "limit_definition",
+            "fourier_series", "calculus_of_variations", "lagrange_interpolation", "wave_equation"],
+        "probability": ["expectation", "law_of_large_numbers", "normal_distribution", "bayes_theorem",
+            "least_squares", "central_limit_theorem", "chi_square_test", "axiomatic_probability",
+            "markov_process", "martingale", "nash_equilibrium"],
+        "modern": ["group_theory", "manifold", "riemann_hypothesis", "set_theory", "lie_group",
+            "russells_paradox", "measure_theory", "poincare_conjecture", "hausdorff_topology",
+            "godel_incompleteness", "butterfly_effect", "fermat_last_theorem_proof",
+            "poincare_conjecture_proof", "graph_theory_bridges", "goldbach_conjecture",
+            "euler_polyhedron_formula", "fermats_last_theorem", "pascal_yang_hui_triangle",
+            "infinity_symbol", "euler_number", "logarithms", "prime_number_theorem"]
+    };
+
+    // 初始化页面
+    document.addEventListener('DOMContentLoaded', function() {
+        // 为所有事件添加类别
+        mathHistoryData.forEach(event => {
+            event.category = "other";
+            for (const [category, keys] of Object.entries(categories)) {
+                if (keys.includes(event.key)) {
+                    event.category = category;
+                    break;
+                }
+            }
+
+            // 计算时间轴位置（将年份转换为百分比位置）
+            const year = parseInt(event.time[0]);
+            // 时间范围：从-500到2020
+            const minYear = -500;
+            const maxYear = 2020;
+            event.position = ((year - minYear) / (maxYear - minYear)) * 100;
+
+            // 确定左右位置（交替排列避免重叠）
+            event.side = Math.random() > 0.5 ? "left" : "right";
+        });
+
+        // 按时间排序
+        mathHistoryData.sort((a, b) => parseInt(a.time[0]) - parseInt(b.time[0]));
+
+        // 渲染时间轴
+        renderTimeline();
+
+        // 设置事件监听器
+        setupEventListeners();
+    });
+
+    // 渲染时间轴
+    function renderTimeline(filter = "all") {
+        const timeline = document.querySelector('.timeline');
+
+        // 清除现有事件（除了时间线和时代标签）
+        const existingEvents = timeline.querySelectorAll('.timeline-event, .timeline-marker');
+        existingEvents.forEach(el => el.remove());
+
+        // 计算同一时间点的事件数量，用于避免重叠
+        const yearGroups = {};
+
+        // 过滤事件
+        const filteredEvents = mathHistoryData.filter(event => {
+            if (filter === "all") return true;
+            return event.category === filter;
+        });
+
+        // 为每个事件创建DOM元素
+        filteredEvents.forEach((event, index) => {
+            const year = parseInt(event.time[0]);
+
+            // 创建时间标记
+            const marker = document.createElement('div');
+            marker.className = 'timeline-marker';
+            marker.style.top = `${event.position}%`;
+            marker.setAttribute('data-year', year);
+            timeline.appendChild(marker);
+
+            // 创建事件卡片
+            const eventElement = document.createElement('div');
+            eventElement.className = `timeline-event ${event.side}`;
+            eventElement.style.top = `${event.position}%`;
+            eventElement.setAttribute('data-key', event.key);
+            eventElement.setAttribute('data-category', event.category);
+
+            // 根据类别设置不同的颜色
+            const categoryColors = {
+                "geometry": "#3949ab",
+                "algebra": "#d81b60",
+                "analysis": "#00897b",
+                "probability": "#ff8f00",
+                "modern": "#5e35b1",
+                "other": "#757575"
+            };
+
+            const color = categoryColors[event.category] || "#757575";
+            eventElement.style.borderTop = `4px solid ${color}`;
+
+            // 构建年份显示（处理公元前）
+            let yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
+
+            // 事件内容
+            eventElement.innerHTML = `
+                    <div class="event-year" style="color: ${color}">${yearDisplay}</div>
+                    <div class="event-title">${event.data.event}</div>
+                    ${event.data.persons ? `<div class="event-persons">${Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons}</div>` : ''}
+                    ${event.data.paper ? `<div class="event-paper">${event.data.paper}</div>` : ''}
+                    <div class="event-category" style="background-color: ${color}20; color: ${color}">${getCategoryName(event.category)}</div>
+                `;
+
+            timeline.appendChild(eventElement);
+
+            // 添加点击事件显示详情
+            eventElement.addEventListener('click', () => showEventDetails(event));
+        });
+    }
+
+    // 显示事件详情
+    function showEventDetails(event) {
+        const detailsPanel = document.getElementById('eventDetails');
+        const year = parseInt(event.time[0]);
+        const yearDisplay = year < 0 ? `${Math.abs(year)} BC` : `${year} AD`;
+
+        // 设置详情内容
+        document.getElementById('detailTitle').textContent = event.data.event;
+        document.getElementById('detailTime').textContent = yearDisplay;
+        document.getElementById('detailPersons').textContent = event.data.persons ?
+            (Array.isArray(event.data.persons) ? event.data.persons.join(', ') : event.data.persons) :
+            '未知';
+        document.getElementById('detailEvent').textContent = event.data.event;
+        document.getElementById('detailPaper').textContent = event.data.paper || '无相关著作记录';
+
+        // 显示详情面板
+        detailsPanel.style.display = 'block';
+
+        // 滚动到详情面板
+        detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // 设置事件监听器
+    function setupEventListeners() {
+        // 搜索功能
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const events = document.querySelectorAll('.timeline-event');
+
+            events.forEach(event => {
+                const text = event.textContent.toLowerCase();
+                const isVisible = text.includes(searchTerm);
+                event.style.display = isVisible ? 'block' : 'none';
+
+                // 显示/隐藏对应的时间标记
+                const year = event.style.top;
+                const markers = document.querySelectorAll('.timeline-marker');
+                markers.forEach(marker => {
+                    if (marker.style.top === year) {
+                        marker.style.display = isVisible ? 'block' : 'none';
+                    }
+                });
+            });
+        });
+
+        // 筛选按钮
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 移除其他按钮的active类
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+
+                // 添加active类到当前按钮
+                this.classList.add('active');
+
+                // 获取筛选条件
+                const filter = this.getAttribute('data-filter');
+
+                // 重新渲染时间轴
+                renderTimeline(filter);
+            });
+        });
+
+        // 关闭详情面板
+        const closeDetails = document.getElementById('closeDetails');
+        closeDetails.addEventListener('click', function() {
+            const detailsPanel = document.getElementById('eventDetails');
+            detailsPanel.style.display = 'none';
+        });
+    }
+
+    // 获取类别名称
+    function getCategoryName(category) {
+        const names = {
+            "geometry": "几何",
+            "algebra": "代数",
+            "analysis": "分析",
+            "probability": "概率统计",
+            "modern": "现代数学",
+            "other": "其他"
+        };
+        return names[category] || "其他";
+    }
+</script>
+</body>
+</html>
