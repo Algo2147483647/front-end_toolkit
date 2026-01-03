@@ -1,10 +1,7 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* 防止出现滚动条 */
-  height: 100vh; /* 使用整个视口高度 */
-  background-color: #fff; /* 设置背景色为白色或透明 */
 }
 
 #floating-controls {
@@ -39,14 +36,15 @@ body {
   position: absolute;
   bottom: 60px; /* 在按钮上方显示 */
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
-  border: 1px solid #ddd;
-  min-width: 200px;
+  background: rgba(250, 248, 248, 0.95);
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0dcdc;
+  min-width: 180px;
   display: none;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
 }
 
 .settings-panel.settings-panel-visible {
@@ -66,28 +64,51 @@ body {
 }
 
 #settings-panel input[type="file"] {
+  display: none; /* 隐藏原始输入框 */
+}
+
+.file-input-label {
+  display: block;
   width: 100%;
   padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
+  background: #f0eeed;
+  border: 1px solid #d0c9c9;
+  border-radius: 6px;
+  font-size: 13px;
   margin-bottom: 8px;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.file-input-label:hover {
+  background: #e8e5e5;
+  border-color: #c5c0c0;
+}
+
+.file-input-text {
+  display: block;
+  pointer-events: none;
 }
 
 .export-btn {
   width: 100%;
   padding: 8px;
-  background: #4CAF50;
+  background: #a0a0c0;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
   transition: background-color 0.3s;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  margin-top: 4px;
 }
 
 .export-btn:hover {
-  background: #45a049;
+  background: #8a8aa6;
 }
 
 #main-content {
@@ -138,4 +159,10 @@ body {
 svg {
   border: none !important;
   background: transparent !important;
+}
+
+/* 优化字体渲染 */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

@@ -9,7 +9,10 @@
 <div id="floating-controls">
   <button id="settings-btn" class="settings-toggle-btn">⚙️</button>
   <div id="settings-panel" class="settings-panel">
-    <input type="file" id="fileInput" accept=".json" />
+    <label for="fileInput" class="file-input-label">
+      <span class="file-input-text">Select JSON File</span>
+      <input type="file" id="fileInput" accept=".json" />
+    </label>
     <button id="export-btn" class="export-btn">Export SVG</button>
   </div>
 </div>
@@ -22,6 +25,10 @@
 function handleFile(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  // 更新标签文本以显示已选择的文件名
+  const fileName = file.name;
+  document.querySelector('.file-input-text').textContent = fileName.length > 20 ? fileName.substring(0, 17) + '...' : fileName;
 
   const reader = new FileReader();
   reader.onload = e => {
