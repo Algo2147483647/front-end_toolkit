@@ -1,0 +1,48 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 12px;
+}
+
+#controls {
+  margin-bottom: 12px;
+}
+
+#main-content {
+  border: 1px solid #ccc;
+  background: #fafafa;
+  overflow: auto;
+  min-height: 500px;
+  min-width: 100%;
+}
+
+.node rect {
+  fill: #ffffff;
+  stroke: #333;
+  stroke-width: 1.2px;
+  rx: 6;
+  ry: 6;
+}
+
+.node text {
+  font-size: 12px;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.node .aka {
+  font-size: 10px;
+  fill: #555;
+}
+
+.link {
+  fill: none;
+  stroke: #555;
+  stroke-width: 1.2px;
+  marker-end: url(#arrow);
+}
+
+svg {
+  border: 1px solid #ccc;
+  background: #fafafa;
+}
