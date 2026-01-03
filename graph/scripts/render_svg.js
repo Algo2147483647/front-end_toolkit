@@ -5,6 +5,25 @@ function RenderSvgFromDag(dag, root) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "10000");
     svg.setAttribute("height", "10000");
+    
+    // Define arrow marker
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const arrowMarker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    arrowMarker.setAttribute("id", "arrowhead");
+    arrowMarker.setAttribute("orient", "auto");
+    arrowMarker.setAttribute("markerWidth", "10");
+    arrowMarker.setAttribute("markerHeight", "7");
+    arrowMarker.setAttribute("refX", "10");
+    arrowMarker.setAttribute("refY", "3.5");
+    
+    const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    arrowPath.setAttribute("d", "M 0 0 L 10 3.5 L 0 7 z");
+    arrowPath.setAttribute("fill", "#8888FF");
+    
+    arrowMarker.appendChild(arrowPath);
+    defs.appendChild(arrowMarker);
+    svg.appendChild(defs);
+    
     container.appendChild(svg);
 
     for (const key in dag) {
@@ -159,6 +178,7 @@ function RenderEdge(svg, x1, y1, x2, y2, weight) {
     path.setAttribute("stroke", "#8888FF");
     path.setAttribute("fill", "none");
     path.setAttribute("stroke-width", "1");
+    path.setAttribute("marker-end", "url(#arrowhead)");
 
     svg.appendChild(path);
 }
