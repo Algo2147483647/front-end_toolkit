@@ -1,8 +1,3 @@
-function render_file_graph(path, root) {
-    // request function is not defined in this context, so we'll skip this function
-    // or provide a mock implementation if needed
-    console.log("render_file_graph function needs request function implementation");
-}
 
 function RenderSvgFromDag(dag, root) {
     const container = GetContainer();
