@@ -9,7 +9,10 @@
 <body>
 
 <div id="floating-controls">
-  <input type="file" id="fileInput" accept=".json" />
+  <button id="settings-btn" class="settings-toggle-btn">⚙️</button>
+  <div id="settings-panel" class="settings-panel">
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
 </div>
 
 <div id="main-content"></div>
@@ -18,6 +21,12 @@
 <script src="render_svg.js"></script>
 <script>
 document.getElementById("fileInput").addEventListener("change", handleFile);
+document.getElementById("settings-btn").addEventListener("click", toggleSettingsPanel);
+
+function toggleSettingsPanel() {
+  const panel = document.getElementById("settings-panel");
+  panel.classList.toggle("settings-panel-visible");
+}
 
 function handleFile(event) {
   const file = event.target.files[0];
@@ -31,7 +40,15 @@ function handleFile(event) {
   reader.readAsText(file);
 }
 
-
+// 点击设置面板外的区域关闭面板
+document.addEventListener('click', function(event) {
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsPanel = document.getElementById("settings-panel");
+  
+  if (!settingsBtn.contains(event.target) && !settingsPanel.contains(event.target)) {
+    settingsPanel.classList.remove("settings-panel-visible");
+  }
+});
 
 function renderDAG(data) {
   // Find root node - a node that is not listed as a kid of another node
