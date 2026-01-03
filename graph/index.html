@@ -2,8 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DAG Viewer (Dark Characters)</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,14 +18,6 @@
 <script src="analyze_graph.js"></script>
 <script src="render_svg.js"></script>
 <script>
-document.getElementById("fileInput").addEventListener("change", handleFile);
-document.getElementById("settings-btn").addEventListener("click", toggleSettingsPanel);
-
-function toggleSettingsPanel() {
-  const panel = document.getElementById("settings-panel");
-  panel.classList.toggle("settings-panel-visible");
-}
-
 function handleFile(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -35,38 +25,11 @@ function handleFile(event) {
   const reader = new FileReader();
   reader.onload = e => {
     const json = JSON.parse(e.target.result);
-    renderDAG(json);
+    RenderSvgFromDag(json, "root");
   };
   reader.readAsText(file);
 }
-
-// 点击设置面板外的区域关闭面板
-document.addEventListener('click', function(event) {
-  const settingsBtn = document.getElementById("settings-btn");
-  const settingsPanel = document.getElementById("settings-panel");
-  
-  if (!settingsBtn.contains(event.target) && !settingsPanel.contains(event.target)) {
-    settingsPanel.classList.remove("settings-panel-visible");
-  }
-});
-
-function renderDAG(data) {
-  // Find root node - a node that is not listed as a kid of another node
-  const allNodes = new Set(Object.keys(data));
-  for (let nodeName in data) {
-    const kids = data[nodeName].kids;
-    // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1})
-    const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
-    kidKeys.forEach(kid => {
-      allNodes.delete(kid);
-    });
-  }
-  const root = allNodes.size > 0 ? Array.from(allNodes)[0] : Object.keys(data)[0];
-  
-  // Call the RenderSvgFromDag function from render_svg.js with the data directly
-  RenderSvgFromDag(data, root);
-}
 </script>
-
+<script src="setting_panel.js"></script>
 </body>
 </html>
