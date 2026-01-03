@@ -4,76 +4,22 @@
   <meta charset="UTF-8" />
   <title>DAG Viewer (Dark Characters)</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 12px;
-    }
-
-    #controls {
-      margin-bottom: 12px;
-    }
-
-    svg {
-      border: 1px solid #ccc;
-      background: #fafafa;
-    }
-
-    .node rect {
-      fill: #ffffff;
-      stroke: #333;
-      stroke-width: 1.2px;
-      rx: 6;
-      ry: 6;
-    }
-
-    .node text {
-      font-size: 12px;
-      pointer-events: none;
-      text-anchor: middle;
-    }
-
-    .node .aka {
-      font-size: 10px;
-      fill: #555;
-    }
-
-    .link {
-      fill: none;
-      stroke: #555;
-      stroke-width: 1.2px;
-      marker-end: url(#arrow);
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div id="controls">
   <input type="file" id="fileInput" accept=".json" />
+  <button id="loadSample">Load Sample Data</button>
 </div>
 
-<svg id="svg" width="1400" height="900"></svg>
+<div id="main-content"></div>
 
+<script src="analyze_graph.js"></script>
+<script src="render_svg.js"></script>
 <script>
-const svg = d3.select("#svg");
-const width = +svg.attr("width");
-const height = +svg.attr("height");
-
-svg.append("defs")
-  .append("marker")
-  .attr("id", "arrow")
-  .attr("viewBox", "0 -5 10 10")
-  .attr("refX", 18)
-  .attr("refY", 0)
-  .attr("markerWidth", 6)
-  .attr("markerHeight", 6)
-  .attr("orient", "auto")
-  .append("path")
-  .attr("d", "M0,-5L10,0L0,5")
-  .attr("fill", "#555");
-
 document.getElementById("fileInput").addEventListener("change", handleFile);
+document.getElementById("loadSample").addEventListener("click", loadSampleData);
 
 function handleFile(event) {
   const file = event.target.files[0];
@@ -87,87 +33,64 @@ function handleFile(event) {
   reader.readAsText(file);
 }
 
+function loadSampleData() {
+  // Sample DAG data for demonstration
+  const sampleData = {
+    "A": {
+      "key": "A",
+      "parents": [],
+      "kids": {"B": 1, "C": 1}
+    },
+    "B": {
+      "key": "B",
+      "parents": ["A"],
+      "kids": {"D": 1}
+    },
+    "C": {
+      "key": "C",
+      "parents": ["A"],
+      "kids": {"D": 1}
+    },
+    "D": {
+      "key": "D",
+      "parents": ["B", "C"],
+      "kids": {}
+    }
+  };
+  
+  renderDAG(sampleData);
+}
+
 function renderDAG(data) {
-  svg.selectAll("*:not(defs)").remove();
-
-  const nodes = Object.values(data);
-
-  const links = [];
-  nodes.forEach(n => {
-    (n.parents || []).forEach(p => {
-      if (data[p]) {
-        links.push({ source: p, target: n.key });
-      }
+  // Find root node
+  const allNodes = new Set(Object.keys(data));
+  for (let nodeName in data) {
+    (data[nodeName].parents || []).forEach(parent => {
+      allNodes.delete(parent);
     });
-  });
-
-  const rootCandidates = nodes.filter(n => !n.parents || n.parents.length === 0);
-  if (rootCandidates.length === 0) {
-    alert("No root node found");
-    return;
   }
-
-  const stratify = d3.stratify()
-    .id(d => d.key)
-    .parentId(d => (d.parents && d.parents.length ? d.parents[0] : null));
-
-  let root;
-  try {
-    root = stratify(nodes);
-  } catch (e) {
-    console.warn("Fallback to virtual root");
-    const virtualRoot = {
-      key: "__root__",
-      parents: [],
-      data: {}
+  const root = allNodes.size > 0 ? Array.from(allNodes)[0] : Object.keys(data)[0];
+  
+  // Process the data to match the format expected by render_svg.js
+  const processedData = {};
+  for (let key in data) {
+    const node = data[key];
+    processedData[key] = {
+      key: node.key,
+      kids: {},
+      parents: node.parents || []
     };
-    root = stratify([virtualRoot, ...nodes.map(n => ({
-      ...n,
-      parents: n.parents && n.parents.length ? [n.parents[0]] : ["__root__"]
-    }))]);
+    
+    // Build kids relationship from other nodes' parents
+    for (let otherKey in data) {
+      if (data[otherKey].parents && data[otherKey].parents.includes(key)) {
+        processedData[key].kids[otherKey] = 1;
+      }
+    }
   }
-
-  const treeLayout = d3.tree()
-    .size([width - 100, height - 100]);
-
-  treeLayout(root);
-
-  const g = svg.append("g").attr("transform", "translate(50,50)");
-
-  // links
-  g.selectAll(".link")
-    .data(root.links())
-    .enter()
-    .append("path")
-    .attr("class", "link")
-    .attr("d", d3.linkVertical()
-      .x(d => d.x)
-      .y(d => d.y)
-    );
-
-  // nodes
-  const node = g.selectAll(".node")
-    .data(root.descendants())
-    .enter()
-    .append("g")
-    .attr("class", "node")
-    .attr("transform", d => `translate(${d.x},${d.y})`);
-
-  node.append("rect")
-    .attr("x", -70)
-    .attr("y", -18)
-    .attr("width", 140)
-    .attr("height", d => d.data.data?.aka ? 40 : 28);
-
-  node.append("text")
-    .attr("dy", "-0.2em")
-    .text(d => d.id);
-
-  node.filter(d => d.data.data?.aka)
-    .append("text")
-    .attr("class", "aka")
-    .attr("dy", "1.1em")
-    .text(d => `aka: ${d.data.data.aka.join(", ")}`);
+  
+  // Call the RenderSvgFromDag function from render_svg.js
+  RenderSvgFromDag(processedData, root);
 }
 </script>
 

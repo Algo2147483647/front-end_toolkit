@@ -1,14 +1,11 @@
 function render_file_graph(path, root) {
-    request("build_graph_json_from_markdown_folder", {"folder_path": path}).then(dag => {
-        console.log(dag);
-        RenderSvgFromDag(dag, root)
-    }).catch(error => {
-        console.error('Error fetching file graph:', error); // 捕获错误
-    });
+    // request function is not defined in this context, so we'll skip this function
+    // or provide a mock implementation if needed
+    console.log("render_file_graph function needs request function implementation");
 }
 
 function RenderSvgFromDag(dag, root) {
-    container = GetContainer();
+    const container = GetContainer();
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "10000");
@@ -43,7 +40,7 @@ window.ExportSvg = function(svg) {
 };
 
 function GetContainer() {
-    container = document.getElementById('main-content');
+    let container = document.getElementById('main-content');
     if (container) {
         container.parentNode.removeChild(container);
     }
@@ -79,7 +76,10 @@ function RenderNodeCoordinate(dag) {
 }
 
 function RenderByDFS(dag, svg, nodeKey, visited) {
+    if (visited.has(nodeKey)) return;
     visited.add(nodeKey);
+    
+    // Process all kids of the current node
     Object.keys(dag[nodeKey]["kids"]).forEach(kidKey => {
         if (!dag[nodeKey].hasOwnProperty('coordinate')) {
             console.log(nodeKey);
@@ -89,18 +89,22 @@ function RenderByDFS(dag, svg, nodeKey, visited) {
         }
 
         const radius = 8;
-        RenderEdge(svg,
-            dag[nodeKey]["coordinate_SVG"][0] + radius, dag[nodeKey]["coordinate_SVG"][1],
-            dag[kidKey] ["coordinate_SVG"][0] - radius, dag[kidKey] ["coordinate_SVG"][1],
-            dag[nodeKey].kids[kidKey]);
+        if (dag[nodeKey]["coordinate_SVG"] && dag[kidKey]["coordinate_SVG"]) {
+            RenderEdge(svg,
+                dag[nodeKey]["coordinate_SVG"][0] + radius, dag[nodeKey]["coordinate_SVG"][1],
+                dag[kidKey]["coordinate_SVG"][0] - radius, dag[kidKey]["coordinate_SVG"][1],
+                dag[nodeKey].kids[kidKey]);
+        }
 
         if (!visited.has(kidKey)) {
             RenderByDFS(dag, svg, kidKey, visited);
         }
     });
 
-    [x, y] = dag[nodeKey]["coordinate_SVG"];
-    RenderNode(dag, svg, x, y, nodeKey);
+    if (dag[nodeKey]["coordinate_SVG"]) {
+        [x, y] = dag[nodeKey]["coordinate_SVG"];
+        RenderNode(dag, svg, x, y, nodeKey);
+    }
 }
 
 function RenderNode(dag, svg, x, y, nodeKey) {
@@ -122,10 +126,8 @@ function RenderNode(dag, svg, x, y, nodeKey) {
     text.setAttribute("fill", "#333"); // Darker color for text
     text.textContent = nodeKey.split('\\').pop().split('.')[0].replace(/_/g, ' ');
 
-    circleLink.appendChild(circle);
-    textLink.appendChild(text);
-    svg.appendChild(circleLink);
-    svg.appendChild(textLink);
+    svg.appendChild(circle);
+    svg.appendChild(text);
 }
 
 // 全局变量，用于跟踪当前显示的 container
@@ -139,9 +141,6 @@ function RenderEdge(svg, x1, y1, x2, y2, weight) {
     path.setAttribute("stroke", "#8888FF");
     path.setAttribute("fill", "none");
     path.setAttribute("stroke-width", "1");
-
-    let text;
-    let container;
 
     svg.appendChild(path);
 }
