@@ -10,7 +10,7 @@
 
 <div id="controls">
   <input type="file" id="fileInput" accept=".json" />
-  <button id="loadSample">Load Sample Data</button>
+  
 </div>
 
 <div id="main-content"></div>
@@ -19,7 +19,6 @@
 <script src="render_svg.js"></script>
 <script>
 document.getElementById("fileInput").addEventListener("change", handleFile);
-document.getElementById("loadSample").addEventListener("click", loadSampleData);
 
 function handleFile(event) {
   const file = event.target.files[0];
@@ -33,33 +32,7 @@ function handleFile(event) {
   reader.readAsText(file);
 }
 
-function loadSampleData() {
-  // Sample DAG data for demonstration - using the correct format expected by render_svg.js
-  const sampleData = {
-    "A": {
-      "key": "A",
-      "kids": {"B": 1, "C": 1},
-      "parents": []
-    },
-    "B": {
-      "key": "B",
-      "kids": {"D": 1},
-      "parents": ["A"]
-    },
-    "C": {
-      "key": "C",
-      "kids": {"D": 1},
-      "parents": ["A"]
-    },
-    "D": {
-      "key": "D",
-      "kids": {},
-      "parents": ["B", "C"]
-    }
-  };
-  
-  renderDAG(sampleData);
-}
+
 
 function renderDAG(data) {
   // Find root node - a node that is not listed as a kid of another node
