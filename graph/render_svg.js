@@ -80,7 +80,11 @@ function RenderByDFS(dag, svg, nodeKey, visited) {
     visited.add(nodeKey);
     
     // Process all kids of the current node
-    Object.keys(dag[nodeKey]["kids"]).forEach(kidKey => {
+    // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1} or {"B": "", "C": ""})
+    const kids = dag[nodeKey]["kids"];
+    const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+    
+    kidKeys.forEach(kidKey => {
         if (!dag[nodeKey].hasOwnProperty('coordinate')) {
             console.log(nodeKey);
         }
@@ -90,10 +94,16 @@ function RenderByDFS(dag, svg, nodeKey, visited) {
 
         const radius = 8;
         if (dag[nodeKey]["coordinate_SVG"] && dag[kidKey]["coordinate_SVG"]) {
+            // Get weight for the edge - handle both object and array formats
+            let weight = 1;
+            if (typeof kids === 'object' && !Array.isArray(kids)) {
+                weight = kids[kidKey];
+            }
+            
             RenderEdge(svg,
                 dag[nodeKey]["coordinate_SVG"][0] + radius, dag[nodeKey]["coordinate_SVG"][1],
                 dag[kidKey]["coordinate_SVG"][0] - radius, dag[kidKey]["coordinate_SVG"][1],
-                dag[nodeKey].kids[kidKey]);
+                weight);
         }
 
         if (!visited.has(kidKey)) {

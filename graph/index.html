@@ -65,9 +65,12 @@ function renderDAG(data) {
   // Find root node - a node that is not listed as a kid of another node
   const allNodes = new Set(Object.keys(data));
   for (let nodeName in data) {
-    for (let kid in data[nodeName].kids) {
+    const kids = data[nodeName].kids;
+    // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1})
+    const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+    kidKeys.forEach(kid => {
       allNodes.delete(kid);
-    }
+    });
   }
   const root = allNodes.size > 0 ? Array.from(allNodes)[0] : Object.keys(data)[0];
   

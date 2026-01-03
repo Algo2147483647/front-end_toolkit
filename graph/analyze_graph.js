@@ -1,9 +1,12 @@
-function FindRootsFromDag() {
+function FindRootsFromDag(dag) {
     const allNodes = new Set(Object.keys(dag));
     for (let nodeName in dag) {
-        for (let kid of dag[nodeName].kid) {
+        const kids = dag[nodeName].kids;
+        // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1})
+        const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+        kidKeys.forEach(kid => {
             allNodes.delete(kid);
-        }
+        });
     }
     return Array.from(allNodes);
 }
@@ -18,7 +21,12 @@ function BuildCoordinateForDag(dag, root) {
         for (let i = 0; i < n; i++) {
             const key = queue.shift();
             dag[key]["coordinate"] = [level, i];
-            Object.keys(dag[key].kids).forEach(kidKey => {
+            
+            // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1})
+            const kids = dag[key].kids;
+            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+            
+            kidKeys.forEach(kidKey => {
                 if (!dag[kidKey].hasOwnProperty('coordinate')) {
                     queue.push(kidKey);
                     dag[kidKey]["coordinate"] = [-1, -1];
