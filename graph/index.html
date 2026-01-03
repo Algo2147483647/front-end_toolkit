@@ -34,27 +34,27 @@ function handleFile(event) {
 }
 
 function loadSampleData() {
-  // Sample DAG data for demonstration
+  // Sample DAG data for demonstration - using the correct format expected by render_svg.js
   const sampleData = {
     "A": {
       "key": "A",
-      "parents": [],
-      "kids": {"B": 1, "C": 1}
+      "kids": {"B": 1, "C": 1},
+      "parents": []
     },
     "B": {
       "key": "B",
-      "parents": ["A"],
-      "kids": {"D": 1}
+      "kids": {"D": 1},
+      "parents": ["A"]
     },
     "C": {
       "key": "C",
-      "parents": ["A"],
-      "kids": {"D": 1}
+      "kids": {"D": 1},
+      "parents": ["A"]
     },
     "D": {
       "key": "D",
-      "parents": ["B", "C"],
-      "kids": {}
+      "kids": {},
+      "parents": ["B", "C"]
     }
   };
   
@@ -62,35 +62,17 @@ function loadSampleData() {
 }
 
 function renderDAG(data) {
-  // Find root node
+  // Find root node - a node that is not listed as a kid of another node
   const allNodes = new Set(Object.keys(data));
   for (let nodeName in data) {
-    (data[nodeName].parents || []).forEach(parent => {
-      allNodes.delete(parent);
-    });
+    for (let kid in data[nodeName].kids) {
+      allNodes.delete(kid);
+    }
   }
   const root = allNodes.size > 0 ? Array.from(allNodes)[0] : Object.keys(data)[0];
   
-  // Process the data to match the format expected by render_svg.js
-  const processedData = {};
-  for (let key in data) {
-    const node = data[key];
-    processedData[key] = {
-      key: node.key,
-      kids: {},
-      parents: node.parents || []
-    };
-    
-    // Build kids relationship from other nodes' parents
-    for (let otherKey in data) {
-      if (data[otherKey].parents && data[otherKey].parents.includes(key)) {
-        processedData[key].kids[otherKey] = 1;
-      }
-    }
-  }
-  
-  // Call the RenderSvgFromDag function from render_svg.js
-  RenderSvgFromDag(processedData, root);
+  // Call the RenderSvgFromDag function from render_svg.js with the data directly
+  RenderSvgFromDag(data, root);
 }
 </script>
 

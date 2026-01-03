@@ -16,6 +16,12 @@ body {
   min-width: 100%;
 }
 
+#main-content svg {
+  display: block;
+  width: 100%;
+  min-height: 500px;
+}
+
 .node rect {
   fill: #ffffff;
   stroke: #333;
