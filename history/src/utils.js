@@ -1,4 +1,3 @@
-
 // Truncate text to fit space
 function truncateText(text, maxLength) {
   if (!text) return '';
@@ -6,23 +5,21 @@ function truncateText(text, maxLength) {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
 
+
+// Track which colors have been used
+let usedColors = [];
+
 // Function to generate random soft colors
-function getRandomColor() {
-  // Generate soft colors with limited hue range for better visual appearance
-  const hue = Math.floor(Math.random() * 360);
-  const saturation = 30 + Math.floor(Math.random() * 50); // 30-80% saturation for softness
-  const lightness = 70 + Math.floor(Math.random() * 20); // 70-90% lightness for softness
-
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
-
-// Function to generate soft colors for timeline ranges
-function getSoftColor() {
-  // Generate soft pastel colors with more consistency
-  // Using a more limited hue range for better visual harmony
-  const hue = Math.floor(Math.random() * 360); // Blues, purples, pinks, greens
-  const saturation = 25 + Math.floor(Math.random() * 25); // Lower saturation for softer look
-  const lightness = 85 + Math.floor(Math.random() * 10); // Higher lightness for softer look
-
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+function getRandomColor(x, width) {
+  // Calculate hue based on x position to ensure similar colors for nearby x values
+  const baseHue = (x * 10) % 360; // Use golden angle to ensure good color distribution
+  
+  // Calculate saturation based on width - smaller width means higher saturation
+  // Using a range of 30-100% for saturation, with smaller widths being more saturated
+  const saturation = Math.max(30, 100 - (width * 10)); // Adjust multiplier as needed
+  
+  // Keep lightness in a soft range to maintain the soft color preference
+  const lightness = 70 + Math.floor(Math.random() * 10); // Soft lightness between 70-80%
+  
+  return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
 }

@@ -13,15 +13,15 @@ function drawTimeRanges(timeRanges, margin, height, yearScale) {
       const rangeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       rangeRect.setAttribute('x', event.x * widthUnit + margin.left + 4);
       rangeRect.setAttribute('y', Math.min(event.startY, event.endY));
-      rangeRect.setAttribute('width', event.width * widthUnit);
+      rangeRect.setAttribute('width', event.width * widthUnit - 4);
       rangeRect.setAttribute('height', Math.abs(event.endY - event.startY));
-      rangeRect.setAttribute('fill', getSoftColor());
+      rangeRect.setAttribute('fill', getRandomColor(event.x, event.width));
       rangeRect.setAttribute('stroke', 'transparent');
       rangeRect.setAttribute('stroke-width', 1);
       rangeRect.setAttribute('rx', 8);
       rangeRect.setAttribute('ry', 8);
-      rangeRect.setAttribute('class', 'timeline-range');
-      
+      rangeRect.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))');
+
       // Add event listeners for hover
       rangeRect.addEventListener('mouseenter', (e) => {
         showEventCard(event, e.clientX, e.clientY);
@@ -72,8 +72,10 @@ function drawSinglePoints(singlePoints, margin, height) {
       marker.setAttribute('cx', x);
       marker.setAttribute('cy', event.startY);
       marker.setAttribute('r', 8);
-      marker.setAttribute('class', 'timeline-marker');
-      
+      marker.setAttribute('fill', 'white');
+      marker.setAttribute('stroke', '#3949ab');
+      marker.setAttribute('stroke-width', '1');
+      marker.setAttribute('filter', 'drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2))');
       // Add event listeners for hover
       marker.addEventListener('mouseenter', (e) => {
         showEventCard(event, e.clientX, e.clientY);
