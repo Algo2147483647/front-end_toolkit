@@ -131,7 +131,12 @@ function RenderNode(dag, svg, x, y, nodeKey) {
     text.setAttribute("fill", "#333"); // Darker color for text
     text.textContent = nodeKey.split('\\').pop().split('.')[0].replace(/_/g, ' ');
 
-    svg.appendChild(circle);
+    const circleLink = document.createElementNS("http://www.w3.org/2000/svg", "a");
+    circleLink.setAttribute("href", "javascript:void(0)");  // You can use this to prevent default link action
+    circleLink.addEventListener('click', () => RenderSvgFromDag(dag, nodeKey));
+
+    circleLink.appendChild(circle);
+    svg.appendChild(circleLink);
     svg.appendChild(text);
 }
 
