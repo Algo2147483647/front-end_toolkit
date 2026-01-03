@@ -16,6 +16,14 @@ function RenderSvgFromDag(dag, root) {
         }
     }
 
+    roots = FindRootsFromDag(dag)
+
+    if (roots.length > 1) {
+        // Add virtual root node which kids are all roots
+        const virtualRootKey = 'root';
+        dag[virtualRootKey] = { kids: roots };
+    }
+
     BuildCoordinateForDag(dag, root)
     RenderNodeCoordinate(dag)
     RenderByDFS(dag, svg, root, new Set());

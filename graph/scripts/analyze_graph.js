@@ -2,7 +2,6 @@ function FindRootsFromDag(dag) {
     const allNodes = new Set(Object.keys(dag));
     for (let nodeName in dag) {
         const kids = dag[nodeName].kids;
-        // Handle both array format (kids: ["B", "C"]) and object format (kids: {"B": 1, "C": 1})
         const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
         kidKeys.forEach(kid => {
             allNodes.delete(kid);
