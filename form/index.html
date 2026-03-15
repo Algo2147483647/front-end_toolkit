@@ -11,7 +11,15 @@
 <body>
 <div class="app-container">
   <header class="app-header">
-    <h1><i class="fas fa-wrench"></i> Form Designer</h1>
+    <div class="brand-block">
+      <div class="brand-mark">
+        <i class="fas fa-wand-magic-sparkles"></i>
+      </div>
+      <div class="brand-copy">
+        <h1>Visual Schema Studio</h1>
+        <p>Compose form flows with a cleaner editing workspace</p>
+      </div>
+    </div>
     <div class="header-actions">
       <button id="previewBtn" class="ant-btn ant-btn-default">
         <i class="fas fa-eye"></i> <span>Preview</span>
@@ -31,9 +39,16 @@
   <div class="app-content">
     <!-- Left component panel -->
     <div class="components-panel">
-      <div class="panel-tabs">
-        <button class="tab-button active" data-tab="components">Component Library</button>
-        <button class="tab-button" data-tab="tree">Component Tree</button>
+      <div class="sidebar-shell">
+        <div class="sidebar-intro">
+          <span class="eyebrow">Toolkit</span>
+          <h2>Build Blocks</h2>
+          <p>Pick fields and layout containers to assemble your schema.</p>
+        </div>
+        <div class="panel-tabs">
+          <button class="tab-button active" data-tab="components">Component Library</button>
+          <button class="tab-button" data-tab="tree">Component Tree</button>
+        </div>
       </div>
       
       <div class="panel-content">
@@ -138,6 +153,13 @@
     <!-- Middle design canvas -->
     <div class="design-canvas">
       <div class="canvas-container">
+        <div class="canvas-header">
+          <div>
+            <span class="eyebrow">Canvas</span>
+            <h2>Form Composition Area</h2>
+          </div>
+          <p>Drag fields into the sheet and fine-tune their structure on the right.</p>
+        </div>
         <div class="droppable-area" id="formCanvas">
           <div class="empty-canvas" id="emptyCanvas">
             <i class="fas fa-mouse-pointer"></i>
@@ -155,7 +177,10 @@
     <!-- Right properties panel -->
     <div class="properties-panel" id="propertiesPanel">
       <div class="properties-header">
-        <div class="properties-title">Property Configuration</div>
+        <div class="properties-heading">
+          <span class="eyebrow">Inspector</span>
+          <div class="properties-title">Property Configuration</div>
+        </div>
         <button id="collapsePropsBtn" class="ant-btn ant-btn-default ant-btn-sm" title="Collapse/Expand">
           <i class="fas fa-angle-double-right"></i>
         </button>
