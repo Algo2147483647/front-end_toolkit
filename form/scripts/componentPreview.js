@@ -23,50 +23,94 @@ function flattenCascaderOptions(options, trail = []) {
   });
 }
 
+function getChoiceOptions(component) {
+  return normalizeChoiceOptions(component.config.options || []);
+}
+
+function getControlAttributeString(component, isPreview, supportsReadOnly = false) {
+  const attrs = [];
+
+  if (!isPreview || component.config.disabled) {
+    attrs.push('disabled');
+  }
+
+  if (supportsReadOnly && component.config.readOnly) {
+    attrs.push('readonly');
+  }
+
+  return attrs.join(' ');
+}
+
 // Render component preview
 function renderComponentPreview(component, isPreview = false) {
   const fieldName = escapeAttribute(component.config.name);
   const fieldTitle = escapeHTML(component.config.title);
   const placeholder = escapeAttribute(component.config.placeholder || '');
   const defaultValue = component.config.defaultValue;
+  const description = component.config.description
+    ? `<div class="component-description">${escapeHTML(component.config.description)}</div>`
+    : '';
+  const textControlAttrs = getControlAttributeString(component, isPreview, true);
+  const controlAttrs = getControlAttributeString(component, isPreview, false);
 
   switch (component.type) {
     case 'Input':
-      return `<input type="text" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" placeholder="${placeholder}" ${isPreview ? '' : 'disabled'}>`;
+      return `<div class="component-control-wrap">
+        <input type="text" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" placeholder="${placeholder}" ${textControlAttrs}>
+        ${description}
+      </div>`;
     case 'Textarea':
-      return `<textarea class="ant-input" name="${fieldName}" placeholder="${placeholder}" ${isPreview ? '' : 'disabled'} style="height: 80px;">${escapeHTML(defaultValue || '')}</textarea>`;
+      return `<div class="component-control-wrap">
+        <textarea class="ant-input" name="${fieldName}" placeholder="${placeholder}" ${textControlAttrs} style="height: 80px;">${escapeHTML(defaultValue || '')}</textarea>
+        ${description}
+      </div>`;
     case 'InputNumber':
       return `
-        <div class="number-input-wrapper">
-          <input type="number" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue ?? 0)}" ${isPreview ? '' : 'disabled'}>
-          <div class="number-input-controls" style="${isPreview ? 'opacity: 1;' : ''}">
-            <button type="button" class="number-input-control number-input-control-up" ${isPreview ? 'onclick="incrementNumber(this)"' : 'disabled'}>+</button>
-            <button type="button" class="number-input-control number-input-control-down" ${isPreview ? 'onclick="decrementNumber(this)"' : 'disabled'}>-</button>
+        <div class="component-control-wrap">
+          <div class="number-input-wrapper">
+            <input type="number" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue ?? 0)}" ${textControlAttrs}>
+            <div class="number-input-controls" style="${isPreview && !component.config.disabled ? 'opacity: 1;' : ''}">
+              <button type="button" class="number-input-control number-input-control-up" ${isPreview && !component.config.disabled ? 'onclick="incrementNumber(this)"' : 'disabled'}>+</button>
+              <button type="button" class="number-input-control number-input-control-down" ${isPreview && !component.config.disabled ? 'onclick="decrementNumber(this)"' : 'disabled'}>-</button>
+            </div>
           </div>
+          ${description}
         </div>`;
     case 'Select':
-      return `<select class="ant-select" name="${fieldName}" ${isPreview ? 'onchange="handleSelectChange(this)"' : 'disabled'}>
-        ${(component.config.options || []).map(opt => {
-          const optionValue = String(opt);
-          const selected = defaultValue === optionValue ? 'selected' : '';
-          return `<option value="${escapeAttribute(optionValue)}" ${selected}>${escapeHTML(optionValue)}</option>`;
+      return `<div class="component-control-wrap">
+        <select class="ant-select" name="${fieldName}" ${controlAttrs} ${isPreview && !component.config.disabled ? 'onchange="handleSelectChange(this)"' : ''}>
+        ${getChoiceOptions(component).map(opt => {
+          const optionValue = String(opt.value);
+          const selected = String(defaultValue) === optionValue ? 'selected' : '';
+          return `<option value="${escapeAttribute(optionValue)}" ${selected}>${escapeHTML(opt.label)}</option>`;
         }).join('')}
-      </select>`;
+        </select>
+        ${description}
+      </div>`;
     case 'Cascader': {
       const options = flattenCascaderOptions(component.config.options || []);
       const selectedValue = Array.isArray(defaultValue) ? defaultValue.join('/') : String(defaultValue || '');
-      return `<select class="ant-select" name="${fieldName}" ${isPreview ? '' : 'disabled'}>
+      return `<div class="component-control-wrap">
+        <select class="ant-select" name="${fieldName}" ${controlAttrs}>
         <option value="">Please select</option>
         ${options.map(option => {
           const selected = option.value === selectedValue ? 'selected' : '';
           return `<option value="${escapeAttribute(option.value)}" ${selected}>${escapeHTML(option.label)}</option>`;
         }).join('')}
-      </select>`;
+        </select>
+        ${description}
+      </div>`;
     }
     case 'DatePicker':
-      return `<input type="date" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" ${isPreview ? '' : 'disabled'}>`;
+      return `<div class="component-control-wrap">
+        <input type="date" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" ${controlAttrs}>
+        ${description}
+      </div>`;
     case 'TimePicker':
-      return `<input type="time" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" ${isPreview ? '' : 'disabled'}>`;
+      return `<div class="component-control-wrap">
+        <input type="time" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '')}" ${controlAttrs}>
+        ${description}
+      </div>`;
     case 'Card':
       return `<div class="card-preview ${component.config.showTitle ? 'with-title' : ''} ${state.showBorders && !isPreview ? 'with-borders' : ''}" data-container-type="Card" data-container-id="${component.id}">
         ${component.children && component.children.length > 0
@@ -249,46 +293,59 @@ function renderComponentPreview(component, isPreview = false) {
         </div>`;
     }
     case 'Slider':
-      return `<div class="slider-preview">
+      return `<div class="component-control-wrap">
+        <div class="slider-preview">
         <input type="range"
                name="${fieldName}"
                min="${escapeAttribute(component.config.min || 0)}"
                max="${escapeAttribute(component.config.max || 100)}"
                value="${escapeAttribute(defaultValue ?? 0)}"
-               ${isPreview ? 'oninput="updateSliderValue(this)"' : 'disabled'}
+               ${controlAttrs}
+               ${isPreview && !component.config.disabled ? 'oninput="updateSliderValue(this)"' : ''}
                class="ant-slider">
         <div class="slider-value">${escapeHTML(defaultValue ?? 0)}</div>
+        </div>
+        ${description}
       </div>`;
     case 'Radio': {
-      const radioOptions = component.config.options || ['Option 1', 'Option 2'];
-      return `<div class="radio-preview">
+      const radioOptions = getChoiceOptions(component);
+      return `<div class="component-control-wrap">
+        <div class="radio-preview">
         ${radioOptions.map((opt, idx) => {
-          const optionValue = String(opt);
+          const optionValue = String(opt.value);
           const checked = defaultValue ? defaultValue === optionValue : idx === 0;
           return `
             <div class="radio-option">
-              <input type="radio" name="${fieldName}" value="${escapeAttribute(optionValue)}" ${checked ? 'checked' : ''} ${isPreview ? 'onchange="handleRadioChange(this)"' : 'disabled'}>
-              <label>${escapeHTML(optionValue)}</label>
+              <input type="radio" name="${fieldName}" value="${escapeAttribute(optionValue)}" ${checked ? 'checked' : ''} ${controlAttrs} ${isPreview && !component.config.disabled ? 'onchange="handleRadioChange(this)"' : ''}>
+              <label>${escapeHTML(opt.label)}</label>
             </div>`;
         }).join('')}
+        </div>
+        ${description}
       </div>`;
     }
     case 'Checkbox': {
-      const checkboxOptions = component.config.options || ['Option 1', 'Option 2', 'Option 3'];
+      const checkboxOptions = getChoiceOptions(component);
       const selectedValues = Array.isArray(defaultValue) ? defaultValue.map(String) : [];
-      return `<div class="checkbox-preview">
+      return `<div class="component-control-wrap">
+        <div class="checkbox-preview">
         ${checkboxOptions.map(opt => {
-          const optionValue = String(opt);
+          const optionValue = String(opt.value);
           return `
             <div class="checkbox-option">
-              <input type="checkbox" name="${fieldName}[]" value="${escapeAttribute(optionValue)}" ${selectedValues.includes(optionValue) ? 'checked' : ''} ${isPreview ? 'onchange="handleCheckboxChange(this)"' : 'disabled'}>
-              <label>${escapeHTML(optionValue)}</label>
+              <input type="checkbox" name="${fieldName}[]" value="${escapeAttribute(optionValue)}" ${selectedValues.includes(optionValue) ? 'checked' : ''} ${controlAttrs} ${isPreview && !component.config.disabled ? 'onchange="handleCheckboxChange(this)"' : ''}>
+              <label>${escapeHTML(opt.label)}</label>
             </div>`;
         }).join('')}
+        </div>
+        ${description}
       </div>`;
     }
     case 'ColorPicker':
-      return `<input type="color" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '#1890ff')}" ${isPreview ? '' : 'disabled'}>`;
+      return `<div class="component-control-wrap">
+        <input type="color" class="ant-input" name="${fieldName}" value="${escapeAttribute(defaultValue || '#1890ff')}" ${controlAttrs}>
+        ${description}
+      </div>`;
     default:
       return `<span style="color: #999;">${fieldTitle || escapeHTML(component.type)} component preview</span>`;
   }

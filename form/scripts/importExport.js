@@ -6,30 +6,6 @@ function cloneSchema(schema) {
   return JSON.parse(JSON.stringify(schema));
 }
 
-function normalizeChoiceOptions(options) {
-  if (!Array.isArray(options)) {
-    return [];
-  }
-
-  return options.map(option => {
-    if (option === null || option === undefined) {
-      return '';
-    }
-
-    if (typeof option === 'object') {
-      if (option.label !== undefined && option.label !== null) {
-        return String(option.label);
-      }
-      if (option.value !== undefined && option.value !== null) {
-        return String(option.value);
-      }
-      return '';
-    }
-
-    return String(option);
-  }).filter(Boolean);
-}
-
 function normalizeCollapsePanels(panels) {
   const fallbackPanels = cloneSchema(componentConfigs.Collapse.panels);
 
@@ -98,6 +74,13 @@ function buildImportedComponent(prop, position, createImportedId, parentType = n
       type: typeof prop.type === 'string' ? prop.type : defaults.type,
       required: !!prop.required,
       defaultValue: prop.default !== undefined ? prop.default : defaults.defaultValue,
+      description: prop.description !== undefined ? String(prop.description) : defaults.description,
+      hidden: prop["x-hidden"] === true || defaults.hidden,
+      disabled: componentProps.disabled === true || defaults.disabled,
+      readOnly: componentProps.readOnly === true || defaults.readOnly,
+      visibilityMode: prop["x-visibility"]?.mode === 'conditional' ? 'conditional' : defaults.visibilityMode,
+      visibilityField: prop["x-visibility"]?.field !== undefined ? String(prop["x-visibility"].field) : defaults.visibilityField,
+      visibilityValue: prop["x-visibility"]?.value !== undefined ? String(prop["x-visibility"].value) : defaults.visibilityValue,
       placeholder: componentProps.placeholder !== undefined ? String(componentProps.placeholder) : defaults.placeholder,
       options: componentType === 'Cascader'
         ? (Array.isArray(componentProps.options) ? componentProps.options : defaults.options)
@@ -237,6 +220,65 @@ function importSchema(schema) {
   renderComponentTree();
 }
 
+function getPreviewFieldValue(previewForm, fieldName) {
+  const matchedElements = Array.from(previewForm.querySelectorAll('input, select, textarea')).filter(element => {
+    const elementName = element.name || '';
+    const cleanName = elementName.endsWith('[]') ? elementName.slice(0, -2) : elementName;
+    return cleanName === fieldName;
+  });
+
+  if (matchedElements.length === 0) {
+    return '';
+  }
+
+  const firstType = matchedElements[0].type;
+
+  if (firstType === 'radio') {
+    const checked = matchedElements.find(element => element.checked);
+    return checked ? checked.value : '';
+  }
+
+  if (firstType === 'checkbox' && (matchedElements[0].name || '').endsWith('[]')) {
+    return matchedElements.filter(element => element.checked).map(element => element.value);
+  }
+
+  if (firstType === 'checkbox') {
+    return matchedElements[0].checked;
+  }
+
+  return matchedElements[0].value;
+}
+
+function applyPreviewVisibility(previewForm) {
+  previewForm.querySelectorAll('.preview-form-item').forEach(item => {
+    const isHardHidden = item.dataset.hidden === '1';
+    const mode = item.dataset.visibilityMode || 'always';
+    const dependsOn = item.dataset.visibilityField || '';
+    const expectedValue = item.dataset.visibilityValue || '';
+
+    let shouldShow = !isHardHidden;
+
+    if (shouldShow && mode === 'conditional' && dependsOn) {
+      const currentValue = getPreviewFieldValue(previewForm, dependsOn);
+      if (Array.isArray(currentValue)) {
+        shouldShow = currentValue.map(String).includes(expectedValue);
+      } else {
+        shouldShow = String(currentValue ?? '') === expectedValue;
+      }
+    }
+
+    item.style.display = shouldShow ? '' : 'none';
+    item.classList.toggle('hidden-by-rule', !shouldShow);
+  });
+}
+
+function bindPreviewVisibility(previewForm) {
+  const refreshVisibility = () => applyPreviewVisibility(previewForm);
+  previewForm.addEventListener('input', refreshVisibility);
+  previewForm.addEventListener('change', refreshVisibility);
+  refreshVisibility();
+}
+
 // Open preview
 function openPreview() {
   updateSchema();
@@ -250,7 +292,16 @@ function openPreview() {
     previewHTML = '<div style="text-align: center; color: #999; padding: 40px;">Form is empty, please add components first</div>';
   } else {
     previewHTML = components.map(comp => `
-      <div class="form-item" data-id="${comp.id}" style="margin-bottom: 15px;">
+      <div
+        class="form-item preview-form-item"
+        data-id="${comp.id}"
+        data-field-name="${escapeAttribute(comp.config.name)}"
+        data-hidden="${comp.config.hidden ? '1' : '0'}"
+        data-visibility-mode="${escapeAttribute(comp.config.visibilityMode || 'always')}"
+        data-visibility-field="${escapeAttribute(comp.config.visibilityField || '')}"
+        data-visibility-value="${escapeAttribute(comp.config.visibilityValue || '')}"
+        style="margin-bottom: 15px;"
+      >
         <span class="form-item-label" style="display: block; margin-bottom: 5px; font-weight: bold;">
           ${escapeHTML(comp.config.title)}${comp.config.required ? ' *' : ''}
         </span>
@@ -283,6 +334,8 @@ function openPreview() {
 
   const previewForm = document.getElementById('previewForm');
   if (previewForm) {
+    bindPreviewVisibility(previewForm);
+
     previewForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -291,6 +344,7 @@ function openPreview() {
 
       formElements.forEach(element => {
         if (!element.name) return;
+        if (element.closest('.hidden-by-rule')) return;
 
         const name = element.name;
         const type = element.type;

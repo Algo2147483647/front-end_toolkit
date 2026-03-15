@@ -16,6 +16,16 @@ const state = {
   showBorders: false  // Control whether to show borders
 };
 
+const sharedComponentConfig = {
+  description: "",
+  hidden: false,
+  disabled: false,
+  readOnly: false,
+  visibilityMode: "always",
+  visibilityField: "",
+  visibilityValue: ""
+};
+
 // Component configuration mapping
 const componentConfigs = {
   Input: {
@@ -142,6 +152,56 @@ const componentConfigs = {
   }
 };
 
+function supportsChoiceOptions(type) {
+  return type === 'Select' || type === 'Radio' || type === 'Checkbox';
+}
+
+function normalizeChoiceOption(option, index = 0) {
+  if (option && typeof option === 'object' && !Array.isArray(option)) {
+    const label = option.label !== undefined && option.label !== null
+      ? String(option.label)
+      : String(option.value !== undefined ? option.value : `Option ${index + 1}`);
+    const value = option.value !== undefined && option.value !== null
+      ? String(option.value)
+      : label;
+
+    return {
+      label,
+      value
+    };
+  }
+
+  const fallback = option === undefined || option === null || option === ''
+    ? `Option ${index + 1}`
+    : String(option);
+
+  return {
+    label: fallback,
+    value: fallback
+  };
+}
+
+function normalizeChoiceOptions(options) {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  return options
+    .map((option, index) => normalizeChoiceOption(option, index))
+    .filter(option => option.label || option.value);
+}
+
+Object.keys(componentConfigs).forEach(type => {
+  componentConfigs[type] = {
+    ...sharedComponentConfig,
+    ...componentConfigs[type]
+  };
+
+  if (supportsChoiceOptions(type)) {
+    componentConfigs[type].options = normalizeChoiceOptions(componentConfigs[type].options);
+  }
+});
+
 function isContainerComponent(type) {
   return type === 'Card' || type === 'Grid' || type === 'Collapse';
 }
@@ -231,11 +291,36 @@ function updateSchema() {
       properties[fieldId]["x-component-props"].placeholder = comp.config.placeholder;
     }
 
+    if (comp.config.description) {
+      properties[fieldId].description = comp.config.description;
+    }
+
+    if (comp.config.defaultValue !== undefined && comp.type !== 'Card' && comp.type !== 'Grid' && comp.type !== 'Divider' && comp.type !== 'Collapse') {
+      properties[fieldId].default = comp.config.defaultValue;
+    }
+
+    if (comp.config.disabled) {
+      properties[fieldId]["x-component-props"].disabled = true;
+    }
+
+    if (comp.config.readOnly) {
+      properties[fieldId]["x-component-props"].readOnly = true;
+    }
+
+    if (comp.config.hidden) {
+      properties[fieldId]["x-hidden"] = true;
+    }
+
+    if (comp.config.visibilityMode === 'conditional' && comp.config.visibilityField) {
+      properties[fieldId]["x-visibility"] = {
+        mode: 'conditional',
+        field: comp.config.visibilityField,
+        value: comp.config.visibilityValue
+      };
+    }
+
     if (comp.config.options && comp.config.options.length > 0) {
-      properties[fieldId]["x-component-props"].options = comp.config.options.map(opt => ({
-        label: opt,
-        value: opt
-      }));
+      properties[fieldId]["x-component-props"].options = normalizeChoiceOptions(comp.config.options);
     }
     
     if (comp.type === 'Cascader') {
@@ -310,12 +395,37 @@ function generateComponentSchema(component, index) {
   if (component.config.placeholder) {
     schema[fieldId]["x-component-props"].placeholder = component.config.placeholder;
   }
+
+  if (component.config.description) {
+    schema[fieldId].description = component.config.description;
+  }
+
+  if (component.config.defaultValue !== undefined && component.type !== 'Card' && component.type !== 'Grid' && component.type !== 'Divider' && component.type !== 'Collapse') {
+    schema[fieldId].default = component.config.defaultValue;
+  }
+
+  if (component.config.disabled) {
+    schema[fieldId]["x-component-props"].disabled = true;
+  }
+
+  if (component.config.readOnly) {
+    schema[fieldId]["x-component-props"].readOnly = true;
+  }
+
+  if (component.config.hidden) {
+    schema[fieldId]["x-hidden"] = true;
+  }
+
+  if (component.config.visibilityMode === 'conditional' && component.config.visibilityField) {
+    schema[fieldId]["x-visibility"] = {
+      mode: 'conditional',
+      field: component.config.visibilityField,
+      value: component.config.visibilityValue
+    };
+  }
   
   if (component.config.options && component.config.options.length > 0) {
-    schema[fieldId]["x-component-props"].options = component.config.options.map(opt => ({
-      label: opt,
-      value: opt
-    }));
+    schema[fieldId]["x-component-props"].options = normalizeChoiceOptions(component.config.options);
   }
   
   if (component.type === 'Cascader') {
@@ -376,6 +486,9 @@ function selectComponent(component) {
 window.state = state;
 window.componentConfigs = componentConfigs;
 window.isContainerComponent = isContainerComponent;
+window.supportsChoiceOptions = supportsChoiceOptions;
+window.normalizeChoiceOption = normalizeChoiceOption;
+window.normalizeChoiceOptions = normalizeChoiceOptions;
 window.escapeHTML = escapeHTML;
 window.escapeAttribute = escapeAttribute;
 window.findComponentById = findComponentById;
