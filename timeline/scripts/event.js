@@ -1,100 +1,98 @@
 function getRoots(events) {
   const roots = [];
+
   events.forEach(event => {
-    if (!event.parents || event.parents.length == 0 || event.parents[0] === '') {
+    if (!event.parents || event.parents.length === 0 || event.parents[0] === '') {
       roots.push(event);
     }
   });
 
-  // Sort root nodes by vertical position
   roots.sort((a, b) => a.startTime - b.startTime);
   return roots;
 }
 
-
-// 对所有事件 timelineData 的父子关系进行对齐，缺少的话补充上去，即保证每个节点的parent和kids都是对的，不缺少的
 function alignParentChildRelationships(events) {
   events.forEach(event => {
-    if (!event.parents || !Array.isArray(event.parents)) {
+    if (!Array.isArray(event.parents)) {
       event.parents = [];
     }
 
-    if (!event.kids || !Array.isArray(event.kids)) {
+    if (!Array.isArray(event.kids)) {
       event.kids = [];
     }
 
-
-    parents = []
+    const parents = [];
     event.parents.forEach(parentKey => {
-      if (parentKey && parentKey.trim() !== "") {
-        parents.push(parentKey);
-
-        const parentEvent = events.find(e => e.key === parentKey);
-
-        if (parentEvent) {
-          if (!parentEvent.kids || !Array.isArray(parentEvent.kids)) {
-            parentEvent.kids = [];
-          }
-
-          if (!parentEvent.kids.includes(event.key)) {
-            parentEvent.kids.push(event.key);
-          }
-        }
+      if (!parentKey || parentKey.trim() === '') {
+        return;
       }
-    })
+
+      parents.push(parentKey);
+      const parentEvent = events.find(item => item.key === parentKey);
+      if (!parentEvent) {
+        return;
+      }
+
+      if (!Array.isArray(parentEvent.kids)) {
+        parentEvent.kids = [];
+      }
+
+      if (!parentEvent.kids.includes(event.key)) {
+        parentEvent.kids.push(event.key);
+      }
+    });
     event.parents = parents;
 
-
-    kids = []
+    const kids = [];
     event.kids.forEach(kidKey => {
-      if (kidKey && kidKey.trim() !== "") {
-        kids.push(kidKey);
-
-        const kidEvent = events.find(e => e.key === kidKey);
-
-        if (kidEvent) {
-          if (!kidEvent.parents || !Array.isArray(kidEvent.parents)) {
-            kidEvent.parents = [];
-          }
-
-          if (!kidEvent.parents.includes(event.key)) {
-            kidEvent.parents.push(event.key);
-          }
-        }
+      if (!kidKey || kidKey.trim() === '') {
+        return;
       }
-    })
-    event.kids = kids
+
+      kids.push(kidKey);
+      const kidEvent = events.find(item => item.key === kidKey);
+      if (!kidEvent) {
+        return;
+      }
+
+      if (!Array.isArray(kidEvent.parents)) {
+        kidEvent.parents = [];
+      }
+
+      if (!kidEvent.parents.includes(event.key)) {
+        kidEvent.parents.push(event.key);
+      }
+    });
+    event.kids = kids;
   });
 }
 
-// Helper function to find a parent event by key
 function findParentEvent(parentKey, allEvents) {
   return allEvents.find(event => event.key === parentKey);
 }
 
-
-// Calculate year range and dimensions
 function calculateDimensions() {
-  const years = historyData.map(event => parseInt(event.time[0]));
+  const years = historyData.flatMap(event => {
+    const start = parseTimelineYear(event.time && event.time[0], 'start');
+    const end = parseTimelineYear(event.time && event.time[event.time.length - 1], 'end');
+    return [start, end];
+  });
+
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
-  const width = 1200;
-  const height = (maxYear - minYear) * window.verticalScaleValue;
+  const margin = { top: 84, right: 120, bottom: 84, left: 190 };
+  const innerHeight = Math.max((maxYear - minYear) * window.verticalScaleValue, 760);
+  const height = innerHeight + margin.top + margin.bottom;
   svgElement.setAttribute('height', height);
-  const margin = { top: 50, right: 50, bottom: 50, left: 150 };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
 
-  return { minYear, maxYear, width, height, margin, innerWidth, innerHeight };
+  return { minYear, maxYear, height, margin, innerHeight };
 }
 
-
-// Process events to determine if they are single points or time ranges
 function processEvents(yearScale) {
-  return historyData.map((event, index) => {
+  return historyData.map(event => {
     const isTimeRange = event.time.length > 1;
-    const startTime = parseInt(event.time[0]);
-    const endTime = isTimeRange ? parseInt(event.time[1]) : startTime;
+    const startTime = parseTimelineYear(event.time[0], 'start');
+    const endTime = isTimeRange ? parseTimelineYear(event.time[1], 'end') : startTime;
     const startY = yearScale(startTime);
     const endY = yearScale(endTime);
 
@@ -104,16 +102,94 @@ function processEvents(yearScale) {
       startTime,
       endTime,
       startY,
-      endY
+      endY,
+      title: getEventTitle(event),
+      timeLabel: formatTimeRange(event.time),
+      locationLabel: formatEventLocation(event.space),
     };
   });
 }
 
-// Separate time ranges and single points
-function separateEvents(timelineData) {
-  const timeRanges = timelineData.filter(event => event.isTimeRange);
-  const singlePoints = timelineData.filter(event => !event.isTimeRange);
+function separateEvents(events) {
+  const timeRanges = events.filter(event => event.isTimeRange);
+  const singlePoints = events.filter(event => !event.isTimeRange);
   return { timeRanges, singlePoints };
 }
 
+function assignBranchMetadata(events) {
+  const eventMap = new Map();
+  events.forEach(event => {
+    event.branchRoots = [];
+    eventMap.set(event.key, event);
+  });
 
+  const roots = getRoots(events);
+
+  roots.forEach((root, rootIndex) => {
+    const stack = [root.key];
+    const visited = new Set();
+
+    while (stack.length) {
+      const key = stack.pop();
+      if (!key || visited.has(key)) {
+        continue;
+      }
+
+      visited.add(key);
+      const event = eventMap.get(key);
+      if (!event) {
+        continue;
+      }
+
+      if (!event.branchRoots.includes(root.key)) {
+        event.branchRoots.push(root.key);
+      }
+
+      if (!Number.isFinite(event.primaryBranchIndex)) {
+        event.primaryBranchIndex = rootIndex;
+      }
+
+      (event.kids || []).forEach(kidKey => {
+        stack.push(kidKey);
+      });
+    }
+  });
+
+  events.forEach(event => {
+    if (!Number.isFinite(event.primaryBranchIndex)) {
+      event.primaryBranchIndex = 0;
+    }
+
+    event.isSharedBranch = event.branchRoots.length > 1;
+  });
+
+  return roots;
+}
+
+function calculateStageMetrics(events, margin, height) {
+  const gridUnits = events.reduce((maxUnits, event) => {
+    return Math.max(maxUnits, event.x + event.width);
+  }, 0);
+
+  const depthCount = Math.max(gridUnits, 1);
+  const columnWidth = window.horizontalScaleValue;
+  const axisX = margin.left;
+  const contentLeft = axisX + 40;
+  const contentRight = 280;
+  const stageWidth = Math.max(1320, contentLeft + depthCount * columnWidth + contentRight + margin.right);
+  const stageHeight = height;
+  const depthGuides = Array.from({ length: depthCount + 1 }, (_, index) => {
+    return contentLeft + index * columnWidth;
+  });
+
+  return {
+    axisX,
+    columnWidth,
+    contentLeft,
+    depthCount,
+    depthGuides,
+    stageWidth,
+    stageHeight,
+    margin,
+  };
+}

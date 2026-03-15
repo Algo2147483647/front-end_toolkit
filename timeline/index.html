@@ -3,270 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      padding: 10px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f4 100%);
-      color: #333;
-      overflow: auto;
-    }
-    
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 10px;
-    }
-    
-    .controls {
-      margin-bottom: 15px;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-    
-    button {
-      margin: 0 5px;
-      padding: 8px 16px;
-      background: linear-gradient(to bottom, #4a6fa6, #3949ab);
-      color: white;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      box-shadow: 0 2px 5px rgba(57, 73, 171, 0.3);
-      transition: all 0.3s ease;
-    }
-    
-    button:hover {
-      background: linear-gradient(to bottom, #5a6cb6, #4a59c0);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(57, 73, 171, 0.4);
-    }
-    
-    button:active {
-      transform: translateY(0);
-    }
-    
-    #timeline-container {
-      display: flex;
-      justify-content: center;
-      overflow-x: auto;
-      padding: 10px 0;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 15px;
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.05);
-    }
-    
-    #timeline-svg {
-      border-radius: 12px;
-      background-color: white;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-    }
-    
-    .timeline-line {
-      stroke: #7986cb;
-      stroke-width: 4;
-      stroke-linecap: round;
-    }
-    
-    .timeline-marker {
-      fill: white;
-      stroke: #3949ab;
-      stroke-width: 1;
-      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
-    }
-
-    .timeline-range {
-      stroke: transparent;
-      stroke-width: 1;
-      rx: 8px;
-      ry: 8px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-    }
-    
-    /* Event tooltip card */
-    .event-card {
-      position: fixed;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      padding: 15px;
-      max-width: 300px;
-      z-index: 10000;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      color: #333;
-      border: 1px solid #e0e0e0;
-      pointer-events: none;
-    }
-    
-    .event-card h3 {
-      margin: 0 0 10px 0;
-      padding: 0;
-      font-size: 16px;
-      color: #2c3e50;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 5px;
-    }
-    
-    .event-card .event-year {
-      font-weight: bold;
-      color: #3498db;
-      margin-bottom: 8px;
-    }
-    
-    .event-card .event-space {
-      color: #7f8c8d;
-      margin-bottom: 10px;
-      font-style: italic;
-    }
-    
-    .event-card .event-data {
-      margin-top: 10px;
-    }
-    
-    .event-card .event-data div {
-      margin-bottom: 5px;
-      word-break: break-word;
-    }
-    
-    .event-card .event-data strong {
-      display: inline-block;
-      width: 80px;
-      color: #2c3e50;
-    }
-    
-    /* Settings button */
-    .settings-btn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: linear-gradient(to bottom, #4a6fa6, #3949ab);
-      color: white;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-    }
-    
-    .settings-btn:hover {
-      transform: rotate(30deg);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Settings panel */
-    .settings-panel {
-      position: fixed;
-      bottom: 100px;
-      right: 30px;
-      width: 250px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-      padding: 20px;
-      z-index: 999;
-      display: none;
-      flex-direction: column;
-      gap: 15px;
-    }
-    
-    .settings-panel.active {
-      display: flex;
-    }
-    
-    .settings-panel h3 {
-      margin: 0 0 10px 0;
-      padding: 0;
-      font-size: 18px;
-      color: #2c3e50;
-      text-align: center;
-    }
-    
-    .setting-item {
-      margin-bottom: 10px;
-    }
-    
-    .setting-item label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-      color: #333;
-    }
-    
-    .setting-item input[type="range"] {
-      width: 100%;
-    }
-    
-    .setting-item input[type="number"] {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    
-    .setting-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .setting-buttons button {
-      width: 100%;
-      margin: 0;
-    }
-  </style>
+  <title>Timeline Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Timeline DAG</p>
+        <h1>Timeline Atlas</h1>
+        <p class="topbar-copy">
+          Explore historical branches as a time-aware DAG with visible lineage, stable color families, and event labels that stay readable even before hover.
+        </p>
+      </div>
+      <div class="topbar-meta">
+        <div class="zoom-pill">Zoom <span id="zoom-value">100%</span></div>
+        <p id="timeline-summary" class="timeline-summary">Loading timeline data...</p>
+      </div>
+    </header>
 
-  <div id="timeline-container">
-    <svg id="timeline-svg" width="1200" height="800">
-      <!-- SVG content will be generated by JavaScript -->
-    </svg>
+    <main class="workspace">
+      <div id="timeline-container">
+        <svg id="timeline-svg" width="1400" height="900" role="img" aria-label="Timeline graph"></svg>
+      </div>
+    </main>
   </div>
-  
+
   <div id="event-card" class="event-card" style="display: none;"></div>
-  
-  <!-- Settings button and panel -->
-  <button id="settings-btn" class="settings-btn">⚙️</button>
-  <div id="settings-panel" class="settings-panel">
-    <h3>Settings</h3>
-    <div class="setting-item">
-      <label for="horizontal-scale">Horizontal Unit Length: <span id="horizontal-scale-value">24</span>px</label>
-      <input type="range" id="horizontal-scale" min="1" max="50" value="24">
-    </div>
-    <div class="setting-item">
-      <label for="vertical-scale">Vertical Unit Length: <span id="vertical-scale-value">10</span>px</label>
-      <input type="range" id="vertical-scale" min="1" max="50" value="10">
-    </div>
-    <div class="setting-buttons">
-      <button id="download-btn">Download SVG</button>
-      <button id="zoom-in">Zoom In</button>
-      <button id="zoom-out">Zoom Out</button>
-    </div>
-  </div>
-</div>
 
-<script src="scripts/app.js"></script>
-<script src="scripts/coordination.js"></script>
-<script src="scripts/event.js"></script>
-<script src="scripts/time_line.js"></script>
-<script src="scripts/utils.js"></script>
-<script src="scripts/svg_render.js"></script>
+  <div class="control-card">
+    <div class="control-card__header">
+      <div>
+        <p class="control-card__title">View Controls</p>
+        <p class="control-card__subtitle">Tune density, export the canvas, or zoom the stage.</p>
+      </div>
+      <button id="settings-btn" class="settings-toggle-btn" type="button">Controls</button>
+    </div>
+
+    <div id="settings-panel" class="settings-panel settings-panel-visible">
+      <div class="setting-item">
+        <label for="json-path">
+          <span>JSON path</span>
+          <span>Same-origin URL</span>
+        </label>
+        <div class="path-input-row">
+          <input type="text" id="json-path" value="physics.json" placeholder="physics.json">
+          <button id="load-path-btn" class="ghost-btn" type="button">Load</button>
+        </div>
+      </div>
+
+      <label class="file-input-label" for="json-file">
+        <input type="file" id="json-file" accept=".json,application/json">
+        <span class="file-input-text">Open a local JSON file</span>
+      </label>
+
+      <div class="setting-item">
+        <label for="horizontal-scale">
+          <span>Branch width</span>
+          <span><span id="horizontal-scale-value">24</span> px</span>
+        </label>
+        <input type="range" id="horizontal-scale" min="12" max="56" value="24">
+      </div>
+
+      <div class="setting-item">
+        <label for="vertical-scale">
+          <span>Year spacing</span>
+          <span><span id="vertical-scale-value">20</span> px</span>
+        </label>
+        <input type="range" id="vertical-scale" min="6" max="30" value="20">
+      </div>
+
+      <div class="setting-buttons">
+        <button id="download-btn" class="primary-btn" type="button">Export SVG</button>
+        <button id="zoom-in" class="ghost-btn" type="button">Zoom In</button>
+        <button id="zoom-out" class="ghost-btn" type="button">Zoom Out</button>
+      </div>
+    </div>
+
+    <p class="control-hint">
+      Hover an event to trace its upstream and downstream lineage. Color families stay stable per root branch, so the same storyline keeps the same hue.
+    </p>
+  </div>
+
+  <script src="scripts/app.js"></script>
+  <script src="scripts/coordination.js"></script>
+  <script src="scripts/event.js"></script>
+  <script src="scripts/time_line.js"></script>
+  <script src="scripts/utils.js"></script>
+  <script src="scripts/svg_render.js"></script>
 </body>
 </html>

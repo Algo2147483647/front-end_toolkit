@@ -1,95 +1,106 @@
-
-// Render SVG timeline
 function renderTimeline() {
-  // Clear SVG
   clearSVG();
 
-  // Calculate dimensions
-  const { minYear, maxYear, width, height, margin, innerWidth, innerHeight } = calculateDimensions();
+  if (!historyData.length) {
+    updateTimelineSummary('No timeline data available.');
+    return;
+  }
 
-  // Calculate year-to-position mapping
+  const { minYear, maxYear, height, margin, innerHeight } = calculateDimensions();
   const yearScale = createYearScale(minYear, maxYear, margin, innerHeight);
 
-  // Draw vertical timeline
-  drawVerticalTimeline(height, margin);
-
-  // Add year ticks
-  addYearTicks(minYear, maxYear, yearScale, margin, height);
-
-  // Process events
   timelineData = processEvents(yearScale);
-
-  // 对所有事件 timelineData 的父子关系进行对齐，缺少的话补充上去，即保证每个节点的parent和kids都是对的，不缺少的
   alignParentChildRelationships(timelineData);
-
-  // Calculate horizontal positions for time ranges and single points to avoid conflicts
   calculateHorizontalPositions(timelineData);
+  const roots = assignBranchMetadata(timelineData);
+  const stageMetrics = calculateStageMetrics(timelineData, margin, height);
 
-  // Separate time ranges and single points
+  svgElement.setAttribute('width', stageMetrics.stageWidth);
+  svgElement.setAttribute('height', stageMetrics.stageHeight);
+  svgElement.setAttribute('viewBox', `0 0 ${stageMetrics.stageWidth} ${stageMetrics.stageHeight}`);
+
+  svgElement.appendChild(buildSvgDefs());
+  drawStageBackdrop(stageMetrics);
+  drawVerticalTimeline(stageMetrics);
+  addYearTicks(minYear, maxYear, yearScale, stageMetrics);
+  drawDagEdges(timelineData, stageMetrics);
+
   const { timeRanges, singlePoints } = separateEvents(timelineData);
+  drawTimeRanges(timeRanges, stageMetrics);
+  drawSinglePoints(singlePoints, stageMetrics);
 
-  // Draw time ranges first
-  drawTimeRanges(timeRanges, margin, height, yearScale);
-
-  // Draw single points separately
-  drawSinglePoints(singlePoints, margin, height);
+  window.TIMELINE_STATE.eventMap = new Map(timelineData.map(event => [event.key, event]));
+  window.TIMELINE_STATE.baseSummary = buildTimelineSummary(timelineData, roots, minYear, maxYear);
+  updateTimelineSummary(window.TIMELINE_STATE.baseSummary);
+  ApplyHoverState(window.TIMELINE_STATE.hoveredKey || null);
 }
 
-// Draw vertical timeline
-function drawVerticalTimeline(height, margin) {
-  const timelineLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  timelineLine.setAttribute('x1', margin.left);
-  timelineLine.setAttribute('y1', margin.top);
-  timelineLine.setAttribute('x2', margin.left);
-  timelineLine.setAttribute('y2', height - margin.bottom);
-  timelineLine.setAttribute('stroke', '#7986cb');
-  timelineLine.setAttribute('stroke-width', 4);
-  timelineLine.setAttribute('stroke-linecap', 'round');
-  svgElement.appendChild(timelineLine);
+function drawVerticalTimeline(stageMetrics) {
+  const axis = createSvgElement('line', {
+    class: 'timeline-axis__main',
+    x1: stageMetrics.axisX,
+    y1: stageMetrics.margin.top - 18,
+    x2: stageMetrics.axisX,
+    y2: stageMetrics.stageHeight - stageMetrics.margin.bottom + 18,
+  });
+
+  svgElement.appendChild(axis);
 }
 
-// Create year-to-position mapping function
 function createYearScale(minYear, maxYear, margin, innerHeight) {
-  return (year) => {
+  return year => {
+    if (maxYear === minYear) {
+      return margin.top + innerHeight / 2;
+    }
+
     return margin.top + ((year - minYear) / (maxYear - minYear)) * innerHeight;
   };
 }
 
-
-// Add year ticks to timeline
-function addYearTicks(minYear, maxYear, yearScale, margin, height) {
-  const yearInterval = 10;
-  let firstYear = Math.ceil(minYear / 10) * 10;
+function addYearTicks(minYear, maxYear, yearScale, stageMetrics) {
+  const interval = getAdaptiveYearInterval(maxYear - minYear);
+  let firstYear = Math.ceil(minYear / interval) * interval;
   if (firstYear > maxYear) {
-    firstYear = Math.floor(minYear / 10) * 10;
+    firstYear = Math.floor(minYear / interval) * interval;
   }
 
-  for (let year = firstYear; year <= maxYear; year += yearInterval) {
+  for (let year = firstYear; year <= maxYear; year += interval) {
     const y = yearScale(year);
+    const isMajor = year === 0 || year === firstYear || year + interval > maxYear;
 
-    if (y >= margin.top && y <= height - margin.bottom) {
-      // 刻度线
-      const tickLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      tickLine.setAttribute('x1', margin.left - 5);
-      tickLine.setAttribute('y1', y);
-      tickLine.setAttribute('x2', margin.left + 5);
-      tickLine.setAttribute('y2', y);
-      tickLine.setAttribute('stroke', '#7986cb');
-      tickLine.setAttribute('stroke-width', 1);
-      svgElement.appendChild(tickLine);
+    const guide = createSvgElement('line', {
+      class: `timeline-stage__year-guide${isMajor ? ' timeline-stage__year-guide--major' : ''}`,
+      x1: stageMetrics.axisX + 24,
+      y1: y,
+      x2: stageMetrics.stageWidth - stageMetrics.margin.right,
+      y2: y,
+    });
+    svgElement.appendChild(guide);
 
-      // Year label - use plus/minus signs instead of BC/AD
-      const yearLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      yearLabel.setAttribute('x', margin.left - 10);
-      yearLabel.setAttribute('y', y + 6);
-      yearLabel.setAttribute('text-anchor', 'end');
-      yearLabel.setAttribute('font-size', '16');
-      yearLabel.setAttribute('fill', '#555');
-      yearLabel.setAttribute('font-family', 'Times New Roman');
+    const tick = createSvgElement('line', {
+      class: 'timeline-axis__tick',
+      x1: stageMetrics.axisX - 8,
+      y1: y,
+      x2: stageMetrics.axisX + 8,
+      y2: y,
+    });
+    svgElement.appendChild(tick);
 
-      let yearDisplay = year < 0 ? `-${Math.abs(year)}` : `${year}`;
-      yearLabel.textContent = yearDisplay;
-      svgElement.appendChild(yearLabel);
-    }
+    const label = createSvgElement('text', {
+      class: 'timeline-axis__year',
+      x: stageMetrics.axisX - 18,
+      y: y + 4,
+      'text-anchor': 'end',
+    });
+    label.textContent = formatYearLabel(year);
+    svgElement.appendChild(label);
   }
+}
+
+function buildTimelineSummary(events, roots, minYear, maxYear) {
+  const rangeCount = events.filter(event => event.isTimeRange).length;
+  const pointCount = events.length - rangeCount;
+  const sourceLabel = window.TIMELINE_STATE.sourceLabel || 'timeline data';
+
+  return `${sourceLabel}: ${events.length} events across ${roots.length} root branches, spanning ${formatYearLabel(minYear)} to ${formatYearLabel(maxYear)}. ${rangeCount} ranges and ${pointCount} milestone points are visible in this atlas.`;
 }
