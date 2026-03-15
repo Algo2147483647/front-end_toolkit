@@ -6,13 +6,13 @@ const GRAPH_STATE = {
 };
 
 const GRAPH_THEME = {
-    stagePaddingX: 96,
-    stagePaddingY: 72,
-    columnGap: 104,
-    rowGap: 26,
-    nodeHeight: 82,
-    minNodeWidth: 170,
-    maxNodeWidth: 280,
+    stagePaddingX: 108,
+    stagePaddingY: 88,
+    columnGap: 116,
+    rowGap: 32,
+    nodeHeight: 76,
+    minNodeWidth: 164,
+    maxNodeWidth: 252,
 };
 
 window.LoadDagData = function LoadDagData(input) {
@@ -200,6 +200,7 @@ function BuildStageData(dag, reachable, root) {
     const nodesByLayer = new Map();
     const nodeMap = {};
     const edgeData = [];
+    const incomingMap = BuildIncomingMap(dag, nodeKeys);
 
     nodeKeys.forEach(nodeKey => {
         const node = dag[nodeKey];
@@ -215,8 +216,9 @@ function BuildStageData(dag, reachable, root) {
             layer,
             order,
             title: visual.title,
-            subtitle: visual.subtitle,
+            eyebrow: visual.eyebrow,
             meta: visual.meta,
+            note: visual.note,
             width: visual.width,
             height: GRAPH_THEME.nodeHeight,
             isRoot: nodeKey === root,
@@ -227,12 +229,29 @@ function BuildStageData(dag, reachable, root) {
     });
 
     const sortedLayers = Array.from(nodesByLayer.keys()).sort((a, b) => a - b);
+    const stageInnerHeight = MeasureStageInnerHeight(nodesByLayer);
 
     sortedLayers.forEach(layer => {
         const layerNodes = nodesByLayer.get(layer).sort((a, b) => a.order - b.order);
+        if (layer > 0) {
+            layerNodes.sort((a, b) => {
+                const aScore = GetBarycentricScore(a.key, incomingMap, nodeMap);
+                const bScore = GetBarycentricScore(b.key, incomingMap, nodeMap);
+
+                if (aScore === bScore) {
+                    return a.order - b.order;
+                }
+
+                return aScore - bScore;
+            });
+        }
+
+        layerNodes.forEach((nodeData, index) => {
+            nodeData.order = index;
+        });
+
         const layerHeight = layerNodes.length * GRAPH_THEME.nodeHeight + Math.max(layerNodes.length - 1, 0) * GRAPH_THEME.rowGap;
-        const stageHeight = MeasureStageHeight(nodesByLayer);
-        const startY = GRAPH_THEME.stagePaddingY + (stageHeight - layerHeight) / 2;
+        const startY = GRAPH_THEME.stagePaddingY + (stageInnerHeight - layerHeight) / 2;
 
         layerNodes.forEach((nodeData, index) => {
             nodeData.y = startY + index * (GRAPH_THEME.nodeHeight + GRAPH_THEME.rowGap) + GRAPH_THEME.nodeHeight / 2;
@@ -245,12 +264,22 @@ function BuildStageData(dag, reachable, root) {
     });
 
     let cursorX = GRAPH_THEME.stagePaddingX;
+    const laneData = [];
+
     sortedLayers.forEach((layer, index) => {
         const layerWidth = columnWidths[index];
         const layerNodes = nodesByLayer.get(layer);
+        const laneCenter = cursorX + layerWidth / 2;
 
         layerNodes.forEach(nodeData => {
-            nodeData.x = cursorX + layerWidth / 2;
+            nodeData.x = laneCenter;
+        });
+
+        laneData.push({
+            layer,
+            label: layer === 0 ? "Focus" : `Tier ${layer}`,
+            x: laneCenter,
+            width: layerWidth,
         });
 
         cursorX += layerWidth + GRAPH_THEME.columnGap;
@@ -278,7 +307,7 @@ function BuildStageData(dag, reachable, root) {
     });
 
     const stageWidth = cursorX - GRAPH_THEME.columnGap + GRAPH_THEME.stagePaddingX;
-    const stageHeight = MeasureStageHeight(nodesByLayer) + GRAPH_THEME.stagePaddingY * 2;
+    const stageHeight = stageInnerHeight + GRAPH_THEME.stagePaddingY * 2;
 
     return {
         dag,
@@ -286,12 +315,45 @@ function BuildStageData(dag, reachable, root) {
         nodeMap,
         nodes: Object.values(nodeMap),
         edges: edgeData,
-        stageWidth: Math.max(stageWidth, 960),
-        stageHeight: Math.max(stageHeight, 560),
+        lanes: laneData,
+        stageWidth: Math.max(stageWidth, 980),
+        stageHeight: Math.max(stageHeight, 600),
     };
 }
 
-function MeasureStageHeight(nodesByLayer) {
+function BuildIncomingMap(dag, nodeKeys) {
+    const visibleKeys = new Set(nodeKeys);
+    const incomingMap = {};
+
+    nodeKeys.forEach(nodeKey => {
+        incomingMap[nodeKey] = [];
+    });
+
+    nodeKeys.forEach(sourceKey => {
+        const kids = dag[sourceKey].kids || [];
+        const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+
+        kidKeys.forEach(targetKey => {
+            if (visibleKeys.has(targetKey)) {
+                incomingMap[targetKey].push(sourceKey);
+            }
+        });
+    });
+
+    return incomingMap;
+}
+
+function GetBarycentricScore(nodeKey, incomingMap, nodeMap) {
+    const parents = incomingMap[nodeKey] || [];
+    if (!parents.length) {
+        return nodeMap[nodeKey].order;
+    }
+
+    const total = parents.reduce((sum, parentKey) => sum + (nodeMap[parentKey] ? nodeMap[parentKey].order : 0), 0);
+    return total / parents.length;
+}
+
+function MeasureStageInnerHeight(nodesByLayer) {
     let maxHeight = 0;
 
     nodesByLayer.forEach(layerNodes => {
@@ -299,51 +361,43 @@ function MeasureStageHeight(nodesByLayer) {
         maxHeight = Math.max(maxHeight, layerHeight);
     });
 
-    return Math.max(maxHeight, GRAPH_THEME.nodeHeight * 3);
+    return Math.max(maxHeight, GRAPH_THEME.nodeHeight * 3.4);
 }
 
 function GetNodeVisual(nodeKey, node, root) {
     if (node.synthetic && nodeKey === "__graph_root__") {
         return {
             title: "All roots",
-            subtitle: "Synthetic entry",
+            eyebrow: "Synthetic entry",
             meta: `${CountKids(node)} root branches`,
-            width: 188,
+            note: "Drill into an origin branch",
+            width: 196,
         };
     }
 
-    const title = (node.label || node.title || node.name || nodeKey)
-        .split("\\")
-        .pop()
-        .split("/")
-        .pop()
-        .replace(/\.[^.]+$/, "")
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    const metaParts = [];
+    const title = SanitizeNodeLabel(node.label || node.title || node.name || nodeKey);
     const parentCount = Array.isArray(node.parents) ? node.parents.length : 0;
     const kidCount = CountKids(node);
 
+    const eyebrowParts = [];
     if (node.time) {
-        metaParts.push(Array.isArray(node.time) ? node.time.join(" - ") : String(node.time));
+        eyebrowParts.push(Array.isArray(node.time) ? node.time[0] : String(node.time));
     }
     if (node.space) {
-        metaParts.push(Array.isArray(node.space) ? node.space.slice(0, 2).join(", ") : String(node.space));
-    }
-    if (!metaParts.length) {
-        metaParts.push(`${parentCount} in / ${kidCount} out`);
+        eyebrowParts.push(Array.isArray(node.space) ? node.space[0] : String(node.space));
     }
 
-    const subtitle = nodeKey === root ? "Current focus" : `${kidCount} downstream`;
-    const longestLine = Math.max(title.length, metaParts[0].length, subtitle.length);
-    const width = Clamp(132 + longestLine * 6.4, GRAPH_THEME.minNodeWidth, GRAPH_THEME.maxNodeWidth);
+    const eyebrow = eyebrowParts.length ? eyebrowParts.join(" / ") : "Relation node";
+    const meta = `${parentCount} upstream / ${kidCount} downstream`;
+    const note = nodeKey === root ? "Current focus" : "Click to refocus";
+    const longestLine = Math.max(title.length, eyebrow.length, meta.length);
+    const width = Clamp(120 + longestLine * 5.9, GRAPH_THEME.minNodeWidth, GRAPH_THEME.maxNodeWidth);
 
     return {
         title: title || nodeKey,
-        subtitle,
-        meta: metaParts[0],
+        eyebrow,
+        meta,
+        note,
         width,
     };
 }
@@ -390,7 +444,7 @@ function MountGraph(stageData) {
     nodeLayer.setAttribute("class", "graph-node-layer");
 
     stageData.nodes.forEach(node => {
-        nodeLayer.appendChild(BuildNode(stageData, node));
+        nodeLayer.appendChild(BuildNode(node));
     });
 
     svg.appendChild(edgeLayer);
@@ -407,18 +461,30 @@ function BuildDefs() {
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
     marker.setAttribute("id", "arrowhead");
     marker.setAttribute("orient", "auto");
-    marker.setAttribute("markerWidth", "10");
-    marker.setAttribute("markerHeight", "10");
-    marker.setAttribute("refX", "8");
-    marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "8");
+    marker.setAttribute("markerHeight", "8");
+    marker.setAttribute("refX", "7");
+    marker.setAttribute("refY", "4");
 
     const markerPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    markerPath.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
-    markerPath.setAttribute("fill", "#6f83aa");
-    markerPath.setAttribute("fill-opacity", "0.48");
+    markerPath.setAttribute("d", "M 0 0 L 8 4 L 0 8 z");
+    markerPath.setAttribute("fill", "#788bb3");
+    markerPath.setAttribute("fill-opacity", "0.36");
     marker.appendChild(markerPath);
-
     defs.appendChild(marker);
+
+    const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+    filter.setAttribute("id", "soft-glow");
+    filter.setAttribute("x", "-50%");
+    filter.setAttribute("y", "-50%");
+    filter.setAttribute("width", "200%");
+    filter.setAttribute("height", "200%");
+
+    const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+    blur.setAttribute("stdDeviation", "10");
+    filter.appendChild(blur);
+    defs.appendChild(filter);
+
     return defs;
 }
 
@@ -428,46 +494,95 @@ function BuildStageBackdrop(stageData) {
 
     const halo = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     halo.setAttribute("class", "graph-stage__halo");
-    halo.setAttribute("x", "28");
-    halo.setAttribute("y", "28");
-    halo.setAttribute("width", String(stageData.stageWidth - 56));
-    halo.setAttribute("height", String(stageData.stageHeight - 56));
-    halo.setAttribute("rx", "30");
-    halo.setAttribute("ry", "30");
-
+    halo.setAttribute("x", "24");
+    halo.setAttribute("y", "24");
+    halo.setAttribute("width", String(stageData.stageWidth - 48));
+    halo.setAttribute("height", String(stageData.stageHeight - 48));
+    halo.setAttribute("rx", "28");
+    halo.setAttribute("ry", "28");
     group.appendChild(halo);
+
+    stageData.lanes.forEach(lane => {
+        const guide = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        guide.setAttribute("class", "graph-stage__lane");
+        guide.setAttribute("x1", String(lane.x));
+        guide.setAttribute("y1", "54");
+        guide.setAttribute("x2", String(lane.x));
+        guide.setAttribute("y2", String(stageData.stageHeight - 54));
+        group.appendChild(guide);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("class", "graph-stage__lane-label");
+        label.setAttribute("x", String(lane.x));
+        label.setAttribute("y", "42");
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = lane.label;
+        group.appendChild(label);
+    });
+
+    const rootNode = stageData.nodeMap[stageData.root];
+    if (rootNode) {
+        const focus = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        focus.setAttribute("class", "graph-stage__focus");
+        focus.setAttribute("cx", String(rootNode.x));
+        focus.setAttribute("cy", String(rootNode.y));
+        focus.setAttribute("rx", String(rootNode.width * 0.9));
+        focus.setAttribute("ry", "92");
+        focus.setAttribute("filter", "url(#soft-glow)");
+        group.appendChild(focus);
+    }
+
     return group;
 }
 
 function BuildEdge(stageData, edge) {
     const sourceNode = stageData.nodeMap[edge.source];
     const targetNode = stageData.nodeMap[edge.target];
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-    const startX = sourceNode.x + sourceNode.width / 2 - 6;
+    const startX = sourceNode.x + sourceNode.width / 2 - 8;
     const startY = sourceNode.y;
-    const endX = targetNode.x - targetNode.width / 2 + 6;
+    const endX = targetNode.x - targetNode.width / 2 + 8;
     const endY = targetNode.y;
-    const bend = Math.max((endX - startX) * 0.55, 52);
+    const bend = Math.max((endX - startX) * 0.58, 56);
     const d = [
         `M ${startX} ${startY}`,
         `C ${startX + bend} ${startY}, ${endX - bend} ${endY}, ${endX} ${endY}`,
     ].join(" ");
 
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("class", "graph-edge-group");
+
+    const glow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    glow.setAttribute("class", "graph-edge-glow");
+    glow.setAttribute("d", d);
+    group.appendChild(glow);
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("class", "graph-edge");
     path.setAttribute("d", d);
     path.setAttribute("data-source", edge.source);
     path.setAttribute("data-target", edge.target);
     path.setAttribute("marker-end", "url(#arrowhead)");
-
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.appendChild(path);
 
     if (edge.label) {
+        const labelX = (startX + endX) / 2;
+        const labelY = (startY + endY) / 2 - 9;
+        const labelWidth = Math.max(18, edge.label.length * 7 + 10);
+
+        const labelBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        labelBg.setAttribute("class", "graph-edge-label-bg");
+        labelBg.setAttribute("x", String(labelX - labelWidth / 2));
+        labelBg.setAttribute("y", String(labelY - 10));
+        labelBg.setAttribute("width", String(labelWidth));
+        labelBg.setAttribute("height", "16");
+        labelBg.setAttribute("rx", "8");
+        labelBg.setAttribute("ry", "8");
+        group.appendChild(labelBg);
+
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
         label.setAttribute("class", "graph-edge-label");
-        label.setAttribute("x", String((startX + endX) / 2));
-        label.setAttribute("y", String((startY + endY) / 2 - 8));
+        label.setAttribute("x", String(labelX));
+        label.setAttribute("y", String(labelY + 1));
         label.setAttribute("text-anchor", "middle");
         label.textContent = edge.label;
         group.appendChild(label);
@@ -476,59 +591,71 @@ function BuildEdge(stageData, edge) {
     return group;
 }
 
-function BuildNode(stageData, nodeData) {
+function BuildNode(nodeData) {
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.setAttribute("class", `graph-node${nodeData.isRoot ? " is-root is-active" : ""}`);
     group.setAttribute("data-node-key", nodeData.key);
     group.setAttribute("transform", `translate(${nodeData.x - nodeData.width / 2}, ${nodeData.y - nodeData.height / 2})`);
 
+    const glow = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+    glow.setAttribute("class", "graph-node__glow");
+    glow.setAttribute("cx", String(nodeData.width / 2));
+    glow.setAttribute("cy", String(nodeData.height / 2));
+    glow.setAttribute("rx", String(nodeData.width / 2 + 16));
+    glow.setAttribute("ry", String(nodeData.height / 2 + 10));
+
     const shape = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     shape.setAttribute("class", "graph-node__shape");
     shape.setAttribute("width", String(nodeData.width));
     shape.setAttribute("height", String(nodeData.height));
-    shape.setAttribute("rx", "18");
-    shape.setAttribute("ry", "18");
+    shape.setAttribute("rx", "32");
+    shape.setAttribute("ry", "32");
 
-    const accent = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    accent.setAttribute("class", "graph-node__accent");
-    accent.setAttribute("x", "12");
-    accent.setAttribute("y", "12");
-    accent.setAttribute("width", "30");
-    accent.setAttribute("height", String(nodeData.height - 24));
-    accent.setAttribute("rx", "12");
-    accent.setAttribute("ry", "12");
+    const pin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    pin.setAttribute("class", "graph-node__pin");
+    pin.setAttribute("cx", "26");
+    pin.setAttribute("cy", String(nodeData.height / 2));
+    pin.setAttribute("r", "11");
+
+    const pinCore = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    pinCore.setAttribute("class", "graph-node__pin-core");
+    pinCore.setAttribute("cx", "26");
+    pinCore.setAttribute("cy", String(nodeData.height / 2));
+    pinCore.setAttribute("r", "4");
+
+    const eyebrow = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    eyebrow.setAttribute("class", "graph-node__eyebrow");
+    eyebrow.setAttribute("x", "48");
+    eyebrow.setAttribute("y", "22");
+    eyebrow.textContent = Truncate(nodeData.eyebrow, 24);
 
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.setAttribute("class", "graph-node__title");
-    title.setAttribute("x", "56");
-    title.setAttribute("y", "32");
-    title.textContent = Truncate(nodeData.title, 28);
+    title.setAttribute("x", "48");
+    title.setAttribute("y", "42");
+    title.textContent = Truncate(nodeData.title, 24);
 
     const meta = document.createElementNS("http://www.w3.org/2000/svg", "text");
     meta.setAttribute("class", "graph-node__meta");
-    meta.setAttribute("x", "56");
-    meta.setAttribute("y", "52");
-    meta.textContent = Truncate(nodeData.meta, 32);
+    meta.setAttribute("x", "48");
+    meta.setAttribute("y", "59");
+    meta.textContent = Truncate(nodeData.meta, 28);
 
-    const subtitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    subtitle.setAttribute("class", "graph-node__subtitle");
-    subtitle.setAttribute("x", "56");
-    subtitle.setAttribute("y", "68");
-    subtitle.textContent = Truncate(nodeData.subtitle, 28);
+    const note = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    note.setAttribute("class", "graph-node__note");
+    note.setAttribute("x", String(nodeData.width - 16));
+    note.setAttribute("y", "22");
+    note.setAttribute("text-anchor", "end");
+    note.textContent = nodeData.isRoot ? "Focus" : "Refocus";
 
-    const cta = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    cta.setAttribute("class", "graph-node__cta");
-    cta.setAttribute("x", String(nodeData.width - 16));
-    cta.setAttribute("y", "32");
-    cta.setAttribute("text-anchor", "end");
-    cta.textContent = nodeData.isRoot ? "Focus" : "Open";
-
+    group.appendChild(glow);
     group.appendChild(shape);
-    group.appendChild(accent);
+    group.appendChild(pin);
+    group.appendChild(pinCore);
+    group.appendChild(eyebrow);
     group.appendChild(title);
     group.appendChild(meta);
-    group.appendChild(subtitle);
-    group.appendChild(cta);
+    group.appendChild(note);
 
     group.addEventListener("mouseenter", () => ApplyHoverState(nodeData.key));
     group.addEventListener("mouseleave", () => ApplyHoverState(null));
@@ -591,7 +718,7 @@ function UpdateChrome(stageData) {
     const nodeCount = stageData.nodes.length;
     const focusLabel = GetDisplayLabel(stageData.root, stageData.dag[stageData.root]);
 
-    summary.textContent = `Focused on ${focusLabel}. Showing ${nodeCount} nodes and ${edgeCount} links in this reachable subgraph.`;
+    summary.textContent = `Focused on ${focusLabel}. ${nodeCount} nodes and ${edgeCount} links are visible in this branch map.`;
     backButton.disabled = GRAPH_STATE.history.length === 0;
     emptyMessage.textContent = "Import a JSON file to render a focused DAG view with drill-down navigation.";
 }
@@ -601,13 +728,19 @@ function GetDisplayLabel(nodeKey, node) {
         return "All roots";
     }
 
-    return (node && (node.label || node.title || node.name || nodeKey) || nodeKey)
+    return SanitizeNodeLabel((node && (node.label || node.title || node.name || nodeKey)) || nodeKey);
+}
+
+function SanitizeNodeLabel(text) {
+    return String(text)
         .split("\\")
         .pop()
         .split("/")
         .pop()
         .replace(/\.[^.]+$/, "")
-        .replace(/[_-]+/g, " ");
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 function StructuredClone(value) {
