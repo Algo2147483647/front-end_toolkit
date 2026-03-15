@@ -150,6 +150,10 @@ function initDragAndDrop() {
   });
 
   canvas.addEventListener('drop', function(e) {
+    if (e.target.closest('.container-drop-area')) {
+      return;
+    }
+
     e.preventDefault();
     this.classList.remove('active');
 
@@ -182,13 +186,15 @@ function initDragAndDrop() {
   });
 
   document.addEventListener('drop', function(e) {
-    if (e.target.classList.contains('container-drop-area')) {
+    const dropArea = e.target.closest('.container-drop-area');
+    if (dropArea) {
       e.preventDefault();
-      e.target.classList.remove('active');
+      e.stopPropagation();
+      dropArea.classList.remove('active');
 
       const componentType = e.dataTransfer.getData('componentType');
-      const containerId = e.target.dataset.containerId;
-      const targetColumn = e.target.dataset.column;
+      const containerId = dropArea.dataset.containerId;
+      const targetColumn = dropArea.dataset.column;
       
       if (componentType && containerId) {
         addComponentToContainer(
