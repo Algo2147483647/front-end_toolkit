@@ -2,42 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAG Studio</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Graph</p>
+        <h1>DAG Studio</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="back-btn" class="ghost-btn" type="button" disabled>Back</button>
+        <p id="graph-summary" class="graph-summary">Load a DAG JSON file to begin.</p>
+      </div>
+    </header>
 
-<div id="floating-controls">
-  <button id="settings-btn" class="settings-toggle-btn">⚙️</button>
-  <div id="settings-panel" class="settings-panel">
-    <label for="fileInput" class="file-input-label">
-      <span class="file-input-text">Select JSON File</span>
-      <input type="file" id="fileInput" accept=".json" />
-    </label>
-    <button id="export-btn" class="export-btn">Export SVG</button>
+    <main id="workspace" class="workspace">
+      <section id="empty-state" class="empty-state">
+        <p class="empty-state__eyebrow">Visual dependency map</p>
+        <h2>Inspect your graph with a clearer visual hierarchy</h2>
+        <p id="empty-state-message" class="empty-state__message">
+          Import a JSON file to render a focused DAG view with drill-down navigation.
+        </p>
+      </section>
+      <div id="main-content" aria-live="polite"></div>
+    </main>
   </div>
-</div>
 
-<div id="main-content"></div>
+  <aside id="floating-controls" class="control-card">
+    <div class="control-card__header">
+      <p class="eyebrow">Workspace</p>
+      <button id="settings-btn" class="settings-toggle-btn" type="button" aria-expanded="true" aria-controls="settings-panel">
+        Controls
+      </button>
+    </div>
+    <div id="settings-panel" class="settings-panel settings-panel-visible">
+      <label for="fileInput" class="file-input-label">
+        <span class="file-input-text">Choose DAG JSON</span>
+        <input type="file" id="fileInput" accept=".json" />
+      </label>
+      <button id="export-btn" class="primary-btn" type="button">Export SVG</button>
+      <p class="control-hint">Tip: hover a node to inspect its local links, click a node to focus on its subtree.</p>
+    </div>
+  </aside>
 
-<script src="scripts/analyze_graph.js"></script>
-<script src="scripts/render_svg.js"></script>
-<script>
-function handleFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  <script src="scripts/analyze_graph.js"></script>
+  <script src="scripts/render_svg.js"></script>
+  <script>
+    function handleFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-  // 更新标签文本以显示已选择的文件名
-  const fileName = file.name;
-  document.querySelector('.file-input-text').textContent = fileName.length > 20 ? fileName.substring(0, 17) + '...' : fileName;
+      const fileName = file.name;
+      document.querySelector('.file-input-text').textContent =
+        fileName.length > 26 ? fileName.substring(0, 23) + '...' : fileName;
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const json = JSON.parse(e.target.result);
-    RenderSvgFromDag(json, "root");
-  };
-  reader.readAsText(file);
-}
-</script>
-<script src="scripts/setting_panel.js"></script>
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const json = JSON.parse(e.target.result);
+          window.LoadDagData(json);
+        } catch (error) {
+          window.SetGraphMessage('The selected file could not be parsed as JSON.');
+          const message = document.getElementById('empty-state-message');
+          if (message) {
+            message.textContent = 'The selected file could not be parsed as JSON.';
+          }
+          console.error(error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+  <script src="scripts/setting_panel.js"></script>
 </body>
 </html>

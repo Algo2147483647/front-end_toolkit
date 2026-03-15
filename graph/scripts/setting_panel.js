@@ -1,28 +1,22 @@
-// 导入ExportSvg函数
 const ExportSvg = window.ExportSvg;
 
 document.getElementById("fileInput").addEventListener("change", handleFile);
 document.getElementById("settings-btn").addEventListener("click", toggleSettingsPanel);
-document.getElementById("export-btn").addEventListener("click", function() {
-  const svgElement = document.querySelector('#main-content svg');
+document.getElementById("export-btn").addEventListener("click", () => {
+  const svgElement = document.querySelector("#main-content svg");
   if (svgElement) {
     ExportSvg(svgElement);
   } else {
-    alert('No SVG graph found to export');
+    window.SetGraphMessage("Render a DAG first, then export the SVG.");
   }
+});
+document.getElementById("back-btn").addEventListener("click", () => {
+  window.NavigateBack();
 });
 
 function toggleSettingsPanel() {
   const panel = document.getElementById("settings-panel");
-  panel.classList.toggle("settings-panel-visible");
+  const button = document.getElementById("settings-btn");
+  const isVisible = panel.classList.toggle("settings-panel-visible");
+  button.setAttribute("aria-expanded", String(isVisible));
 }
-
-// 点击设置面板外的区域关闭面板
-document.addEventListener('click', function(event) {
-  const settingsBtn = document.getElementById("settings-btn");
-  const settingsPanel = document.getElementById("settings-panel");
-
-  if (!settingsBtn.contains(event.target) && !settingsPanel.contains(event.target)) {
-    settingsPanel.classList.remove("settings-panel-visible");
-  }
-});
