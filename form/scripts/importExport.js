@@ -63,6 +63,16 @@ function buildImportedComponent(prop, position, createImportedId, parentType = n
 
   const defaults = cloneSchema(componentConfigs[componentType]);
   const componentProps = isPlainObject(prop["x-component-props"]) ? prop["x-component-props"] : {};
+  const visibilityConfig = isPlainObject(prop["x-visibility"]) ? prop["x-visibility"] : null;
+  const normalizedVisibilityRules = visibilityConfig && Array.isArray(visibilityConfig.rules)
+    ? normalizeVisibilityRules(visibilityConfig.rules)
+    : visibilityConfig && visibilityConfig.field
+      ? normalizeVisibilityRules([{
+          field: visibilityConfig.field,
+          operator: visibilityConfig.operator || 'equals',
+          value: visibilityConfig.value
+        }])
+      : defaults.visibilityRules;
   const rawPosition = Number.isInteger(prop["x-position"]) ? prop["x-position"] : position;
   const component = {
     id: createImportedId(),
@@ -78,9 +88,11 @@ function buildImportedComponent(prop, position, createImportedId, parentType = n
       hidden: prop["x-hidden"] === true || defaults.hidden,
       disabled: componentProps.disabled === true || defaults.disabled,
       readOnly: componentProps.readOnly === true || defaults.readOnly,
-      visibilityMode: prop["x-visibility"]?.mode === 'conditional' ? 'conditional' : defaults.visibilityMode,
-      visibilityField: prop["x-visibility"]?.field !== undefined ? String(prop["x-visibility"].field) : defaults.visibilityField,
-      visibilityValue: prop["x-visibility"]?.value !== undefined ? String(prop["x-visibility"].value) : defaults.visibilityValue,
+      visibilityMatch: visibilityConfig?.match === 'any' ? 'any' : defaults.visibilityMatch,
+      visibilityRules: normalizedVisibilityRules,
+      visibilityMode: normalizedVisibilityRules.length > 0 ? 'conditional' : defaults.visibilityMode,
+      visibilityField: normalizedVisibilityRules[0]?.field || defaults.visibilityField,
+      visibilityValue: normalizedVisibilityRules[0]?.value || defaults.visibilityValue,
       placeholder: componentProps.placeholder !== undefined ? String(componentProps.placeholder) : defaults.placeholder,
       options: componentType === 'Cascader'
         ? (Array.isArray(componentProps.options) ? componentProps.options : defaults.options)
@@ -249,22 +261,32 @@ function getPreviewFieldValue(previewForm, fieldName) {
   return matchedElements[0].value;
 }
 
+function evaluateVisibilityRule(previewForm, rule) {
+  const currentValue = getPreviewFieldValue(previewForm, rule.field);
+  const expectedValue = String(rule.value ?? '');
+
+  if (Array.isArray(currentValue)) {
+    const hasMatch = currentValue.map(String).includes(expectedValue);
+    return rule.operator === 'notEquals' ? !hasMatch : hasMatch;
+  }
+
+  const isEqual = String(currentValue ?? '') === expectedValue;
+  return rule.operator === 'notEquals' ? !isEqual : isEqual;
+}
+
 function applyPreviewVisibility(previewForm) {
   previewForm.querySelectorAll('.preview-form-item').forEach(item => {
     const isHardHidden = item.dataset.hidden === '1';
-    const mode = item.dataset.visibilityMode || 'always';
-    const dependsOn = item.dataset.visibilityField || '';
-    const expectedValue = item.dataset.visibilityValue || '';
+    const rules = item.dataset.visibilityRules ? JSON.parse(item.dataset.visibilityRules) : [];
+    const matchMode = item.dataset.visibilityMatch === 'any' ? 'any' : 'all';
 
     let shouldShow = !isHardHidden;
 
-    if (shouldShow && mode === 'conditional' && dependsOn) {
-      const currentValue = getPreviewFieldValue(previewForm, dependsOn);
-      if (Array.isArray(currentValue)) {
-        shouldShow = currentValue.map(String).includes(expectedValue);
-      } else {
-        shouldShow = String(currentValue ?? '') === expectedValue;
-      }
+    if (shouldShow && rules.length > 0) {
+      const results = rules.map(rule => evaluateVisibilityRule(previewForm, rule));
+      shouldShow = matchMode === 'any'
+        ? results.some(Boolean)
+        : results.every(Boolean);
     }
 
     item.style.display = shouldShow ? '' : 'none';
@@ -297,9 +319,8 @@ function openPreview() {
         data-id="${comp.id}"
         data-field-name="${escapeAttribute(comp.config.name)}"
         data-hidden="${comp.config.hidden ? '1' : '0'}"
-        data-visibility-mode="${escapeAttribute(comp.config.visibilityMode || 'always')}"
-        data-visibility-field="${escapeAttribute(comp.config.visibilityField || '')}"
-        data-visibility-value="${escapeAttribute(comp.config.visibilityValue || '')}"
+        data-visibility-match="${escapeAttribute(comp.config.visibilityMatch || 'all')}"
+        data-visibility-rules="${escapeAttribute(JSON.stringify(normalizeVisibilityRules(comp.config.visibilityRules || [])))}"
         style="margin-bottom: 15px;"
       >
         <span class="form-item-label" style="display: block; margin-bottom: 5px; font-weight: bold;">

@@ -21,6 +21,8 @@ const sharedComponentConfig = {
   hidden: false,
   disabled: false,
   readOnly: false,
+  visibilityMatch: "all",
+  visibilityRules: [],
   visibilityMode: "always",
   visibilityField: "",
   visibilityValue: ""
@@ -191,6 +193,24 @@ function normalizeChoiceOptions(options) {
     .filter(option => option.label || option.value);
 }
 
+function normalizeVisibilityRule(rule = {}) {
+  return {
+    field: rule.field !== undefined && rule.field !== null ? String(rule.field) : '',
+    operator: rule.operator === 'notEquals' ? 'notEquals' : 'equals',
+    value: rule.value !== undefined && rule.value !== null ? String(rule.value) : ''
+  };
+}
+
+function normalizeVisibilityRules(rules) {
+  if (!Array.isArray(rules)) {
+    return [];
+  }
+
+  return rules
+    .map(rule => normalizeVisibilityRule(rule))
+    .filter(rule => rule.field);
+}
+
 Object.keys(componentConfigs).forEach(type => {
   componentConfigs[type] = {
     ...sharedComponentConfig,
@@ -200,6 +220,7 @@ Object.keys(componentConfigs).forEach(type => {
   if (supportsChoiceOptions(type)) {
     componentConfigs[type].options = normalizeChoiceOptions(componentConfigs[type].options);
   }
+  componentConfigs[type].visibilityRules = normalizeVisibilityRules(componentConfigs[type].visibilityRules);
 });
 
 function isContainerComponent(type) {
@@ -311,11 +332,24 @@ function updateSchema() {
       properties[fieldId]["x-hidden"] = true;
     }
 
-    if (comp.config.visibilityMode === 'conditional' && comp.config.visibilityField) {
+    const visibilityRules = normalizeVisibilityRules(comp.config.visibilityRules);
+    if (visibilityRules.length > 0) {
       properties[fieldId]["x-visibility"] = {
         mode: 'conditional',
-        field: comp.config.visibilityField,
-        value: comp.config.visibilityValue
+        match: comp.config.visibilityMatch === 'any' ? 'any' : 'all',
+        rules: visibilityRules
+      };
+    } else if (comp.config.visibilityMode === 'conditional' && comp.config.visibilityField) {
+      properties[fieldId]["x-visibility"] = {
+        mode: 'conditional',
+        match: 'all',
+        rules: [
+          normalizeVisibilityRule({
+            field: comp.config.visibilityField,
+            operator: 'equals',
+            value: comp.config.visibilityValue
+          })
+        ]
       };
     }
 
@@ -416,11 +450,24 @@ function generateComponentSchema(component, index) {
     schema[fieldId]["x-hidden"] = true;
   }
 
-  if (component.config.visibilityMode === 'conditional' && component.config.visibilityField) {
+  const visibilityRules = normalizeVisibilityRules(component.config.visibilityRules);
+  if (visibilityRules.length > 0) {
     schema[fieldId]["x-visibility"] = {
       mode: 'conditional',
-      field: component.config.visibilityField,
-      value: component.config.visibilityValue
+      match: component.config.visibilityMatch === 'any' ? 'any' : 'all',
+      rules: visibilityRules
+    };
+  } else if (component.config.visibilityMode === 'conditional' && component.config.visibilityField) {
+    schema[fieldId]["x-visibility"] = {
+      mode: 'conditional',
+      match: 'all',
+      rules: [
+        normalizeVisibilityRule({
+          field: component.config.visibilityField,
+          operator: 'equals',
+          value: component.config.visibilityValue
+        })
+      ]
     };
   }
   
@@ -489,6 +536,8 @@ window.isContainerComponent = isContainerComponent;
 window.supportsChoiceOptions = supportsChoiceOptions;
 window.normalizeChoiceOption = normalizeChoiceOption;
 window.normalizeChoiceOptions = normalizeChoiceOptions;
+window.normalizeVisibilityRule = normalizeVisibilityRule;
+window.normalizeVisibilityRules = normalizeVisibilityRules;
 window.escapeHTML = escapeHTML;
 window.escapeAttribute = escapeAttribute;
 window.findComponentById = findComponentById;

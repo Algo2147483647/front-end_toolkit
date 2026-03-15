@@ -1416,7 +1416,7 @@ textarea.ant-input:focus,
 .inspector-collection-head,
 .inspector-collection-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 132px;
   gap: 10px;
   align-items: center;
 }
@@ -1443,11 +1443,30 @@ textarea.ant-input:focus,
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
+.inspector-collection-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .inspector-collection-action:hover {
   background: rgba(239, 68, 68, 0.08);
   border-color: rgba(239, 68, 68, 0.16);
   color: #b91c1c;
   transform: translateY(-1px);
+}
+
+.inspector-collection-action-neutral:hover {
+  background: rgba(219, 234, 254, 0.7);
+  border-color: rgba(37, 99, 235, 0.18);
+  color: var(--primary);
+}
+
+.inspector-action-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .inspector-add-button {
@@ -1494,6 +1513,115 @@ textarea.ant-input:focus,
   font-size: 13px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.inspector-rules-editor,
+.inspector-children-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspector-rule-summary {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(147, 197, 253, 0.24);
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.7), rgba(255, 255, 255, 0.92));
+}
+
+.inspector-rule-summary-title {
+  display: block;
+  color: #15233f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inspector-rule-summary-copy {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.inspector-rule-card,
+.inspector-child-card {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(231, 226, 216, 0.95);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.inspector-rule-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspector-rule-card-header,
+.inspector-child-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspector-rule-card-header strong,
+.inspector-child-copy strong {
+  color: #15233f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inspector-rule-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 150px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.inspector-child-card {
+  align-items: center;
+}
+
+.inspector-child-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.inspector-child-copy p {
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.inspector-child-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.inspector-child-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(219, 234, 254, 0.62);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.inspector-child-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.inspector-empty-inline {
+  padding: 16px;
 }
 
 .inspector-chip-row {
@@ -1805,6 +1933,20 @@ textarea.ant-input:focus,
 
   .inspector-collection-head {
     display: none;
+  }
+
+  .inspector-rule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inspector-rule-card-header,
+  .inspector-child-card {
+    flex-direction: column;
+  }
+
+  .inspector-child-actions,
+  .inspector-action-group {
+    justify-content: flex-start;
   }
 
   .component-item {

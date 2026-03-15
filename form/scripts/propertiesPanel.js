@@ -107,6 +107,68 @@ function columnPresetField(key, label, options = {}) {
   });
 }
 
+function visibilityRulesField(options = {}) {
+  return {
+    key: 'visibilityRules',
+    label: 'Rules',
+    editor: 'visibilityRules',
+    getValue(component) {
+      return normalizeVisibilityRules(component.config.visibilityRules || []);
+    },
+    setValue(component, value) {
+      component.config.visibilityRules = normalizeVisibilityRules(value);
+      component.config.visibilityMode = component.config.visibilityRules.length > 0 ? 'conditional' : 'always';
+      component.config.visibilityField = component.config.visibilityRules[0]?.field || '';
+      component.config.visibilityValue = component.config.visibilityRules[0]?.value || '';
+    },
+    ...options
+  };
+}
+
+function childrenManagerField(options = {}) {
+  return {
+    key: 'childrenManager',
+    label: 'Children',
+    editor: 'childrenManager',
+    getValue(component) {
+      return Array.isArray(component.children) ? component.children : [];
+    },
+    ...options
+  };
+}
+
+function syncLegacyVisibilityConfig(component) {
+  const rules = normalizeVisibilityRules(component.config.visibilityRules || []);
+  component.config.visibilityRules = rules;
+  component.config.visibilityMatch = component.config.visibilityMatch === 'any' ? 'any' : 'all';
+  component.config.visibilityMode = rules.length > 0 ? 'conditional' : 'always';
+  component.config.visibilityField = rules[0]?.field || '';
+  component.config.visibilityValue = rules[0]?.value || '';
+}
+
+function cloneVisibilityRules(rules) {
+  return normalizeVisibilityRules(rules || []).map(rule => ({ ...rule }));
+}
+
+function cloneCollapsePanels(panels) {
+  return Array.isArray(panels) ? panels.map(panel => ({ ...panel })) : [];
+}
+
+function moveListItem(items, fromIndex, toIndex) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  if (fromIndex < 0 || fromIndex >= items.length || toIndex < 0 || toIndex >= items.length || fromIndex === toIndex) {
+    return items.slice();
+  }
+
+  const nextItems = items.slice();
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
+}
+
 function buildSharedInspectorTabs(component) {
   const tabs = {
     content: [
@@ -138,24 +200,16 @@ function buildSharedInspectorTabs(component) {
           description: 'Show the value while preventing changes on text-like controls.'
         })
       ]),
-      section('Visibility Rule', 'Set a simple display condition based on another field.', [
-        configField('visibilityMode', 'Mode', 'select', {
+      section('Visibility Rules', 'Compose one or more field-based conditions for showing this component.', [
+        configField('visibilityMatch', 'Match Mode', 'select', {
           options: [
-            { label: 'Always visible', value: 'always' },
-            { label: 'Visible on match', value: 'conditional' }
-          ]
+            { label: 'All rules must match', value: 'all' },
+            { label: 'Any rule may match', value: 'any' }
+          ],
+          description: 'Choose whether every rule must pass or only one.'
         }),
-        configField('visibilityField', 'Depends On Field', 'text', {
-          showWhen(comp) {
-            return comp.config.visibilityMode === 'conditional';
-          },
-          description: 'Reference the target field name, for example `status`.'
-        }),
-        configField('visibilityValue', 'Expected Value', 'text', {
-          showWhen(comp) {
-            return comp.config.visibilityMode === 'conditional';
-          },
-          description: 'When the target field equals this value, the field appears.'
+        visibilityRulesField({
+          description: 'Each rule compares another field value using a simple operator.'
         })
       ])
     ],
@@ -187,6 +241,7 @@ function buildSharedInspectorTabs(component) {
             if (supportsChoiceOptions(comp.type)) {
               comp.config.options = normalizeChoiceOptions(comp.config.options);
             }
+            syncLegacyVisibilityConfig(comp);
           },
           parse(rawValue) {
             return parseJSONValue(rawValue, 'object', 'Config JSON');
@@ -393,7 +448,15 @@ const inspectorRegistry = {
     };
   },
   Card(component) {
-    return {};
+    return {
+      content: [
+        section('Children', 'Review and reorder the fields nested inside this card.', [
+          childrenManagerField({
+            description: 'Select, move, or remove nested components without leaving the inspector.'
+          })
+        ])
+      ]
+    };
   },
   Divider(component) {
     return {
@@ -406,12 +469,29 @@ const inspectorRegistry = {
   },
   Grid(component) {
     return {
+      content: [
+        section('Children', 'Manage the order and column placement of nested grid items.', [
+          childrenManagerField({
+            description: 'Move items between columns or reorder them within the grid.'
+          })
+        ])
+      ],
       style: [
         section('Layout', 'Structural controls for the grid container.', [
           columnPresetField('columns', 'Columns', {
             description: 'The number of visible columns in the grid.',
             min: 1,
-            max: 12
+            max: 12,
+            setValue(comp, value) {
+              const nextColumns = Math.max(1, Number(value) || 1);
+              comp.config.columns = nextColumns;
+              if (Array.isArray(comp.children)) {
+                comp.children.forEach(child => {
+                  const currentColumn = Number.isInteger(child.position) ? child.position : 0;
+                  child.position = Math.max(0, Math.min(nextColumns - 1, currentColumn));
+                });
+              }
+            }
           })
         ])
       ]
@@ -548,15 +628,23 @@ function renderOptionsTable(fieldId, value) {
       <div class="inspector-collection-head">
         <span>Label</span>
         <span>Value</span>
-        <span></span>
+        <span>Actions</span>
       </div>
       ${options.map((option, index) => `
         <div class="inspector-collection-row">
           <input class="ant-input" value="${escapeAttribute(option.label)}" onchange="updateOptionsEditorField('${fieldId}', ${index}, 'label', this.value)">
           <input class="ant-input" value="${escapeAttribute(option.value)}" onchange="updateOptionsEditorField('${fieldId}', ${index}, 'value', this.value)">
-          <button type="button" class="inspector-collection-action" onclick="removeOptionsEditorRow('${fieldId}', ${index})">
-            <i class="fas fa-trash"></i>
-          </button>
+          <div class="inspector-action-group">
+            <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveOptionsEditorRow('${fieldId}', ${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+              <i class="fas fa-arrow-up"></i>
+            </button>
+            <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveOptionsEditorRow('${fieldId}', ${index}, 1)" ${index === options.length - 1 ? 'disabled' : ''} title="Move down">
+              <i class="fas fa-arrow-down"></i>
+            </button>
+            <button type="button" class="inspector-collection-action" onclick="removeOptionsEditorRow('${fieldId}', ${index})" title="Remove option">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         </div>
       `).join('')}
       <button type="button" class="inspector-add-button" onclick="addOptionsEditorRow('${fieldId}')">
@@ -575,9 +663,17 @@ function renderCollapsePanelsEditor(fieldId, value) {
         <div class="inspector-panel-card">
           <div class="inspector-panel-card-header">
             <strong>Panel ${index + 1}</strong>
-            <button type="button" class="inspector-collection-action" onclick="removeCollapseEditorPanel('${fieldId}', ${index})">
-              <i class="fas fa-trash"></i>
-            </button>
+            <div class="inspector-action-group">
+              <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveCollapseEditorPanel('${fieldId}', ${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+              <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveCollapseEditorPanel('${fieldId}', ${index}, 1)" ${index === panels.length - 1 ? 'disabled' : ''} title="Move down">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <button type="button" class="inspector-collection-action" onclick="removeCollapseEditorPanel('${fieldId}', ${index})" title="Remove panel">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
           </div>
           <input class="ant-input" value="${escapeAttribute(panel.key || `panel${index + 1}`)}" onchange="updateCollapsePanelField('${fieldId}', ${index}, 'key', this.value)" placeholder="Panel key">
           <input class="ant-input" value="${escapeAttribute(panel.title || '')}" onchange="updateCollapsePanelField('${fieldId}', ${index}, 'title', this.value)" placeholder="Panel title">
@@ -588,6 +684,101 @@ function renderCollapsePanelsEditor(fieldId, value) {
         <i class="fas fa-plus"></i>
         Add Panel
       </button>
+    </div>`;
+}
+
+function renderVisibilityRulesEditor(fieldId, value, component, field) {
+  const rules = cloneVisibilityRules(value || []);
+  const matchMode = component.config.visibilityMatch === 'any' ? 'any' : 'all';
+
+  return `
+    <div class="inspector-rules-editor">
+      <div class="inspector-rule-summary">
+        <span class="inspector-rule-summary-title">${rules.length === 0 ? 'No conditional rules yet' : `${rules.length} rule${rules.length > 1 ? 's' : ''} configured`}</span>
+        <span class="inspector-rule-summary-copy">${matchMode === 'any' ? 'The component appears when any rule matches.' : 'The component appears only when every rule matches.'}</span>
+      </div>
+      ${rules.map((rule, index) => `
+        <div class="inspector-rule-card">
+          <div class="inspector-rule-card-header">
+            <strong>Rule ${index + 1}</strong>
+            <div class="inspector-action-group">
+              <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveVisibilityRule('${fieldId}', ${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+              <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveVisibilityRule('${fieldId}', ${index}, 1)" ${index === rules.length - 1 ? 'disabled' : ''} title="Move down">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <button type="button" class="inspector-collection-action" onclick="removeVisibilityRule('${fieldId}', ${index})" title="Remove rule">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="inspector-rule-grid">
+            <input class="ant-input" value="${escapeAttribute(rule.field || '')}" onchange="updateVisibilityRuleField('${fieldId}', ${index}, 'field', this.value)" placeholder="Field name">
+            <select class="ant-input" onchange="updateVisibilityRuleField('${fieldId}', ${index}, 'operator', this.value)">
+              <option value="equals" ${rule.operator === 'equals' ? 'selected' : ''}>equals</option>
+              <option value="notEquals" ${rule.operator === 'notEquals' ? 'selected' : ''}>does not equal</option>
+            </select>
+            <input class="ant-input" value="${escapeAttribute(rule.value || '')}" onchange="updateVisibilityRuleField('${fieldId}', ${index}, 'value', this.value)" placeholder="Expected value">
+          </div>
+        </div>
+      `).join('')}
+      <button type="button" class="inspector-add-button" onclick="addVisibilityRule('${fieldId}')">
+        <i class="fas fa-plus"></i>
+        Add Rule
+      </button>
+    </div>`;
+}
+
+function renderChildrenManagerEditor(component) {
+  const children = Array.isArray(component.children) ? component.children : [];
+  const columns = Math.max(1, component.config.columns || 1);
+
+  return `
+    <div class="inspector-children-editor">
+      ${children.length > 0 ? children.map((child, index) => `
+        <div class="inspector-child-card">
+          <div class="inspector-child-copy">
+            <strong>${escapeHTML(child.config.title || child.type)}</strong>
+            <p>${escapeHTML(child.config.name || child.id)}</p>
+            <div class="inspector-child-meta">
+              <span class="inspector-child-badge">${escapeHTML(child.type)}</span>
+              ${component.type === 'Grid'
+                ? `<span class="inspector-child-badge">Col ${Math.min(columns, (Number(child.position) || 0) + 1)}</span>`
+                : `<span class="inspector-child-badge">Item ${index + 1}</span>`}
+            </div>
+          </div>
+          <div class="inspector-child-actions">
+            ${component.type === 'Grid'
+              ? `
+                <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="shiftInspectorChildColumn('${component.id}', '${child.id}', -1)" ${(Number(child.position) || 0) <= 0 ? 'disabled' : ''} title="Move to previous column">
+                  <i class="fas fa-arrow-left"></i>
+                </button>
+                <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="shiftInspectorChildColumn('${component.id}', '${child.id}', 1)" ${(Number(child.position) || 0) >= columns - 1 ? 'disabled' : ''} title="Move to next column">
+                  <i class="fas fa-arrow-right"></i>
+                </button>
+              `
+              : ''}
+            <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveInspectorChild('${component.id}', '${child.id}', -1)" ${index === 0 ? 'disabled' : ''} title="Move up">
+              <i class="fas fa-arrow-up"></i>
+            </button>
+            <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="moveInspectorChild('${component.id}', '${child.id}', 1)" ${index === children.length - 1 ? 'disabled' : ''} title="Move down">
+              <i class="fas fa-arrow-down"></i>
+            </button>
+            <button type="button" class="inspector-collection-action inspector-collection-action-neutral" onclick="selectInspectorChild('${child.id}')" title="Select child">
+              <i class="fas fa-crosshairs"></i>
+            </button>
+            <button type="button" class="inspector-collection-action" onclick="deleteInspectorChild('${component.id}', '${child.id}')" title="Remove child">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('') : `
+        <div class="inspector-empty-tab inspector-empty-inline">
+          <p class="inspector-empty-title">No nested components yet</p>
+          <p class="inspector-empty-copy">Drag fields into this container to manage them here.</p>
+        </div>
+      `}
     </div>`;
 }
 
@@ -719,7 +910,7 @@ function renderInspectorField(component, field) {
   const fieldId = getFieldRuntimeId(component, field.key);
   inspectorState.fieldMap[fieldId] = field;
 
-  const isVertical = ['textarea', 'json', 'list', 'optionsTable', 'collapsePanels', 'columnPreset'].includes(field.editor);
+  const isVertical = ['textarea', 'json', 'list', 'optionsTable', 'collapsePanels', 'columnPreset', 'visibilityRules', 'childrenManager'].includes(field.editor);
   const fieldValue = getFieldValue(component, field);
   const description = field.description
     ? `<p class="inspector-field-help">${escapeHTML(field.description)}</p>`
@@ -772,6 +963,10 @@ function renderInspectorControl(fieldId, field, value) {
       return renderCollapsePanelsEditor(fieldId, value);
     case 'columnPreset':
       return renderColumnPresetEditor(fieldId, field, value);
+    case 'visibilityRules':
+      return renderVisibilityRulesEditor(fieldId, value, state.selectedItem, field);
+    case 'childrenManager':
+      return renderChildrenManagerEditor(state.selectedItem);
     case 'color':
       return `
         <div class="inspector-color-field">
@@ -854,6 +1049,16 @@ function addOptionsEditorRow(fieldId) {
   applyInspectorValue(fieldId, options);
 }
 
+function moveOptionsEditorRow(fieldId, index, direction) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  const options = normalizeChoiceOptions(field.getValue(state.selectedItem) || []);
+  applyInspectorValue(fieldId, moveListItem(options, index, index + direction));
+}
+
 function removeOptionsEditorRow(fieldId, index) {
   const field = inspectorState.fieldMap[fieldId];
   if (!field || !state.selectedItem) {
@@ -902,6 +1107,15 @@ function addCollapseEditorPanel(fieldId) {
   applyInspectorValue(fieldId, panels);
 }
 
+function moveCollapseEditorPanel(fieldId, index, direction) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  applyInspectorValue(fieldId, moveListItem(cloneCollapsePanels(field.getValue(state.selectedItem)), index, index + direction));
+}
+
 function removeCollapseEditorPanel(fieldId, index) {
   const field = inspectorState.fieldMap[fieldId];
   if (!field || !state.selectedItem) {
@@ -925,8 +1139,109 @@ function removeCollapseEditorPanel(fieldId, index) {
   applyInspectorValue(fieldId, panels);
 }
 
+function addVisibilityRule(fieldId) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  const rules = cloneVisibilityRules(field.getValue(state.selectedItem));
+  rules.push({
+    field: '',
+    operator: 'equals',
+    value: ''
+  });
+  applyInspectorValue(fieldId, rules);
+}
+
+function updateVisibilityRuleField(fieldId, index, key, rawValue) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  const rules = cloneVisibilityRules(field.getValue(state.selectedItem));
+  if (!rules[index]) {
+    return;
+  }
+
+  rules[index] = {
+    ...rules[index],
+    [key]: rawValue
+  };
+  applyInspectorValue(fieldId, rules);
+}
+
+function moveVisibilityRule(fieldId, index, direction) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  applyInspectorValue(fieldId, moveListItem(cloneVisibilityRules(field.getValue(state.selectedItem)), index, index + direction));
+}
+
+function removeVisibilityRule(fieldId, index) {
+  const field = inspectorState.fieldMap[fieldId];
+  if (!field || !state.selectedItem) {
+    return;
+  }
+
+  const rules = cloneVisibilityRules(field.getValue(state.selectedItem));
+  rules.splice(index, 1);
+  applyInspectorValue(fieldId, rules);
+}
+
 function applyColumnPreset(fieldId, columns) {
   applyInspectorValue(fieldId, columns);
+}
+
+function selectInspectorChild(childId) {
+  const child = findComponentById(childId);
+  if (child) {
+    selectComponent(child);
+  }
+}
+
+function moveInspectorChild(containerId, childId, direction) {
+  const container = findComponentById(containerId);
+  if (!container || !Array.isArray(container.children)) {
+    return;
+  }
+
+  const index = container.children.findIndex(child => child.id === childId);
+  const nextIndex = index + direction;
+  if (index < 0 || nextIndex < 0 || nextIndex >= container.children.length) {
+    return;
+  }
+
+  container.children = moveListItem(container.children, index, nextIndex);
+  syncInspectorUI();
+}
+
+function shiftInspectorChildColumn(containerId, childId, delta) {
+  const container = findComponentById(containerId);
+  if (!container || container.type !== 'Grid' || !Array.isArray(container.children)) {
+    return;
+  }
+
+  const child = container.children.find(item => item.id === childId);
+  if (!child) {
+    return;
+  }
+
+  const maxColumn = Math.max(0, (container.config.columns || 1) - 1);
+  const currentColumn = Number.isInteger(child.position) ? child.position : 0;
+  child.position = Math.max(0, Math.min(maxColumn, currentColumn + delta));
+  syncInspectorUI();
+}
+
+function deleteInspectorChild(containerId, childId) {
+  deleteChildComponent(containerId, childId);
+  const container = findComponentById(containerId);
+  if (container) {
+    selectComponent(container);
+  }
 }
 
 // Backward-compatible wrappers
@@ -982,8 +1297,18 @@ window.updateInspectorField = updateInspectorField;
 window.toggleInspectorField = toggleInspectorField;
 window.updateOptionsEditorField = updateOptionsEditorField;
 window.addOptionsEditorRow = addOptionsEditorRow;
+window.moveOptionsEditorRow = moveOptionsEditorRow;
 window.removeOptionsEditorRow = removeOptionsEditorRow;
 window.updateCollapsePanelField = updateCollapsePanelField;
 window.addCollapseEditorPanel = addCollapseEditorPanel;
+window.moveCollapseEditorPanel = moveCollapseEditorPanel;
 window.removeCollapseEditorPanel = removeCollapseEditorPanel;
+window.addVisibilityRule = addVisibilityRule;
+window.updateVisibilityRuleField = updateVisibilityRuleField;
+window.moveVisibilityRule = moveVisibilityRule;
+window.removeVisibilityRule = removeVisibilityRule;
+window.selectInspectorChild = selectInspectorChild;
+window.moveInspectorChild = moveInspectorChild;
+window.shiftInspectorChildColumn = shiftInspectorChildColumn;
+window.deleteInspectorChild = deleteInspectorChild;
 window.applyColumnPreset = applyColumnPreset;
