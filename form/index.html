@@ -59,34 +59,42 @@
               <div class="component-item" draggable="true" data-type="Input">
                 <i class="fas fa-font component-icon"></i>
                 <span class="component-name">Input</span>
+                <span class="component-hint">Single line text</span>
               </div>
               <div class="component-item" draggable="true" data-type="Textarea">
                 <i class="fas fa-align-left component-icon"></i>
                 <span class="component-name">Textarea</span>
+                <span class="component-hint">Long form content</span>
               </div>
               <div class="component-item" draggable="true" data-type="InputNumber">
                 <i class="fas fa-sort-numeric-up component-icon"></i>
                 <span class="component-name">Number Input</span>
+                <span class="component-hint">Numeric field</span>
               </div>
               <div class="component-item" draggable="true" data-type="Switch">
                 <i class="fas fa-toggle-on component-icon"></i>
                 <span class="component-name">Switch</span>
+                <span class="component-hint">Boolean toggle</span>
               </div>
               <div class="component-item" draggable="true" data-type="Radio">
                 <i class="fas fa-dot-circle component-icon"></i>
                 <span class="component-name">Radio</span>
+                <span class="component-hint">Single choice</span>
               </div>
               <div class="component-item" draggable="true" data-type="Checkbox">
                 <i class="fas fa-check-square component-icon"></i>
                 <span class="component-name">Checkbox</span>
+                <span class="component-hint">Multi choice</span>
               </div>
               <div class="component-item" draggable="true" data-type="Select">
                 <i class="fas fa-list component-icon"></i>
                 <span class="component-name">Selector</span>
+                <span class="component-hint">Dropdown list</span>
               </div>
               <div class="component-item" draggable="true" data-type="Cascader">
                 <i class="fas fa-sitemap component-icon"></i>
                 <span class="component-name">Cascader</span>
+                <span class="component-hint">Linked options</span>
               </div>
             </div>
           </div>
@@ -97,18 +105,22 @@
               <div class="component-item" draggable="true" data-type="Card">
                 <i class="fas fa-square component-icon"></i>
                 <span class="component-name">Card</span>
+                <span class="component-hint">Section wrapper</span>
               </div>
               <div class="component-item" draggable="true" data-type="Divider">
                 <i class="fas fa-minus component-icon"></i>
                 <span class="component-name">Divider</span>
+                <span class="component-hint">Visual separator</span>
               </div>
               <div class="component-item" draggable="true" data-type="Grid">
                 <i class="fas fa-th component-icon"></i>
                 <span class="component-name">Grid Layout</span>
+                <span class="component-hint">Multi-column area</span>
               </div>
               <div class="component-item" draggable="true" data-type="Collapse">
                 <i class="fas fa-layer-group component-icon"></i>
                 <span class="component-name">Collapse</span>
+                <span class="component-hint">Folded sections</span>
               </div>
             </div>
           </div>
@@ -119,18 +131,22 @@
               <div class="component-item" draggable="true" data-type="DatePicker">
                 <i class="fas fa-calendar-alt component-icon"></i>
                 <span class="component-name">Date Picker</span>
+                <span class="component-hint">Calendar input</span>
               </div>
               <div class="component-item" draggable="true" data-type="TimePicker">
                 <i class="fas fa-clock component-icon"></i>
                 <span class="component-name">Time Picker</span>
+                <span class="component-hint">Time selection</span>
               </div>
               <div class="component-item" draggable="true" data-type="ColorPicker">
                 <i class="fas fa-palette component-icon"></i>
                 <span class="component-name">Color Picker</span>
+                <span class="component-hint">Theme color</span>
               </div>
               <div class="component-item" draggable="true" data-type="Slider">
                 <i class="fas fa-sliders-h component-icon"></i>
                 <span class="component-name">Slider</span>
+                <span class="component-hint">Range control</span>
               </div>
             </div>
           </div>
@@ -211,29 +227,29 @@
 </div>
 
 <!-- Preview modal -->
-<div id="previewModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-  <div style="background: white; width: 80%; height: 80%; border-radius: 8px; padding: 24px; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div id="previewModal" class="modal-shell" style="display: none;">
+  <div class="modal-dialog modal-dialog-wide">
+    <div class="modal-header">
       <h3>Form Preview</h3>
       <button id="closePreviewBtn" class="ant-btn ant-btn-default">Close</button>
     </div>
-    <div id="previewContainer" style="flex: 1; overflow: auto; padding: 20px;"></div>
+    <div id="previewContainer" class="modal-body"></div>
   </div>
 </div>
 
 <!-- Result modal -->
-<div id="resultModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1001; align-items: center; justify-content: center;">
-  <div style="background: white; width: 80%; height: 80%; border-radius: 8px; padding: 24px; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div id="resultModal" class="modal-shell modal-shell-front" style="display: none;">
+  <div class="modal-dialog modal-dialog-wide">
+    <div class="modal-header">
       <h3>Form Data Result</h3>
       <button id="closeResultBtn" class="ant-btn ant-btn-default">Close</button>
     </div>
-    <div style="flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column;">
-      <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+    <div class="modal-body modal-body-column">
+      <div class="result-toolbar">
         <button id="copyResultBtn" class="ant-btn ant-btn-primary">Copy to Clipboard</button>
-        <span id="copyStatus" style="align-self: center; color: green; display: none;">Copied!</span>
+        <span id="copyStatus" class="copy-status" style="display: none;">Copied!</span>
       </div>
-      <textarea id="resultContent" readonly style="flex: 1; font-family: monospace; padding: 15px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+      <textarea id="resultContent" readonly></textarea>
     </div>
   </div>
 </div>
