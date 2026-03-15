@@ -253,22 +253,23 @@
     const thumb = element.querySelector('.switch-thumb');
     const label = element.querySelector('.switch-label');
     const hiddenInput = element.querySelector('input[type="hidden"]');
-    
-    if (track.style.backgroundColor === 'rgb(24, 144, 255)') {
-      // Turn off
+    const isChecked = element.dataset.checked === '1';
+
+    if (isChecked) {
       track.style.backgroundColor = '#ccc';
       thumb.style.transform = 'translateX(0)';
       label.textContent = 'OFF';
+      element.dataset.checked = '0';
       if (hiddenInput) {
-        hiddenInput.value = 'OFF';
+        hiddenInput.value = 'false';
       }
     } else {
-      // Turn on
       track.style.backgroundColor = '#1890ff';
       thumb.style.transform = 'translateX(20px)';
       label.textContent = 'ON';
+      element.dataset.checked = '1';
       if (hiddenInput) {
-        hiddenInput.value = 'ON';
+        hiddenInput.value = 'true';
       }
     }
   }

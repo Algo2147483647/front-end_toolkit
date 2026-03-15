@@ -35,8 +35,8 @@ function renderTreeNode(component, level) {
       <div class="tree-node ${isSelected ? 'selected' : ''}" data-id="${component.id}">
         ${hasChildren ? '<i class="tree-expand-icon fas fa-caret-right"></i>' : '<i class="tree-expand-icon-placeholder"></i>'}
         <i class="node-icon fas fa-${icon}"></i>
-        <span class="node-label">${component.config.title || component.type}</span>
-        <span class="node-type">${component.type}</span>
+        <span class="node-label">${escapeHTML(component.config.title || component.type)}</span>
+        <span class="node-type">${escapeHTML(component.type)}</span>
       </div>
   `;
   

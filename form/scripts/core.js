@@ -188,9 +188,14 @@ function initDragAndDrop() {
 
       const componentType = e.dataTransfer.getData('componentType');
       const containerId = e.target.dataset.containerId;
+      const targetColumn = e.target.dataset.column;
       
       if (componentType && containerId) {
-        addComponentToContainer(containerId, componentType);
+        addComponentToContainer(
+          containerId,
+          componentType,
+          targetColumn === undefined ? null : parseInt(targetColumn, 10)
+        );
       }
     }
   });
@@ -233,7 +238,7 @@ function addComponentAtPosition(type, position) {
       ...config,
       name: config.name + '_' + id
     },
-    children: (type === 'Card' || type === 'Grid' || type === 'Collapse') ? [] : undefined // Container components support child components
+    children: isContainerComponent(type) ? [] : undefined
   };
 
   // If position is -1 or greater than array length, add to end
@@ -298,7 +303,7 @@ function addComponent(type) {
 }
 
 // Add child component to container
-function addComponentToContainer(containerId, type) {
+function addComponentToContainer(containerId, type, targetColumn = null) {
   const container = findComponentById(containerId);
   if (!container) return;
 
@@ -316,22 +321,25 @@ function addComponentToContainer(containerId, type) {
     position: container.children.length
   };
 
-  // For grid components, we need to record which column it belongs to
   if (container.type === 'Grid') {
-    // Find the column with the least elements
     const columns = container.config.columns || 3;
-    let minCount = Infinity;
-    let targetColumn = 0;
-    
-    for (let i = 0; i < columns; i++) {
-      const count = container.children.filter(child => child.position === i).length;
-      if (count < minCount) {
-        minCount = count;
-        targetColumn = i;
+
+    if (Number.isInteger(targetColumn) && targetColumn >= 0 && targetColumn < columns) {
+      childComponent.position = targetColumn;
+    } else {
+      let minCount = Infinity;
+      let fallbackColumn = 0;
+
+      for (let i = 0; i < columns; i++) {
+        const count = container.children.filter(child => child.position === i).length;
+        if (count < minCount) {
+          minCount = count;
+          fallbackColumn = i;
+        }
       }
+
+      childComponent.position = fallbackColumn;
     }
-    
-    childComponent.position = targetColumn;
   }
 
   container.children.push(childComponent);
@@ -357,7 +365,7 @@ function renderFormItems() {
               <div class="form-item ${state.selectedItem?.id === comp.id ? 'selected' : ''} ${state.showBorders ? 'with-borders' : ''}"
                    data-id="${comp.id}"
                    draggable="true">
-                  <span class="form-item-label">${comp.config.title}</span>
+                  <span class="form-item-label">${escapeHTML(comp.config.title)}</span>
                   <div class="form-item-content">
                       ${renderComponentPreview(comp, false)}
                   </div>

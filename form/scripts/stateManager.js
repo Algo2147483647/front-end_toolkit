@@ -142,6 +142,30 @@ const componentConfigs = {
   }
 };
 
+function isContainerComponent(type) {
+  return type === 'Card' || type === 'Grid' || type === 'Collapse';
+}
+
+function toSafeString(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value);
+}
+
+function escapeHTML(value) {
+  return toSafeString(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttribute(value) {
+  return escapeHTML(value);
+}
+
 // Find component by ID (including nested components)
 function findComponentById(id) {
   // Find at root level
@@ -197,6 +221,10 @@ function updateSchema() {
       "x-component-props": {},
       "x-validator": []
     };
+
+    if (Number.isInteger(comp.position)) {
+      properties[fieldId]["x-position"] = comp.position;
+    }
 
     // Add specific properties
     if (comp.config.placeholder) {
@@ -273,6 +301,10 @@ function generateComponentSchema(component, index) {
       "x-validator": []
     }
   };
+
+  if (Number.isInteger(component.position)) {
+    schema[fieldId]["x-position"] = component.position;
+  }
   
   // Add specific properties
   if (component.config.placeholder) {
@@ -343,6 +375,9 @@ function selectComponent(component) {
 // Expose to global scope
 window.state = state;
 window.componentConfigs = componentConfigs;
+window.isContainerComponent = isContainerComponent;
+window.escapeHTML = escapeHTML;
+window.escapeAttribute = escapeAttribute;
 window.findComponentById = findComponentById;
 window.updateSchema = updateSchema;
 window.selectComponent = selectComponent;
