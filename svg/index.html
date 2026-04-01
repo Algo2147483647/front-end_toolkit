@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Studio</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow">Front-End Toolkit</p>
+        <div class="brand-row">
+          <h1>SVG Studio</h1>
+          <span class="status-pill" id="statusPill">未选择元素</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="tool-button" id="loadSampleButton" type="button">加载示例</button>
+        <button class="tool-button" id="importButton" type="button">导入 SVG</button>
+        <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden>
+        <button class="tool-button" id="applySourceButton" type="button">应用源码</button>
+        <button class="tool-button" id="exportButton" type="button">导出 SVG</button>
+        <button class="tool-button" id="undoButton" type="button">撤销</button>
+        <button class="tool-button" id="redoButton" type="button">重做</button>
+        <button class="tool-button" id="duplicateButton" type="button">复制</button>
+        <button class="tool-button" id="deleteButton" type="button">删除</button>
+      </div>
+
+      <div class="zoom-controls">
+        <button class="tool-button compact" id="zoomOutButton" type="button">-</button>
+        <span id="zoomLabel">100%</span>
+        <button class="tool-button compact" id="zoomInButton" type="button">+</button>
+        <button class="tool-button" id="zoomResetButton" type="button">适配</button>
+      </div>
+    </header>
+
+    <aside class="panel left-panel">
+      <section class="panel-section">
+        <div class="panel-heading">
+          <h2>文档结构</h2>
+          <span class="count-badge" id="nodeCountBadge">0 节点</span>
+        </div>
+        <div class="tree-panel" id="treePanel"></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-heading">
+          <h2>资源概览</h2>
+        </div>
+        <div class="resource-list" id="resourceList"></div>
+      </section>
+    </aside>
+
+    <main class="workspace-panel">
+      <section class="workspace-header">
+        <div>
+          <p class="workspace-title">画布</p>
+          <p class="workspace-subtitle">点击图形或左侧图层树即可选中元素，右侧面板会同步属性。</p>
+        </div>
+        <div class="workspace-meta" id="workspaceMeta">等待载入文档</div>
+      </section>
+
+      <section class="workspace-surface">
+        <div class="surface-grid"></div>
+        <div class="surface-inner" id="surfaceInner">
+          <div class="svg-host" id="svgHost"></div>
+          <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
+        </div>
+      </section>
+    </main>
+
+    <aside class="panel inspector-panel">
+      <section class="panel-section">
+        <div class="panel-heading">
+          <h2>属性面板</h2>
+        </div>
+        <div class="inspector-empty" id="inspectorEmpty">先在画布或图层树中选择一个元素。</div>
+        <form class="property-form hidden" id="propertyForm"></form>
+      </section>
+    </aside>
+
+    <section class="panel source-panel">
+      <section class="panel-section fill-height">
+        <div class="panel-heading">
+          <h2>SVG 源码</h2>
+          <span class="hint-text">支持直接修改后点击“应用源码”重新解析</span>
+        </div>
+        <textarea class="source-editor" id="sourceEditor" spellcheck="false"></textarea>
+      </section>
+    </section>
+  </div>
+
+  <template id="propertyFieldTemplate">
+    <label class="field-row">
+      <span class="field-label"></span>
+      <input class="field-input" />
+    </label>
+  </template>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>
