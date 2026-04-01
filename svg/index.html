@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SVG Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d05a2f'/%3E%3Cpath d='M14 42 24 18h7l10 24h-6l-2-5H22l-2 5h-6Zm10-10h7l-3.5-9-3.5 9Z' fill='%23fff7ef'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -18,6 +19,7 @@
       </div>
 
       <div class="toolbar">
+        <button class="tool-button" id="newDocumentButton" type="button">新建画布</button>
         <button class="tool-button" id="loadSampleButton" type="button">加载示例</button>
         <button class="tool-button" id="importButton" type="button">导入 SVG</button>
         <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden>
@@ -40,6 +42,26 @@
     <aside class="panel left-panel">
       <section class="panel-section">
         <div class="panel-heading">
+          <h2>插入元素</h2>
+          <span class="hint-text">点击创建</span>
+        </div>
+        <div class="insert-grid" id="insertGrid">
+          <button class="insert-card" type="button" data-insert="rect">矩形</button>
+          <button class="insert-card" type="button" data-insert="circle">圆形</button>
+          <button class="insert-card" type="button" data-insert="ellipse">椭圆</button>
+          <button class="insert-card" type="button" data-insert="line">线段</button>
+          <button class="insert-card" type="button" data-insert="text">文本</button>
+          <button class="insert-card" id="insertImageButton" type="button">图片</button>
+        </div>
+        <input id="imageInput" type="file" accept="image/*,.svg" hidden>
+        <div class="drop-card">
+          <strong>拖入文件</strong>
+          <span>把 PNG、JPG、WEBP、SVG 文件拖到中间画布，图片会直接插入。</span>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-heading">
           <h2>文档结构</h2>
           <span class="count-badge" id="nodeCountBadge">0 节点</span>
         </div>
@@ -58,17 +80,19 @@
       <section class="workspace-header">
         <div>
           <p class="workspace-title">画布</p>
-          <p class="workspace-subtitle">点击图形或左侧图层树即可选中元素，右侧面板会同步属性。</p>
+          <p class="workspace-subtitle">点击选择元素后可直接在画布拖动。也支持把图片文件拖入画布。</p>
         </div>
         <div class="workspace-meta" id="workspaceMeta">等待载入文档</div>
       </section>
 
-      <section class="workspace-surface">
+      <section class="workspace-surface" id="workspaceSurface">
         <div class="surface-grid"></div>
         <div class="surface-inner" id="surfaceInner">
-          <div class="svg-host" id="svgHost"></div>
-          <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
+          <div class="svg-host" id="svgHost">
+            <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
+          </div>
         </div>
+        <div class="drop-overlay hidden" id="dropOverlay">松开鼠标即可插入文件</div>
       </section>
     </main>
 
