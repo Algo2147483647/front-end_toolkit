@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,63 +14,79 @@
         <p class="eyebrow">Front-End Toolkit</p>
         <div class="brand-row">
           <h1>SVG Studio</h1>
-          <span class="status-pill" id="statusPill">未选择元素</span>
+          <span class="status-pill" id="statusPill">No selection</span>
         </div>
       </div>
 
       <div class="toolbar">
-        <button class="tool-button" id="newDocumentButton" type="button">新建画布</button>
-        <button class="tool-button" id="loadSampleButton" type="button">加载示例</button>
-        <button class="tool-button" id="importButton" type="button">导入 SVG</button>
+        <button class="tool-button icon-only" id="newDocumentButton" type="button" title="New document" aria-label="New document">
+          <span class="tool-icon" aria-hidden="true">+</span>
+        </button>
+        <button class="tool-button icon-only" id="loadSampleButton" type="button" title="Load sample" aria-label="Load sample">
+          <span class="tool-icon" aria-hidden="true">◇</span>
+        </button>
+        <button class="tool-button icon-only" id="importButton" type="button" title="Import SVG" aria-label="Import SVG">
+          <span class="tool-icon" aria-hidden="true">↑</span>
+        </button>
         <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden>
-        <button class="tool-button" id="applySourceButton" type="button">应用源码</button>
-        <button class="tool-button" id="exportButton" type="button">导出 SVG</button>
-        <button class="tool-button" id="undoButton" type="button">撤销</button>
-        <button class="tool-button" id="redoButton" type="button">重做</button>
-        <button class="tool-button" id="duplicateButton" type="button">复制</button>
-        <button class="tool-button" id="deleteButton" type="button">删除</button>
+        <button class="tool-button icon-only" id="sourceToggleButton" type="button" title="Open source editor" aria-label="Open source editor" aria-expanded="false">
+          <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
+        </button>
+        <button class="tool-button icon-only" id="exportButton" type="button" title="Export SVG" aria-label="Export SVG">
+          <span class="tool-icon" aria-hidden="true">↓</span>
+        </button>
+        <button class="tool-button icon-only" id="undoButton" type="button" title="Undo" aria-label="Undo">
+          <span class="tool-icon" aria-hidden="true">↶</span>
+        </button>
+        <button class="tool-button icon-only" id="redoButton" type="button" title="Redo" aria-label="Redo">
+          <span class="tool-icon" aria-hidden="true">↷</span>
+        </button>
+        <button class="tool-button icon-only" id="duplicateButton" type="button" title="Duplicate" aria-label="Duplicate">
+          <span class="tool-icon" aria-hidden="true">⎘</span>
+        </button>
+        <button class="tool-button icon-only" id="deleteButton" type="button" title="Delete" aria-label="Delete">
+          <span class="tool-icon" aria-hidden="true">×</span>
+        </button>
       </div>
 
       <div class="zoom-controls">
-        <button class="tool-button compact" id="zoomOutButton" type="button">-</button>
+        <button class="tool-button compact" id="zoomOutButton" type="button" title="Zoom out" aria-label="Zoom out">-</button>
         <span id="zoomLabel">100%</span>
-        <button class="tool-button compact" id="zoomInButton" type="button">+</button>
-        <button class="tool-button" id="zoomResetButton" type="button">适配</button>
+        <button class="tool-button compact" id="zoomInButton" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+        <button class="tool-button icon-only" id="zoomResetButton" type="button" title="Fit to view" aria-label="Fit to view">
+          <span class="tool-icon" aria-hidden="true">⤢</span>
+        </button>
       </div>
     </header>
 
     <aside class="panel left-panel">
       <section class="panel-section">
         <div class="panel-heading">
-          <h2>插入元素</h2>
-          <span class="hint-text">点击创建</span>
+          <h2>Insert</h2>
+          <span class="hint-text">Click to add</span>
         </div>
         <div class="insert-grid" id="insertGrid">
-          <button class="insert-card" type="button" data-insert="rect">矩形</button>
-          <button class="insert-card" type="button" data-insert="circle">圆形</button>
-          <button class="insert-card" type="button" data-insert="ellipse">椭圆</button>
-          <button class="insert-card" type="button" data-insert="line">线段</button>
-          <button class="insert-card" type="button" data-insert="text">文本</button>
-          <button class="insert-card" id="insertImageButton" type="button">图片</button>
+          <button class="insert-card" type="button" data-insert="rect">Rect</button>
+          <button class="insert-card" type="button" data-insert="circle">Circle</button>
+          <button class="insert-card" type="button" data-insert="ellipse">Ellipse</button>
+          <button class="insert-card" type="button" data-insert="line">Line</button>
+          <button class="insert-card" type="button" data-insert="text">Text</button>
+          <button class="insert-card" id="insertImageButton" type="button">Image</button>
         </div>
         <input id="imageInput" type="file" accept="image/*,.svg" hidden>
-        <div class="drop-card">
-          <strong>拖入文件</strong>
-          <span>把 PNG、JPG、WEBP、SVG 文件拖到中间画布，图片会直接插入。</span>
-        </div>
       </section>
 
       <section class="panel-section">
         <div class="panel-heading">
-          <h2>文档结构</h2>
-          <span class="count-badge" id="nodeCountBadge">0 节点</span>
+          <h2>Layers</h2>
+          <span class="count-badge" id="nodeCountBadge">0 nodes</span>
         </div>
         <div class="tree-panel" id="treePanel"></div>
       </section>
 
       <section class="panel-section">
         <div class="panel-heading">
-          <h2>资源概览</h2>
+          <h2>Resources</h2>
         </div>
         <div class="resource-list" id="resourceList"></div>
       </section>
@@ -79,10 +95,10 @@
     <main class="workspace-panel">
       <section class="workspace-header">
         <div>
-          <p class="workspace-title">画布</p>
-          <p class="workspace-subtitle">点击选择元素后可直接在画布拖动。也支持把图片文件拖入画布。</p>
+          <p class="workspace-title">Canvas</p>
+          <p class="workspace-subtitle">Select an element to drag it on the canvas, or drop an image file directly into the workspace.</p>
         </div>
-        <div class="workspace-meta" id="workspaceMeta">等待载入文档</div>
+        <div class="workspace-meta" id="workspaceMeta">Waiting for document</div>
       </section>
 
       <section class="workspace-surface" id="workspaceSurface">
@@ -92,28 +108,39 @@
             <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
           </div>
         </div>
-        <div class="drop-overlay hidden" id="dropOverlay">松开鼠标即可插入文件</div>
+        <div class="drop-overlay hidden" id="dropOverlay">Drop to insert file</div>
       </section>
     </main>
 
     <aside class="panel inspector-panel">
       <section class="panel-section">
         <div class="panel-heading">
-          <h2>属性面板</h2>
+          <h2>Inspector</h2>
         </div>
-        <div class="inspector-empty" id="inspectorEmpty">先在画布或图层树中选择一个元素。</div>
+        <div class="inspector-empty" id="inspectorEmpty">Select an element from the canvas or layer tree.</div>
         <form class="property-form hidden" id="propertyForm"></form>
       </section>
     </aside>
+  </div>
 
-    <section class="panel source-panel">
-      <section class="panel-section fill-height">
-        <div class="panel-heading">
-          <h2>SVG 源码</h2>
-          <span class="hint-text">支持直接修改后点击“应用源码”重新解析</span>
+  <div class="modal-backdrop hidden" id="sourceModalBackdrop">
+    <section class="source-modal" id="sourceModal" role="dialog" aria-modal="true" aria-labelledby="sourceModalTitle">
+      <div class="source-modal-header">
+        <div>
+          <p class="eyebrow">Editor</p>
+          <h2 id="sourceModalTitle">SVG Source</h2>
         </div>
-        <textarea class="source-editor" id="sourceEditor" spellcheck="false"></textarea>
-      </section>
+        <div class="modal-actions">
+          <button class="tool-button icon-only" id="applySourceButton" type="button" title="Apply source" aria-label="Apply source">
+            <span class="tool-icon" aria-hidden="true">✓</span>
+          </button>
+          <button class="tool-button icon-only" id="closeSourceButton" type="button" title="Close source editor" aria-label="Close source editor">
+            <span class="tool-icon" aria-hidden="true">×</span>
+          </button>
+        </div>
+      </div>
+      <p class="source-modal-hint">Edit raw SVG and apply the changes when you are ready.</p>
+      <textarea class="source-editor source-modal-editor" id="sourceEditor" spellcheck="false"></textarea>
     </section>
   </div>
 

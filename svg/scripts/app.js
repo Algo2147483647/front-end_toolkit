@@ -47,19 +47,19 @@ const EMPTY_SVG = `
 `.trim();
 
 const FIELDS = [
-  ["基础信息", [
-    { key: "tagName", label: "元素类型", kind: "readonly", value: (node) => node.tagName.toLowerCase() },
-    { key: "id", label: "元素 ID", kind: "attr" },
+  ["Basics", [
+    { key: "tagName", label: "Element type", kind: "readonly", value: (node) => node.tagName.toLowerCase() },
+    { key: "id", label: "Element ID", kind: "attr" },
     { key: "class", label: "class", kind: "attr" },
     { key: "transform", label: "transform", kind: "attr" },
     { key: "opacity", label: "opacity", kind: "attr" }
   ]],
-  ["视觉样式", [
+  ["Appearance", [
     { key: "fill", label: "fill", kind: "attr" },
     { key: "stroke", label: "stroke", kind: "attr" },
     { key: "stroke-width", label: "stroke-width", kind: "attr" }
   ]],
-  ["几何属性", [
+  ["Geometry", [
     { key: "x", label: "x", kind: "attr" },
     { key: "y", label: "y", kind: "attr" },
     { key: "width", label: "width", kind: "attr" },
@@ -74,10 +74,10 @@ const FIELDS = [
     { key: "rx", label: "rx", kind: "attr" },
     { key: "ry", label: "ry", kind: "attr" }
   ]],
-  ["复杂数据", [
+  ["Advanced", [
     { key: "d", label: "path d", kind: "attr", multiline: true },
     { key: "points", label: "points", kind: "attr", multiline: true },
-    { key: "textContent", label: "文本内容", kind: "text", multiline: true }
+    { key: "textContent", label: "text content", kind: "text", multiline: true }
   ]]
 ];
 
@@ -100,6 +100,8 @@ const ui = {
   fileInput: $("#fileInput"),
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
+  sourceToggleButton: $("#sourceToggleButton"),
+  closeSourceButton: $("#closeSourceButton"),
   insertImageButton: $("#insertImageButton"),
   newDocumentButton: $("#newDocumentButton"),
   loadSampleButton: $("#loadSampleButton"),
@@ -123,6 +125,8 @@ const ui = {
   insertGrid: $("#insertGrid"),
   workspaceSurface: $("#workspaceSurface"),
   dropOverlay: $("#dropOverlay"),
+  sourceModalBackdrop: $("#sourceModalBackdrop"),
+  sourceModal: $("#sourceModal"),
   sourceEditor: $("#sourceEditor"),
   propertyForm: $("#propertyForm"),
   inspectorEmpty: $("#inspectorEmpty"),
@@ -296,7 +300,7 @@ function sanitizeSvgTree(root) {
     const tag = node.tagName.toLowerCase();
 
     if (DANGEROUS_TAGS.has(tag)) {
-      warnings.push(`移除了不安全标签 <${tag}>`);
+      warnings.push(`Removed unsafe tag <${tag}>`);
       node.remove();
       continue;
     }
@@ -304,7 +308,7 @@ function sanitizeSvgTree(root) {
     if (tag === "style") {
       const sanitizedStyle = sanitizeCssText(node.textContent || "");
       if (!sanitizedStyle.trim()) {
-        warnings.push("移除了存在外部或可执行内容的 <style>");
+        warnings.push("Removed a <style> block with external or executable content");
         node.remove();
         continue;
       }
@@ -315,13 +319,13 @@ function sanitizeSvgTree(root) {
       const value = node.getAttribute(attrName) || "";
 
       if (attrName.toLowerCase().startsWith("on")) {
-        warnings.push(`移除了事件属性 ${attrName}`);
+        warnings.push(`Removed event attribute ${attrName}`);
         node.removeAttribute(attrName);
         continue;
       }
 
       if (["href", "xlink:href", "src"].includes(attrName) && !isSafeHref(value)) {
-        warnings.push(`移除了外部引用属性 ${attrName}`);
+        warnings.push(`Removed external reference attribute ${attrName}`);
         node.removeAttribute(attrName);
         continue;
       }
@@ -329,7 +333,7 @@ function sanitizeSvgTree(root) {
       if (attrName === "style") {
         const sanitizedStyle = sanitizeCssText(value);
         if (!sanitizedStyle.trim()) {
-          warnings.push("移除了不安全的 style 属性");
+          warnings.push("Removed unsafe style attribute");
           node.removeAttribute(attrName);
         } else if (sanitizedStyle !== value) {
           node.setAttribute(attrName, sanitizedStyle);
@@ -340,7 +344,7 @@ function sanitizeSvgTree(root) {
       if (value.includes("url(") && !/^url\(\s*['"]?#/i.test(value.trim())) {
         const sanitizedValue = sanitizeCssText(value);
         if (!sanitizedValue.trim()) {
-          warnings.push(`移除了不安全的引用属性 ${attrName}`);
+          warnings.push(`Removed unsafe reference attribute ${attrName}`);
           node.removeAttribute(attrName);
         } else {
           node.setAttribute(attrName, sanitizedValue);
@@ -356,11 +360,11 @@ function parseSvg(source) {
   const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
   const error = parsed.querySelector("parsererror");
   if (error) {
-    throw new Error(error.textContent.trim() || "SVG 解析失败");
+    throw new Error(error.textContent.trim() || "Failed to parse SVG");
   }
   const root = parsed.documentElement;
   if (!root || root.tagName.toLowerCase() !== "svg") {
-    throw new Error("导入内容不是有效的 SVG");
+    throw new Error("Imported content is not valid SVG");
   }
   state.warnings = sanitizeSvgTree(root);
   return root;
@@ -466,7 +470,7 @@ function createElementNode(kind) {
     node.setAttribute("fill", "#24180f");
     node.setAttribute("font-size", "42");
     node.setAttribute("font-family", "IBM Plex Sans, Segoe UI, sans-serif");
-    node.textContent = "新文本";
+    node.textContent = "New text";
   }
 
   return node;
@@ -489,7 +493,7 @@ function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error(`读取文件失败: ${file.name}`));
+    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
     reader.readAsDataURL(file);
   });
 }
@@ -560,8 +564,8 @@ function serialize() {
 function labelFor(node) {
   const id = node.getAttribute("id");
   if (id) return `#${id}`;
-  if (node.tagName.toLowerCase() === "text") return node.textContent.trim().slice(0, 24) || "<文本>";
-  return "<未命名>";
+  if (node.tagName.toLowerCase() === "text") return node.textContent.trim().slice(0, 24) || "<text>";
+  return "<unnamed>";
 }
 
 function visibleField(node, field) {
@@ -592,11 +596,11 @@ function viewBoxFor(root) {
 
 function resourceSummary(root) {
   return [
-    ["Defs", root.querySelectorAll("defs").length, "复用定义容器"],
-    ["Gradients", root.querySelectorAll("linearGradient, radialGradient").length, "渐变资源"],
-    ["Symbols", root.querySelectorAll("symbol").length, "可复用图形"],
-    ["Use", root.querySelectorAll("use").length, "实例节点"],
-    ["Clips / Masks", root.querySelectorAll("clipPath, mask").length, "裁剪和蒙版"]
+    ["Defs", root.querySelectorAll("defs").length, "Reusable definition containers"],
+    ["Gradients", root.querySelectorAll("linearGradient, radialGradient").length, "Gradient assets"],
+    ["Symbols", root.querySelectorAll("symbol").length, "Reusable symbols"],
+    ["Use", root.querySelectorAll("use").length, "Instanced nodes"],
+    ["Clips / Masks", root.querySelectorAll("clipPath, mask").length, "Clip and mask resources"]
   ];
 }
 
@@ -708,6 +712,28 @@ function updateSource() {
   ui.sourceEditor.value = serialize();
 }
 
+function closeSourceModal(restoreFocus = true) {
+  ui.sourceModalBackdrop.classList.add("hidden");
+  ui.sourceToggleButton.classList.remove("is-active");
+  ui.sourceToggleButton.setAttribute("aria-expanded", "false");
+  ui.sourceToggleButton.title = "Open source editor";
+  document.body.classList.remove("modal-open");
+
+  if (restoreFocus) {
+    ui.sourceToggleButton.focus();
+  }
+}
+
+function openSourceModal() {
+  updateSource();
+  ui.sourceModalBackdrop.classList.remove("hidden");
+  ui.sourceToggleButton.classList.add("is-active");
+  ui.sourceToggleButton.setAttribute("aria-expanded", "true");
+  ui.sourceToggleButton.title = "Close source editor";
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(() => ui.sourceEditor.focus());
+}
+
 function applyZoom() {
   ui.svgHost.style.transform = `scale(${state.zoom})`;
   ui.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
@@ -764,7 +790,7 @@ function renderTree() {
   };
   walk(state.svgRoot, 0);
   ui.treePanel.append(fragment);
-  ui.nodeCountBadge.textContent = `${state.svgRoot.querySelectorAll("*").length + 1} 节点`;
+  ui.nodeCountBadge.textContent = `${state.svgRoot.querySelectorAll("*").length + 1} nodes`;
 }
 
 function renderInspector() {
@@ -811,7 +837,7 @@ function renderOverlay() {
   ui.overlay.innerHTML = "";
   const node = state.nodeMap.get(state.selectedId);
   if (!node) {
-    ui.statusPill.textContent = "未选择元素";
+    ui.statusPill.textContent = "No selection";
     return;
   }
   ui.statusPill.textContent = `${node.tagName.toLowerCase()} ${labelFor(node)}`;
@@ -832,7 +858,7 @@ function renderOverlay() {
     rect.setAttribute("stroke-dasharray", "10 8");
     ui.overlay.append(rect);
   } catch (error) {
-    ui.statusPill.textContent = `${node.tagName.toLowerCase()} 已选中`;
+    ui.statusPill.textContent = `${node.tagName.toLowerCase()} selected`;
   }
 }
 
@@ -853,7 +879,7 @@ function beginDrag(node, event) {
     startPoint,
     referenceNode
   };
-  ui.statusPill.textContent = `拖动中: ${node.tagName.toLowerCase()} ${labelFor(node)}`;
+  ui.statusPill.textContent = `Dragging: ${node.tagName.toLowerCase()} ${labelFor(node)}`;
 }
 
 function moveDrag(event) {
@@ -935,8 +961,8 @@ function renderWorkspace() {
   state.svgRoot.removeEventListener("pointerdown", onSvgPointerDown);
   state.svgRoot.addEventListener("click", onSvgClick);
   state.svgRoot.addEventListener("pointerdown", onSvgPointerDown);
-  const warningSuffix = state.warnings.length ? `，已清理 ${state.warnings.length} 项危险内容` : "";
-  ui.workspaceMeta.textContent = `已载入 ${state.svgRoot.querySelectorAll("*").length + 1} 个节点${warningSuffix}`;
+  const warningSuffix = state.warnings.length ? `, removed ${state.warnings.length} unsafe item(s)` : "";
+  ui.workspaceMeta.textContent = `Loaded ${state.svgRoot.querySelectorAll("*").length + 1} nodes${warningSuffix}`;
   applyZoom();
   renderOverlay();
 }
@@ -1020,12 +1046,21 @@ function loadDocument(source, pushHistory = true) {
 }
 
 ui.importButton.addEventListener("click", () => ui.fileInput.click());
+ui.sourceToggleButton.addEventListener("click", () => {
+  if (ui.sourceModalBackdrop.classList.contains("hidden")) {
+    openSourceModal();
+  } else {
+    closeSourceModal();
+  }
+});
+ui.closeSourceButton.addEventListener("click", () => closeSourceModal());
 ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
 ui.newDocumentButton.addEventListener("click", () => loadDocument(EMPTY_SVG));
 ui.loadSampleButton.addEventListener("click", () => loadDocument(SAMPLE_SVG));
 ui.applySourceButton.addEventListener("click", () => {
   try {
     loadDocument(ui.sourceEditor.value);
+    closeSourceModal();
   } catch (error) {
     alert(error.message);
   }
@@ -1088,6 +1123,11 @@ ui.workspaceSurface.addEventListener("drop", async (event) => {
     alert(error.message);
   }
 });
+ui.sourceModalBackdrop.addEventListener("click", (event) => {
+  if (event.target === ui.sourceModalBackdrop) {
+    closeSourceModal(false);
+  }
+});
 window.addEventListener("pointermove", (event) => {
   moveDrag(event);
 });
@@ -1098,6 +1138,10 @@ window.addEventListener("pointercancel", () => {
   endDrag();
 });
 window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !ui.sourceModalBackdrop.classList.contains("hidden")) {
+    closeSourceModal();
+    return;
+  }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
     event.preventDefault();
     restoreHistory(event.shiftKey ? state.historyIndex + 1 : state.historyIndex - 1);
@@ -1108,4 +1152,5 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+closeSourceModal(false);
 loadDocument(SAMPLE_SVG);

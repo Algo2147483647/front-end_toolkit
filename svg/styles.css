@@ -37,6 +37,10 @@ body {
   min-height: 100vh;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 button,
 input,
 textarea {
@@ -50,7 +54,7 @@ textarea {
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 340px;
-  grid-template-rows: 84px minmax(0, 1fr) 230px;
+  grid-template-rows: 84px minmax(0, 1fr);
   gap: 18px;
   min-height: 100vh;
   padding: 18px;
@@ -122,6 +126,10 @@ textarea {
 }
 
 .tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.55);
   color: var(--ink);
@@ -131,16 +139,42 @@ textarea {
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
+.tool-button.icon-only {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
 .tool-button:hover {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.82);
 }
 
+.tool-button.is-active {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--selection);
+}
+
 .tool-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
   transform: none;
+}
+
+.tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1em;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tool-label {
+  line-height: 1;
 }
 
 .tool-button.compact {
@@ -156,7 +190,7 @@ textarea {
 
 .left-panel {
   grid-column: 1;
-  grid-row: 2 / 4;
+  grid-row: 2;
 }
 
 .workspace-panel {
@@ -170,11 +204,6 @@ textarea {
 .inspector-panel {
   grid-column: 3;
   grid-row: 2;
-}
-
-.source-panel {
-  grid-column: 2 / 4;
-  grid-row: 3;
 }
 
 .panel-section,
@@ -221,8 +250,7 @@ textarea {
   margin-bottom: 12px;
 }
 
-.insert-card,
-.drop-card {
+.insert-card {
   border-radius: 16px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.62);
@@ -240,23 +268,6 @@ textarea {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.82);
-}
-
-.drop-card {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-}
-
-.drop-card strong {
-  font-family: var(--font-display);
-  font-size: 14px;
-}
-
-.drop-card span {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .tree-panel {
@@ -480,6 +491,62 @@ textarea.field-input,
   line-height: 1.55;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(36, 24, 15, 0.36);
+  backdrop-filter: blur(10px);
+}
+
+.modal-backdrop.hidden {
+  display: none;
+}
+
+.source-modal {
+  width: min(1040px, 100%);
+  max-height: min(86vh, 920px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--panel-strong);
+  box-shadow: 0 28px 70px rgba(36, 24, 15, 0.28);
+}
+
+.source-modal-header,
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+}
+
+.source-modal-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.source-modal-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.source-modal-editor {
+  min-height: min(62vh, 680px);
+  resize: none;
+}
+
 .section-title {
   margin: 12px 0 0;
   padding-top: 14px;
@@ -497,7 +564,7 @@ textarea.field-input,
 @media (max-width: 1200px) {
   .app-shell {
     grid-template-columns: 240px minmax(0, 1fr);
-    grid-template-rows: auto minmax(320px, 1fr) minmax(280px, auto) 260px;
+    grid-template-rows: auto minmax(320px, 1fr) minmax(280px, auto);
   }
 
   .topbar {
@@ -520,9 +587,8 @@ textarea.field-input,
     grid-row: 3;
   }
 
-  .source-panel {
-    grid-column: 1 / 3;
-    grid-row: 4;
+  .modal-backdrop {
+    padding: 18px;
   }
 }
 
@@ -547,7 +613,17 @@ textarea.field-input,
     min-height: 440px;
   }
 
-  .source-panel {
-    min-height: 280px;
+  .source-modal {
+    max-height: calc(100vh - 24px);
+    padding: 18px;
+  }
+
+  .source-modal-editor {
+    min-height: 56vh;
+  }
+
+  .tool-button {
+    min-width: 42px;
+    padding-inline: 12px;
   }
 }
