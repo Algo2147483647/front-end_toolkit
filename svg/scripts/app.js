@@ -57,7 +57,9 @@ const FIELDS = [
   ["Appearance", [
     { key: "fill", label: "fill", kind: "attr" },
     { key: "stroke", label: "stroke", kind: "attr" },
-    { key: "stroke-width", label: "stroke-width", kind: "attr" }
+    { key: "stroke-width", label: "stroke-width", kind: "attr" },
+    { key: "font-size", label: "font-size", kind: "attr" },
+    { key: "font-family", label: "font-family", kind: "attr" }
   ]],
   ["Geometry", [
     { key: "x", label: "x", kind: "attr" },
@@ -80,6 +82,10 @@ const FIELDS = [
     { key: "textContent", label: "text content", kind: "text", multiline: true }
   ]]
 ];
+
+const FIELD_MAP = new Map(FIELDS.flatMap(([, fields]) => fields.map((field) => [field.key, field])));
+const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size"]);
+const COLOR_FIELDS = new Set(["fill", "stroke"]);
 
 const state = {
   svgRoot: null,
@@ -608,6 +614,7 @@ function visibleField(node, field) {
   if (field.kind === "text") return ["text", "tspan"].includes(tag);
   if (field.key === "d") return tag === "path";
   if (field.key === "points") return ["polygon", "polyline"].includes(tag);
+  if (["font-size", "font-family"].includes(field.key)) return ["text", "tspan"].includes(tag);
   if (["cx", "cy", "r"].includes(field.key)) return tag === "circle";
   if (["rx", "ry"].includes(field.key)) return ["rect", "ellipse"].includes(tag);
   if (["x1", "y1", "x2", "y2"].includes(field.key)) return tag === "line";
@@ -803,6 +810,214 @@ function updateActions() {
   ui.deleteButton.disabled = !canChange;
 }
 
+function getFieldValue(node, field) {
+  return field.kind === "readonly"
+    ? field.value(node)
+    : field.kind === "text"
+      ? (node.textContent ?? "")
+      : (node.getAttribute(field.key) ?? "");
+}
+
+function getNodeParentLabel(node) {
+  if (node === state.svgRoot) {
+    return "Canvas";
+  }
+  const parent = node.parentElement;
+  if (!parent || parent === node) {
+    return "None";
+  }
+  return labelFor(parent);
+}
+
+function getInspectorNodeName(node) {
+  if (node === state.svgRoot) {
+    return "SVG Document";
+  }
+  return labelFor(node);
+}
+
+function getNodeStatusTokens(node) {
+  const tokens = [`${node.tagName.toLowerCase()}`];
+  tokens.push(isNodeHidden(node) ? "Hidden" : "Visible");
+  if (isNodeLocked(node)) {
+    tokens.push("Locked");
+  }
+  return tokens;
+}
+
+function getQuickFieldKeys(node) {
+  const tag = node.tagName.toLowerCase();
+  if (tag === "circle") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "r"];
+  if (tag === "ellipse") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "rx", "ry"];
+  if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
+  if (tag === "text" || tag === "tspan") return ["textContent", "fill", "opacity", "x", "y", "font-size", "font-family"];
+  if (tag === "path") return ["fill", "stroke", "stroke-width", "opacity", "d"];
+  return ["fill", "stroke", "stroke-width", "opacity", "x", "y", "width", "height"];
+}
+
+function getInspectorSections(node) {
+  const quick = getQuickFieldKeys(node).map((key) => FIELD_MAP.get(key)).filter((field) => field && visibleField(node, field));
+  const used = new Set(quick.map((field) => field.key));
+  const collect = (keys) => keys
+    .map((key) => FIELD_MAP.get(key))
+    .filter((field) => field && visibleField(node, field) && !used.has(field.key))
+    .map((field) => {
+      used.add(field.key);
+      return field;
+    });
+
+  return [
+    { title: "Quick Edit", open: true, fields: quick },
+    { title: "Geometry", open: false, fields: collect(["x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry"]) },
+    { title: "Appearance", open: false, fields: collect(["fill", "stroke", "stroke-width", "opacity", "font-size", "font-family"]) },
+    { title: "Transform", open: false, fields: collect(["transform"]) },
+    { title: "Content", open: quick.some((field) => ["textContent", "d", "points"].includes(field.key)), fields: collect(["textContent", "d", "points"]) },
+    { title: "Metadata", open: false, fields: collect(["tagName", "id", "class"]) }
+  ].filter((section) => section.fields.length);
+}
+
+function isHexColor(value) {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+}
+
+function normalizeColorValue(value) {
+  const trimmed = value.trim();
+  if (isHexColor(trimmed)) {
+    if (trimmed.length === 4) {
+      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase();
+    }
+    return trimmed.toLowerCase();
+  }
+
+  const rgbMatch = trimmed.match(/^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+  if (!rgbMatch) {
+    return null;
+  }
+
+  const values = rgbMatch.slice(1).map((part) => Math.max(0, Math.min(255, Number(part))));
+  return `#${values.map((part) => part.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function createInspectorField(node, field, locked) {
+  const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
+  row.classList.add("inspector-field");
+  const label = row.querySelector(".field-label");
+  const originalInput = row.querySelector(".field-input");
+  const value = getFieldValue(node, field);
+  label.textContent = field.label;
+
+  if (field.multiline) {
+    const input = document.createElement("textarea");
+    input.className = `${originalInput.className} inspector-textarea`;
+    originalInput.replaceWith(input);
+    input.value = value;
+    if (field.kind === "readonly") input.readOnly = true;
+    if (locked && field.kind !== "readonly") input.disabled = true;
+    const commit = () => updateField(node.dataset.editorId, field, input.value, true);
+    if (!locked && field.kind !== "readonly" && field.key !== "id") {
+      input.addEventListener("input", () => updateField(node.dataset.editorId, field, input.value, false));
+    }
+    if (!locked && field.kind !== "readonly") {
+      input.addEventListener("change", commit);
+      input.addEventListener("blur", commit);
+    }
+    return row;
+  }
+
+  if (COLOR_FIELDS.has(field.key) && field.kind === "attr") {
+    row.classList.add("field-row-color");
+    const wrapper = document.createElement("div");
+    const colorInput = document.createElement("input");
+    const textInput = document.createElement("input");
+    wrapper.className = "field-combo";
+    colorInput.type = "color";
+    colorInput.className = "field-swatch";
+    textInput.className = `${originalInput.className} field-input-text`;
+    textInput.value = value;
+    const normalized = normalizeColorValue(value);
+    colorInput.value = normalized || "#000000";
+    colorInput.disabled = locked;
+    textInput.disabled = locked;
+    if (!normalized) {
+      colorInput.classList.add("is-unset");
+    }
+    colorInput.addEventListener("input", () => {
+      textInput.value = colorInput.value;
+      colorInput.classList.remove("is-unset");
+      updateField(node.dataset.editorId, field, colorInput.value, false);
+    });
+    colorInput.addEventListener("change", () => updateField(node.dataset.editorId, field, colorInput.value, true));
+    textInput.addEventListener("input", () => {
+      const nextNormalized = normalizeColorValue(textInput.value);
+      if (nextNormalized) {
+        colorInput.value = nextNormalized;
+        colorInput.classList.remove("is-unset");
+      } else {
+        colorInput.classList.add("is-unset");
+      }
+      updateField(node.dataset.editorId, field, textInput.value, false);
+    });
+    textInput.addEventListener("change", () => updateField(node.dataset.editorId, field, textInput.value, true));
+    textInput.addEventListener("blur", () => updateField(node.dataset.editorId, field, textInput.value, true));
+    originalInput.replaceWith(wrapper);
+    wrapper.append(colorInput, textInput);
+    return row;
+  }
+
+  if (field.key === "opacity" && field.kind === "attr") {
+    row.classList.add("field-row-range");
+    const wrapper = document.createElement("div");
+    const rangeInput = document.createElement("input");
+    const numberInput = document.createElement("input");
+    wrapper.className = "field-range";
+    rangeInput.type = "range";
+    rangeInput.min = "0";
+    rangeInput.max = "1";
+    rangeInput.step = "0.01";
+    rangeInput.value = value || "1";
+    numberInput.type = "number";
+    numberInput.min = "0";
+    numberInput.max = "1";
+    numberInput.step = "0.01";
+    numberInput.className = `${originalInput.className} field-input-number`;
+    numberInput.value = value || "1";
+    rangeInput.disabled = locked;
+    numberInput.disabled = locked;
+    rangeInput.addEventListener("input", () => {
+      numberInput.value = rangeInput.value;
+      updateField(node.dataset.editorId, field, rangeInput.value, false);
+    });
+    rangeInput.addEventListener("change", () => updateField(node.dataset.editorId, field, rangeInput.value, true));
+    numberInput.addEventListener("input", () => {
+      rangeInput.value = numberInput.value || "0";
+      updateField(node.dataset.editorId, field, numberInput.value, false);
+    });
+    numberInput.addEventListener("change", () => updateField(node.dataset.editorId, field, numberInput.value, true));
+    numberInput.addEventListener("blur", () => updateField(node.dataset.editorId, field, numberInput.value, true));
+    originalInput.replaceWith(wrapper);
+    wrapper.append(rangeInput, numberInput);
+    return row;
+  }
+
+  const input = originalInput;
+  input.value = value;
+  if (field.kind === "readonly") input.readOnly = true;
+  if (NUMERIC_FIELDS.has(field.key) && field.kind !== "readonly") {
+    input.type = "number";
+    input.step = field.key === "opacity" ? "0.01" : "any";
+  }
+  if (locked && field.kind !== "readonly") input.disabled = true;
+  const commit = () => updateField(node.dataset.editorId, field, input.value, true);
+  if (!locked && field.kind !== "readonly" && field.key !== "id") {
+    input.addEventListener("input", () => updateField(node.dataset.editorId, field, input.value, false));
+  }
+  if (!locked && field.kind !== "readonly") {
+    input.addEventListener("change", commit);
+    input.addEventListener("blur", commit);
+  }
+  return row;
+}
+
 function renderTree() {
   ui.treePanel.innerHTML = "";
   if (!state.svgRoot) return;
@@ -897,39 +1112,70 @@ function renderInspector() {
   ui.propertyForm.classList.remove("hidden");
   ui.propertyForm.innerHTML = "";
   const locked = isNodeLocked(node);
+  const hidden = isNodeHidden(node);
+
+  const objectCard = document.createElement("section");
+  const objectTop = document.createElement("div");
+  const objectMeta = document.createElement("div");
+  const objectActions = document.createElement("div");
+  const typeChip = document.createElement("span");
+  const name = document.createElement("strong");
+  const parentMeta = document.createElement("span");
+  const statusMeta = document.createElement("span");
+  const visibilityButton = document.createElement("button");
+  const lockButton = document.createElement("button");
+
+  objectCard.className = "inspector-card inspector-object-card";
+  objectTop.className = "inspector-object-top";
+  objectMeta.className = "inspector-object-meta";
+  objectActions.className = "inspector-action-row";
+  typeChip.className = "inspector-type-chip";
+  name.className = "inspector-object-name";
+  typeChip.textContent = node.tagName.toLowerCase();
+  name.textContent = getInspectorNodeName(node);
+  parentMeta.textContent = `Parent: ${getNodeParentLabel(node)}`;
+  statusMeta.textContent = getNodeStatusTokens(node).join(" · ");
+
+  visibilityButton.type = "button";
+  visibilityButton.className = "inspector-action-button";
+  visibilityButton.textContent = hidden ? "Show" : "Hide";
+  visibilityButton.disabled = node === state.svgRoot;
+  visibilityButton.addEventListener("click", () => toggleNodeVisibility(node.dataset.editorId));
+
+  lockButton.type = "button";
+  lockButton.className = "inspector-action-button";
+  lockButton.textContent = locked ? "Unlock" : "Lock";
+  lockButton.disabled = node === state.svgRoot;
+  lockButton.addEventListener("click", () => toggleNodeLock(node.dataset.editorId));
+
+  objectTop.append(typeChip, name);
+  objectMeta.append(parentMeta, statusMeta);
+  objectActions.append(visibilityButton, lockButton);
+  objectCard.append(objectTop, objectMeta, objectActions);
+  ui.propertyForm.append(objectCard);
+
   if (locked) {
     const note = document.createElement("p");
     note.className = "inspector-note";
-    note.textContent = "This layer is locked. Unlock it from Layers before editing.";
+    note.textContent = "This layer is locked. Unlock it to edit attributes.";
     ui.propertyForm.append(note);
   }
-  FIELDS.forEach(([title, fields]) => {
-    const heading = document.createElement("h3");
-    heading.className = "section-title";
-    heading.textContent = title;
-    ui.propertyForm.append(heading);
-    fields.forEach((field) => {
-      if (!visibleField(node, field)) return;
-      const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
-      const label = row.querySelector(".field-label");
-      const originalInput = row.querySelector(".field-input");
-      const input = field.multiline ? document.createElement("textarea") : originalInput;
-      if (field.multiline) {
-        input.className = originalInput.className;
-        originalInput.replaceWith(input);
-      }
-      label.textContent = field.label;
-      input.value = field.kind === "readonly" ? field.value(node) : field.kind === "text" ? (node.textContent ?? "") : (node.getAttribute(field.key) ?? "");
-      if (field.kind === "readonly") input.readOnly = true;
-      if (locked && field.kind !== "readonly") input.disabled = true;
-      const commit = () => updateField(node.dataset.editorId, field, input.value, true);
-      if (field.key !== "id") {
-        input.addEventListener("input", () => updateField(node.dataset.editorId, field, input.value, false));
-      }
-      input.addEventListener("change", commit);
-      input.addEventListener("blur", commit);
-      ui.propertyForm.append(row);
-    });
+
+  getInspectorSections(node).forEach((section) => {
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    const content = document.createElement("div");
+    details.className = "inspector-card inspector-section";
+    if (section.open) details.open = true;
+    summary.className = "inspector-section-summary";
+    summary.textContent = section.title;
+    content.className = "inspector-section-body";
+    if (section.title === "Quick Edit") {
+      content.classList.add("inspector-quick-grid");
+    }
+    section.fields.forEach((field) => content.append(createInspectorField(node, field, locked)));
+    details.append(summary, content);
+    ui.propertyForm.append(details);
   });
 }
 
