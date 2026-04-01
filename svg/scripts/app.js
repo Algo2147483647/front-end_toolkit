@@ -87,6 +87,9 @@ const state = {
   selectedId: null,
   nextId: 0,
   zoom: 1,
+  topbarCollapsed: false,
+  leftPanelHidden: false,
+  rightPanelHidden: false,
   sourceVisible: false,
   history: [],
   historyIndex: -1,
@@ -99,10 +102,20 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 const ui = {
+  appShell: $("#appShell"),
+  topbar: $("#topbar"),
+  leftPanel: $("#leftPanel"),
+  rightPanel: $("#rightPanel"),
   fileInput: $("#fileInput"),
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
   sourceToggleButton: $("#sourceToggleButton"),
+  collapseTopbarButton: $("#collapseTopbarButton"),
+  showTopbarButton: $("#showTopbarButton"),
+  hideLeftPanelButton: $("#hideLeftPanelButton"),
+  hideRightPanelButton: $("#hideRightPanelButton"),
+  floatingLeftButton: $("#floatingLeftButton"),
+  floatingRightButton: $("#floatingRightButton"),
   insertImageButton: $("#insertImageButton"),
   newDocumentButton: $("#newDocumentButton"),
   loadSampleButton: $("#loadSampleButton"),
@@ -723,6 +736,40 @@ function updateSource() {
   ui.sourceEditor.value = serialize();
 }
 
+function syncChrome() {
+  ui.appShell.classList.toggle("is-topbar-collapsed", state.topbarCollapsed);
+  ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
+  ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
+
+  ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
+  ui.collapseTopbarButton.querySelector(".tool-label").textContent = state.topbarCollapsed ? "Show Bar" : "Hide Bar";
+  ui.collapseTopbarButton.querySelector(".tool-icon").textContent = state.topbarCollapsed ? "▾" : "▴";
+  ui.collapseTopbarButton.title = state.topbarCollapsed ? "Show toolbar" : "Hide toolbar";
+
+  ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
+  ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
+  ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "×";
+
+  ui.floatingRightButton.textContent = state.rightPanelHidden ? "Show Right" : "Hide Right";
+  ui.floatingRightButton.classList.toggle("is-active", !state.rightPanelHidden);
+  ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "×";
+}
+
+function setTopbarCollapsed(collapsed) {
+  state.topbarCollapsed = collapsed;
+  syncChrome();
+}
+
+function setLeftPanelHidden(hidden) {
+  state.leftPanelHidden = hidden;
+  syncChrome();
+}
+
+function setRightPanelHidden(hidden) {
+  state.rightPanelHidden = hidden;
+  syncChrome();
+}
+
 function setSourcePaneVisible(visible) {
   state.sourceVisible = visible;
   ui.sourcePane.classList.toggle("hidden", !visible);
@@ -1147,6 +1194,12 @@ ui.importButton.addEventListener("click", () => ui.fileInput.click());
 ui.sourceToggleButton.addEventListener("click", () => {
   setSourcePaneVisible(!state.sourceVisible);
 });
+ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!state.topbarCollapsed));
+ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));
+ui.hideLeftPanelButton.addEventListener("click", () => setLeftPanelHidden(true));
+ui.hideRightPanelButton.addEventListener("click", () => setRightPanelHidden(true));
+ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.leftPanelHidden));
+ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!state.rightPanelHidden));
 ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
 ui.newDocumentButton.addEventListener("click", () => loadDocument(EMPTY_SVG));
 ui.loadSampleButton.addEventListener("click", () => loadDocument(SAMPLE_SVG));
@@ -1239,5 +1292,6 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+syncChrome();
 setSourcePaneVisible(false);
 loadDocument(SAMPLE_SVG);

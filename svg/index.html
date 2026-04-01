@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
+  <div class="app-shell" id="appShell">
+    <header class="topbar" id="topbar">
       <div class="brand-block">
         <p class="eyebrow">Front-End Toolkit</p>
         <div class="brand-row">
@@ -74,10 +74,27 @@
           <span class="tool-icon" aria-hidden="true">⤢</span>
           <span class="tool-label">Fit</span>
         </button>
+        <button class="tool-button" id="collapseTopbarButton" type="button" title="Hide toolbar" aria-label="Hide toolbar">
+          <span class="tool-icon" aria-hidden="true">▴</span>
+          <span class="tool-label">Hide Bar</span>
+        </button>
       </div>
     </header>
 
-    <aside class="panel left-panel">
+    <div class="floating-dock" id="floatingDock">
+      <button class="dock-button hidden" id="showTopbarButton" type="button">Toolbar</button>
+      <button class="dock-button" id="floatingLeftButton" type="button">Left</button>
+      <button class="dock-button" id="floatingRightButton" type="button">Right</button>
+    </div>
+
+    <aside class="panel left-panel" id="leftPanel">
+      <div class="floating-panel-header">
+        <div>
+          <p class="eyebrow">Workspace</p>
+          <h2>Library</h2>
+        </div>
+        <button class="tool-button compact" id="hideLeftPanelButton" type="button" title="Hide left panel" aria-label="Hide left panel">×</button>
+      </div>
       <section class="panel-section">
         <div class="panel-heading">
           <h2>Insert</h2>
@@ -141,7 +158,14 @@
       </section>
     </main>
 
-    <aside class="panel inspector-panel">
+    <aside class="panel inspector-panel" id="rightPanel">
+      <div class="floating-panel-header">
+        <div>
+          <p class="eyebrow">Selection</p>
+          <h2>Inspector</h2>
+        </div>
+        <button class="tool-button compact" id="hideRightPanelButton" type="button" title="Hide right panel" aria-label="Hide right panel">×</button>
+      </div>
       <section class="panel-section">
         <div class="panel-heading">
           <h2>Inspector</h2>
@@ -159,6 +183,6 @@
     </label>
   </template>
 
-  <script type="module" src="./scripts/app.js"></script>
+  <script src="./scripts/app.js"></script>
 </body>
 </html>
