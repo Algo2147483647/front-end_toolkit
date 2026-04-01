@@ -19,42 +19,60 @@
       </div>
 
       <div class="toolbar">
-        <button class="tool-button icon-only" id="newDocumentButton" type="button" title="New document" aria-label="New document">
+        <div class="toolbar-group">
+        <button class="tool-button" id="newDocumentButton" type="button" title="New document" aria-label="New document">
           <span class="tool-icon" aria-hidden="true">+</span>
+          <span class="tool-label">New</span>
         </button>
-        <button class="tool-button icon-only" id="loadSampleButton" type="button" title="Load sample" aria-label="Load sample">
+        <button class="tool-button" id="loadSampleButton" type="button" title="Load sample" aria-label="Load sample">
           <span class="tool-icon" aria-hidden="true">◇</span>
+          <span class="tool-label">Sample</span>
         </button>
-        <button class="tool-button icon-only" id="importButton" type="button" title="Import SVG" aria-label="Import SVG">
+        <button class="tool-button" id="importButton" type="button" title="Import SVG" aria-label="Import SVG">
           <span class="tool-icon" aria-hidden="true">↑</span>
+          <span class="tool-label">Import</span>
         </button>
         <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden>
-        <button class="tool-button icon-only" id="sourceToggleButton" type="button" title="Open source editor" aria-label="Open source editor" aria-expanded="false">
-          <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
-        </button>
-        <button class="tool-button icon-only" id="exportButton" type="button" title="Export SVG" aria-label="Export SVG">
+        <button class="tool-button" id="exportButton" type="button" title="Export SVG" aria-label="Export SVG">
           <span class="tool-icon" aria-hidden="true">↓</span>
+          <span class="tool-label">Export</span>
         </button>
-        <button class="tool-button icon-only" id="undoButton" type="button" title="Undo" aria-label="Undo">
+        </div>
+
+        <div class="toolbar-group">
+        <button class="tool-button" id="undoButton" type="button" title="Undo" aria-label="Undo">
           <span class="tool-icon" aria-hidden="true">↶</span>
+          <span class="tool-label">Undo</span>
         </button>
-        <button class="tool-button icon-only" id="redoButton" type="button" title="Redo" aria-label="Redo">
+        <button class="tool-button" id="redoButton" type="button" title="Redo" aria-label="Redo">
           <span class="tool-icon" aria-hidden="true">↷</span>
+          <span class="tool-label">Redo</span>
         </button>
-        <button class="tool-button icon-only" id="duplicateButton" type="button" title="Duplicate" aria-label="Duplicate">
+        <button class="tool-button" id="duplicateButton" type="button" title="Duplicate" aria-label="Duplicate">
           <span class="tool-icon" aria-hidden="true">⎘</span>
+          <span class="tool-label">Duplicate</span>
         </button>
-        <button class="tool-button icon-only" id="deleteButton" type="button" title="Delete" aria-label="Delete">
+        <button class="tool-button" id="deleteButton" type="button" title="Delete" aria-label="Delete">
           <span class="tool-icon" aria-hidden="true">×</span>
+          <span class="tool-label">Delete</span>
         </button>
+        </div>
+
+        <div class="toolbar-group">
+        <button class="tool-button" id="sourceToggleButton" type="button" title="Show source" aria-label="Show source" aria-expanded="false">
+          <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
+          <span class="tool-label">Source</span>
+        </button>
+        </div>
       </div>
 
       <div class="zoom-controls">
         <button class="tool-button compact" id="zoomOutButton" type="button" title="Zoom out" aria-label="Zoom out">-</button>
         <span id="zoomLabel">100%</span>
         <button class="tool-button compact" id="zoomInButton" type="button" title="Zoom in" aria-label="Zoom in">+</button>
-        <button class="tool-button icon-only" id="zoomResetButton" type="button" title="Fit to view" aria-label="Fit to view">
+        <button class="tool-button" id="zoomResetButton" type="button" title="Fit to view" aria-label="Fit to view">
           <span class="tool-icon" aria-hidden="true">⤢</span>
+          <span class="tool-label">Fit</span>
         </button>
       </div>
     </header>
@@ -81,14 +99,8 @@
           <h2>Layers</h2>
           <span class="count-badge" id="nodeCountBadge">0 nodes</span>
         </div>
+        <p class="hint-text">Collapse groups, hide layers, or lock them before editing.</p>
         <div class="tree-panel" id="treePanel"></div>
-      </section>
-
-      <section class="panel-section">
-        <div class="panel-heading">
-          <h2>Resources</h2>
-        </div>
-        <div class="resource-list" id="resourceList"></div>
       </section>
     </aside>
 
@@ -101,14 +113,31 @@
         <div class="workspace-meta" id="workspaceMeta">Waiting for document</div>
       </section>
 
-      <section class="workspace-surface" id="workspaceSurface">
-        <div class="surface-grid"></div>
-        <div class="surface-inner" id="surfaceInner">
-          <div class="svg-host" id="svgHost">
-            <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
+      <section class="workspace-content" id="workspaceContent">
+        <section class="workspace-surface" id="workspaceSurface">
+          <div class="surface-grid"></div>
+          <div class="surface-inner" id="surfaceInner">
+            <div class="svg-host" id="svgHost">
+              <svg class="selection-overlay" id="selectionOverlay" aria-hidden="true"></svg>
+            </div>
           </div>
-        </div>
-        <div class="drop-overlay hidden" id="dropOverlay">Drop to insert file</div>
+          <div class="drop-overlay hidden" id="dropOverlay">Drop to insert file</div>
+        </section>
+
+        <section class="source-pane hidden" id="sourcePane">
+          <div class="source-pane-header">
+            <div>
+              <p class="eyebrow">Editor</p>
+              <h2>SVG Source</h2>
+            </div>
+            <button class="tool-button" id="applySourceButton" type="button">
+              <span class="tool-icon" aria-hidden="true">✓</span>
+              <span class="tool-label">Apply</span>
+            </button>
+          </div>
+          <p class="source-pane-hint">Edit raw SVG and apply your changes when you are ready.</p>
+          <textarea class="source-editor source-pane-editor" id="sourceEditor" spellcheck="false"></textarea>
+        </section>
       </section>
     </main>
 
@@ -121,27 +150,6 @@
         <form class="property-form hidden" id="propertyForm"></form>
       </section>
     </aside>
-  </div>
-
-  <div class="modal-backdrop hidden" id="sourceModalBackdrop">
-    <section class="source-modal" id="sourceModal" role="dialog" aria-modal="true" aria-labelledby="sourceModalTitle">
-      <div class="source-modal-header">
-        <div>
-          <p class="eyebrow">Editor</p>
-          <h2 id="sourceModalTitle">SVG Source</h2>
-        </div>
-        <div class="modal-actions">
-          <button class="tool-button icon-only" id="applySourceButton" type="button" title="Apply source" aria-label="Apply source">
-            <span class="tool-icon" aria-hidden="true">✓</span>
-          </button>
-          <button class="tool-button icon-only" id="closeSourceButton" type="button" title="Close source editor" aria-label="Close source editor">
-            <span class="tool-icon" aria-hidden="true">×</span>
-          </button>
-        </div>
-      </div>
-      <p class="source-modal-hint">Edit raw SVG and apply the changes when you are ready.</p>
-      <textarea class="source-editor source-modal-editor" id="sourceEditor" spellcheck="false"></textarea>
-    </section>
   </div>
 
   <template id="propertyFieldTemplate">

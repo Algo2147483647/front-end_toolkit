@@ -87,12 +87,14 @@ const state = {
   selectedId: null,
   nextId: 0,
   zoom: 1,
+  sourceVisible: false,
   history: [],
   historyIndex: -1,
   restoring: false,
   drag: null,
   dropDepth: 0,
-  warnings: []
+  warnings: [],
+  collapsedNodes: new Set()
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -101,7 +103,6 @@ const ui = {
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
   sourceToggleButton: $("#sourceToggleButton"),
-  closeSourceButton: $("#closeSourceButton"),
   insertImageButton: $("#insertImageButton"),
   newDocumentButton: $("#newDocumentButton"),
   loadSampleButton: $("#loadSampleButton"),
@@ -119,14 +120,13 @@ const ui = {
   workspaceMeta: $("#workspaceMeta"),
   nodeCountBadge: $("#nodeCountBadge"),
   treePanel: $("#treePanel"),
-  resourceList: $("#resourceList"),
   svgHost: $("#svgHost"),
   overlay: $("#selectionOverlay"),
   insertGrid: $("#insertGrid"),
   workspaceSurface: $("#workspaceSurface"),
+  workspaceContent: $("#workspaceContent"),
   dropOverlay: $("#dropOverlay"),
-  sourceModalBackdrop: $("#sourceModalBackdrop"),
-  sourceModal: $("#sourceModal"),
+  sourcePane: $("#sourcePane"),
   sourceEditor: $("#sourceEditor"),
   propertyForm: $("#propertyForm"),
   inspectorEmpty: $("#inspectorEmpty"),
@@ -377,6 +377,10 @@ function ensureDocument() {
   return state.svgRoot;
 }
 
+function getRenderableChildren(node) {
+  return [...node.children].filter((child) => child.tagName.toLowerCase() !== "style");
+}
+
 function getViewBoxRect() {
   const root = ensureDocument();
   const baseVal = root.viewBox?.baseVal;
@@ -397,6 +401,10 @@ function getInsertParent() {
   const selected = state.nodeMap.get(state.selectedId);
   if (!selected || selected === root) {
     return root;
+  }
+
+  if (isNodeLocked(selected)) {
+    return selected.parentElement || root;
   }
 
   const tag = selected.tagName.toLowerCase();
@@ -483,7 +491,6 @@ function insertNode(node, recordReason = "insert") {
   rebuildNodeMap();
   renderWorkspace();
   renderTree();
-  renderResources();
   updateSource();
   selectNode(node.dataset.editorId);
   recordHistory(recordReason);
@@ -550,8 +557,14 @@ function rebuildNodeMap() {
 }
 
 function cleanForExport(root) {
-  root.removeAttribute("data-editor-id");
-  root.querySelectorAll("[data-editor-id]").forEach((node) => node.removeAttribute("data-editor-id"));
+  const nodes = [root, ...root.querySelectorAll("*")];
+  for (const node of nodes) {
+    for (const attrName of node.getAttributeNames()) {
+      if (attrName.startsWith("data-editor-")) {
+        node.removeAttribute(attrName);
+      }
+    }
+  }
 }
 
 function serialize() {
@@ -566,6 +579,14 @@ function labelFor(node) {
   if (id) return `#${id}`;
   if (node.tagName.toLowerCase() === "text") return node.textContent.trim().slice(0, 24) || "<text>";
   return "<unnamed>";
+}
+
+function isNodeLocked(node) {
+  return node?.dataset.editorLocked === "true";
+}
+
+function isNodeHidden(node) {
+  return node?.getAttribute("display") === "none";
 }
 
 function visibleField(node, field) {
@@ -594,20 +615,10 @@ function viewBoxFor(root) {
   return "0 0 100 100";
 }
 
-function resourceSummary(root) {
-  return [
-    ["Defs", root.querySelectorAll("defs").length, "Reusable definition containers"],
-    ["Gradients", root.querySelectorAll("linearGradient, radialGradient").length, "Gradient assets"],
-    ["Symbols", root.querySelectorAll("symbol").length, "Reusable symbols"],
-    ["Use", root.querySelectorAll("use").length, "Instanced nodes"],
-    ["Clips / Masks", root.querySelectorAll("clipPath, mask").length, "Clip and mask resources"]
-  ];
-}
-
 function canDragNode(node) {
   if (!node || node === state.svgRoot) return false;
   const tag = node.tagName.toLowerCase();
-  return !["defs", "clipPath", "mask", "symbol", "linearGradient", "radialGradient", "stop"].includes(tag);
+  return !isNodeLocked(node) && !["defs", "clipPath", "mask", "symbol", "linearGradient", "radialGradient", "stop"].includes(tag);
 }
 
 function getNumericAttr(node, attrName, fallback = 0) {
@@ -712,26 +723,18 @@ function updateSource() {
   ui.sourceEditor.value = serialize();
 }
 
-function closeSourceModal(restoreFocus = true) {
-  ui.sourceModalBackdrop.classList.add("hidden");
+function setSourcePaneVisible(visible) {
+  state.sourceVisible = visible;
+  ui.sourcePane.classList.toggle("hidden", !visible);
+  ui.workspaceContent.classList.toggle("is-source-visible", visible);
   ui.sourceToggleButton.classList.remove("is-active");
-  ui.sourceToggleButton.setAttribute("aria-expanded", "false");
-  ui.sourceToggleButton.title = "Open source editor";
-  document.body.classList.remove("modal-open");
-
-  if (restoreFocus) {
-    ui.sourceToggleButton.focus();
+  if (visible) {
+    ui.sourceToggleButton.classList.add("is-active");
+    updateSource();
+    requestAnimationFrame(() => ui.sourceEditor.focus());
   }
-}
-
-function openSourceModal() {
-  updateSource();
-  ui.sourceModalBackdrop.classList.remove("hidden");
-  ui.sourceToggleButton.classList.add("is-active");
-  ui.sourceToggleButton.setAttribute("aria-expanded", "true");
-  ui.sourceToggleButton.title = "Close source editor";
-  document.body.classList.add("modal-open");
-  requestAnimationFrame(() => ui.sourceEditor.focus());
+  ui.sourceToggleButton.setAttribute("aria-expanded", String(visible));
+  ui.sourceToggleButton.title = visible ? "Hide source" : "Show source";
 }
 
 function applyZoom() {
@@ -746,22 +749,11 @@ function setZoom(value) {
 
 function updateActions() {
   const active = state.nodeMap.get(state.selectedId);
-  const canChange = Boolean(active && active !== state.svgRoot);
+  const canChange = Boolean(active && active !== state.svgRoot && !isNodeLocked(active));
   ui.undoButton.disabled = state.historyIndex <= 0;
   ui.redoButton.disabled = state.historyIndex >= state.history.length - 1 || state.historyIndex < 0;
   ui.duplicateButton.disabled = !canChange;
   ui.deleteButton.disabled = !canChange;
-}
-
-function renderResources() {
-  ui.resourceList.innerHTML = "";
-  if (!state.svgRoot) return;
-  resourceSummary(state.svgRoot).forEach(([title, count, detail]) => {
-    const card = document.createElement("div");
-    card.className = "resource-card";
-    card.innerHTML = `<strong>${title}: ${count}</strong><span>${detail}</span>`;
-    ui.resourceList.append(card);
-  });
 }
 
 function renderTree() {
@@ -770,23 +762,76 @@ function renderTree() {
   const fragment = document.createDocumentFragment();
   const walk = (node, depth) => {
     if (node.tagName.toLowerCase() === "style") return;
-    const row = document.createElement("button");
+    const children = getRenderableChildren(node);
+    const hasChildren = children.length > 0;
+    const collapsed = state.collapsedNodes.has(node.dataset.editorId);
+    const locked = isNodeLocked(node);
+    const hidden = isNodeHidden(node);
+    const row = document.createElement("div");
+    const main = document.createElement("div");
+    const expander = document.createElement("button");
+    const selectButton = document.createElement("button");
     const dot = document.createElement("span");
     const tag = document.createElement("span");
     const label = document.createElement("span");
-    row.type = "button";
     row.className = "tree-item";
     if (node.dataset.editorId === state.selectedId) row.classList.add("is-selected");
-    row.style.paddingLeft = `${depth * 18 + 12}px`;
+    if (locked) row.classList.add("is-locked");
+    if (hidden) row.classList.add("is-hidden");
+    row.style.setProperty("--depth", depth);
+    main.className = "tree-main";
+    expander.type = "button";
+    expander.className = "tree-expander";
+    expander.textContent = hasChildren ? (collapsed ? "▸" : "▾") : "•";
+    if (!hasChildren) {
+      expander.classList.add("is-placeholder");
+      expander.disabled = true;
+    } else {
+      expander.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleNodeCollapse(node.dataset.editorId);
+      });
+    }
+    selectButton.type = "button";
+    selectButton.className = "tree-select";
     dot.className = "tree-dot";
     tag.className = "tree-tag";
     label.className = "tree-label";
     tag.textContent = node.tagName.toLowerCase();
     label.textContent = labelFor(node);
-    row.append(dot, tag, label);
-    row.addEventListener("click", () => selectNode(node.dataset.editorId));
+    selectButton.append(dot, tag, label);
+    selectButton.addEventListener("click", () => selectNode(node.dataset.editorId));
+    main.append(expander, selectButton);
+
+    const actions = document.createElement("div");
+    const visibilityButton = document.createElement("button");
+    const lockButton = document.createElement("button");
+    actions.className = "tree-actions";
+    visibilityButton.type = "button";
+    visibilityButton.className = `tree-action${!hidden ? " is-active" : ""}`;
+    visibilityButton.textContent = hidden ? "Show" : "Hide";
+    visibilityButton.title = hidden ? "Show layer" : "Hide layer";
+    visibilityButton.disabled = node === state.svgRoot;
+    visibilityButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNodeVisibility(node.dataset.editorId);
+    });
+    lockButton.type = "button";
+    lockButton.className = `tree-action${locked ? " is-active" : ""}`;
+    lockButton.textContent = locked ? "Unlock" : "Lock";
+    lockButton.title = locked ? "Unlock layer" : "Lock layer";
+    lockButton.disabled = node === state.svgRoot;
+    lockButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNodeLock(node.dataset.editorId);
+    });
+    actions.append(visibilityButton, lockButton);
+
+    row.append(main, actions);
     fragment.append(row);
-    [...node.children].forEach((child) => walk(child, depth + 1));
+    if (!collapsed) {
+      children.forEach((child) => walk(child, depth + 1));
+    }
   };
   walk(state.svgRoot, 0);
   ui.treePanel.append(fragment);
@@ -804,6 +849,13 @@ function renderInspector() {
   ui.inspectorEmpty.classList.add("hidden");
   ui.propertyForm.classList.remove("hidden");
   ui.propertyForm.innerHTML = "";
+  const locked = isNodeLocked(node);
+  if (locked) {
+    const note = document.createElement("p");
+    note.className = "inspector-note";
+    note.textContent = "This layer is locked. Unlock it from Layers before editing.";
+    ui.propertyForm.append(note);
+  }
   FIELDS.forEach(([title, fields]) => {
     const heading = document.createElement("h3");
     heading.className = "section-title";
@@ -822,6 +874,7 @@ function renderInspector() {
       label.textContent = field.label;
       input.value = field.kind === "readonly" ? field.value(node) : field.kind === "text" ? (node.textContent ?? "") : (node.getAttribute(field.key) ?? "");
       if (field.kind === "readonly") input.readOnly = true;
+      if (locked && field.kind !== "readonly") input.disabled = true;
       const commit = () => updateField(node.dataset.editorId, field, input.value, true);
       if (field.key !== "id") {
         input.addEventListener("input", () => updateField(node.dataset.editorId, field, input.value, false));
@@ -943,6 +996,52 @@ function selectNode(editorId) {
   updateActions();
 }
 
+function toggleNodeCollapse(editorId) {
+  if (state.collapsedNodes.has(editorId)) {
+    state.collapsedNodes.delete(editorId);
+  } else {
+    state.collapsedNodes.add(editorId);
+  }
+  renderTree();
+}
+
+function toggleNodeVisibility(editorId) {
+  const node = state.nodeMap.get(editorId);
+  if (!node || node === state.svgRoot) return;
+  if (isNodeHidden(node)) {
+    const backup = node.dataset.editorDisplayBackup;
+    if (backup) {
+      node.setAttribute("display", backup);
+      delete node.dataset.editorDisplayBackup;
+    } else {
+      node.removeAttribute("display");
+    }
+  } else {
+    const current = node.getAttribute("display");
+    if (current && current !== "none") {
+      node.dataset.editorDisplayBackup = current;
+    } else {
+      delete node.dataset.editorDisplayBackup;
+    }
+    node.setAttribute("display", "none");
+  }
+  updateSource();
+  renderWorkspace();
+  renderTree();
+  recordHistory("visibility");
+}
+
+function toggleNodeLock(editorId) {
+  const node = state.nodeMap.get(editorId);
+  if (!node || node === state.svgRoot) return;
+  node.dataset.editorLocked = isNodeLocked(node) ? "false" : "true";
+  renderTree();
+  renderInspector();
+  renderOverlay();
+  updateActions();
+  updateSource();
+}
+
 function renderWorkspace() {
   ui.overlay.innerHTML = "";
   if (!state.svgRoot) return;
@@ -970,6 +1069,7 @@ function renderWorkspace() {
 function updateField(editorId, field, value, record) {
   const node = state.nodeMap.get(editorId);
   if (!node || field.kind === "readonly") return;
+  if (isNodeLocked(node)) return;
   if (field.key === "id") {
     if (!record) return;
     renameNodeId(node, value.trim());
@@ -996,14 +1096,13 @@ function updateField(editorId, field, value, record) {
 
 function duplicateSelection() {
   const node = state.nodeMap.get(state.selectedId);
-  if (!node || node === state.svgRoot || !node.parentNode) return;
+  if (!node || node === state.svgRoot || !node.parentNode || isNodeLocked(node)) return;
   const clone = node.cloneNode(true);
   remapSubtreeIds(clone);
   addEditorIds(clone);
   node.parentNode.insertBefore(clone, node.nextSibling);
   rebuildNodeMap();
   renderTree();
-  renderResources();
   updateSource();
   selectNode(clone.dataset.editorId);
   recordHistory("duplicate");
@@ -1011,11 +1110,10 @@ function duplicateSelection() {
 
 function deleteSelection() {
   const node = state.nodeMap.get(state.selectedId);
-  if (!node || node === state.svgRoot || !node.parentNode) return;
+  if (!node || node === state.svgRoot || !node.parentNode || isNodeLocked(node)) return;
   const fallback = node.previousElementSibling || node.parentElement || state.svgRoot;
   node.remove();
   rebuildNodeMap();
-  renderResources();
   updateSource();
   renderTree();
   recordHistory("delete");
@@ -1035,10 +1133,10 @@ function loadDocument(source, pushHistory = true) {
   const root = parseSvg(source);
   addEditorIds(root);
   state.svgRoot = root;
+  state.collapsedNodes.clear();
   rebuildNodeMap();
   renderWorkspace();
   renderTree();
-  renderResources();
   updateSource();
   selectNode(root.dataset.editorId);
   if (pushHistory) recordHistory("load");
@@ -1047,20 +1145,14 @@ function loadDocument(source, pushHistory = true) {
 
 ui.importButton.addEventListener("click", () => ui.fileInput.click());
 ui.sourceToggleButton.addEventListener("click", () => {
-  if (ui.sourceModalBackdrop.classList.contains("hidden")) {
-    openSourceModal();
-  } else {
-    closeSourceModal();
-  }
+  setSourcePaneVisible(!state.sourceVisible);
 });
-ui.closeSourceButton.addEventListener("click", () => closeSourceModal());
 ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
 ui.newDocumentButton.addEventListener("click", () => loadDocument(EMPTY_SVG));
 ui.loadSampleButton.addEventListener("click", () => loadDocument(SAMPLE_SVG));
 ui.applySourceButton.addEventListener("click", () => {
   try {
     loadDocument(ui.sourceEditor.value);
-    closeSourceModal();
   } catch (error) {
     alert(error.message);
   }
@@ -1123,11 +1215,6 @@ ui.workspaceSurface.addEventListener("drop", async (event) => {
     alert(error.message);
   }
 });
-ui.sourceModalBackdrop.addEventListener("click", (event) => {
-  if (event.target === ui.sourceModalBackdrop) {
-    closeSourceModal(false);
-  }
-});
 window.addEventListener("pointermove", (event) => {
   moveDrag(event);
 });
@@ -1138,8 +1225,8 @@ window.addEventListener("pointercancel", () => {
   endDrag();
 });
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !ui.sourceModalBackdrop.classList.contains("hidden")) {
-    closeSourceModal();
+  if (event.key === "Escape" && state.sourceVisible) {
+    setSourcePaneVisible(false);
     return;
   }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
@@ -1152,5 +1239,5 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-closeSourceModal(false);
+setSourcePaneVisible(false);
 loadDocument(SAMPLE_SVG);
