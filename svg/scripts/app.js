@@ -167,7 +167,6 @@ const ui = {
   zoomResetButton: $("#zoomResetButton"),
   zoomLabel: $("#zoomLabel"),
   statusPill: $("#statusPill"),
-  workspaceMeta: $("#workspaceMeta"),
   nodeCountBadge: $("#nodeCountBadge"),
   treePanel: $("#treePanel"),
   svgHost: $("#svgHost"),
@@ -1560,8 +1559,6 @@ function renderWorkspace() {
   state.svgRoot.removeEventListener("pointerdown", onSvgPointerDown);
   state.svgRoot.addEventListener("click", onSvgClick);
   state.svgRoot.addEventListener("pointerdown", onSvgPointerDown);
-  const warningSuffix = state.warnings.length ? `, removed ${state.warnings.length} unsafe item(s)` : "";
-  ui.workspaceMeta.textContent = `Loaded ${state.svgRoot.querySelectorAll("*").length + 1} nodes${warningSuffix}`;
   applyZoom();
   renderOverlay();
 }
