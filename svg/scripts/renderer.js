@@ -346,7 +346,7 @@ export function createRenderer({ state, ui, model, actions }) {
 
       const children = model.getRenderableChildren(node);
       const hasChildren = children.length > 0;
-      const collapsed = state.collapsedNodes.has(node.dataset.editorId);
+      const collapsed = state.collapsedNodeKeys.has(model.getNodeKey(node));
       const locked = model.isNodeLocked(node);
       const hidden = model.isNodeHidden(node);
       const row = document.createElement("div");

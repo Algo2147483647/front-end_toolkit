@@ -62,6 +62,7 @@ export const state = {
   svgRoot: null,
   nodeMap: new Map(),
   selectedId: null,
+  selectedNodeKey: null,
   nextId: 0,
   zoom: 1,
   gridSnapEnabled: readStoredBoolean(GRID_SNAP_STORAGE_KEY, false),
@@ -75,5 +76,10 @@ export const state = {
   drag: null,
   dropDepth: 0,
   warnings: [],
-  collapsedNodes: new Set()
+  collapsedNodeKeys: new Set(),
+  lockedNodeKeys: new Set(),
+  hiddenNodeKeys: new Set(),
+  nodeKeyByEditorId: new Map(),
+  editorIdByNodeKey: new Map(),
+  nodeKeyByNode: new WeakMap()
 };

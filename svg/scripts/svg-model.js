@@ -231,6 +231,37 @@ export function createSvgModel(state) {
     return [...node.children].filter((child) => child.tagName.toLowerCase() !== "style");
   }
 
+  function buildNodeKey(node) {
+    if (!node) {
+      return null;
+    }
+
+    if (node === state.svgRoot) {
+      return "svg:root";
+    }
+
+    const domId = node.getAttribute("id");
+    if (domId) {
+      return `id:${domId}`;
+    }
+
+    const segments = [];
+    let current = node;
+    while (current && current !== state.svgRoot) {
+      const parent = current.parentElement;
+      if (!parent) {
+        break;
+      }
+
+      const siblings = getRenderableChildren(parent);
+      const index = siblings.indexOf(current);
+      segments.unshift(`${current.tagName.toLowerCase()}:${Math.max(index, 0)}`);
+      current = parent;
+    }
+
+    return `path:${segments.join("/")}`;
+  }
+
   function getViewBoxRect(root = state.svgRoot) {
     const baseVal = root?.viewBox?.baseVal;
     if (baseVal && baseVal.width && baseVal.height) {
@@ -386,12 +417,50 @@ export function createSvgModel(state) {
 
   function rebuildNodeMap() {
     state.nodeMap = new Map();
+    state.nodeKeyByEditorId = new Map();
+    state.editorIdByNodeKey = new Map();
+    state.nodeKeyByNode = new WeakMap();
     if (!state.svgRoot) {
       return;
     }
 
     const nodes = [state.svgRoot, ...state.svgRoot.querySelectorAll("*")];
-    nodes.forEach((node) => state.nodeMap.set(node.dataset.editorId, node));
+    nodes.forEach((node) => {
+      const editorId = node.dataset.editorId;
+      const nodeKey = buildNodeKey(node);
+      state.nodeMap.set(editorId, node);
+      state.nodeKeyByEditorId.set(editorId, nodeKey);
+      state.editorIdByNodeKey.set(nodeKey, editorId);
+      state.nodeKeyByNode.set(node, nodeKey);
+    });
+  }
+
+  function getNodeKey(node) {
+    return state.nodeKeyByNode.get(node) || buildNodeKey(node);
+  }
+
+  function getNodeKeyByEditorId(editorId) {
+    return state.nodeKeyByEditorId.get(editorId) || null;
+  }
+
+  function getEditorIdByNodeKey(nodeKey) {
+    return state.editorIdByNodeKey.get(nodeKey) || null;
+  }
+
+  function syncEditorMetadata() {
+    if (!state.svgRoot) {
+      return;
+    }
+
+    const nodes = [state.svgRoot, ...state.svgRoot.querySelectorAll("*")];
+    for (const node of nodes) {
+      const nodeKey = getNodeKey(node);
+      if (state.hiddenNodeKeys.has(nodeKey)) {
+        node.dataset.editorHidden = "true";
+      } else {
+        delete node.dataset.editorHidden;
+      }
+    }
   }
 
   function cleanForExport(root) {
@@ -423,11 +492,13 @@ export function createSvgModel(state) {
   }
 
   function isNodeLocked(node) {
-    return node?.dataset.editorLocked === "true";
+    const nodeKey = getNodeKey(node);
+    return Boolean(nodeKey && state.lockedNodeKeys.has(nodeKey));
   }
 
   function isNodeHidden(node) {
-    return node?.getAttribute("display") === "none";
+    const nodeKey = getNodeKey(node);
+    return node?.getAttribute("display") === "none" || Boolean(nodeKey && state.hiddenNodeKeys.has(nodeKey));
   }
 
   function visibleField(node, field) {
@@ -627,9 +698,12 @@ export function createSvgModel(state) {
     canDragNode,
     createElementNode,
     createImageNodeFromFile,
+    getEditorIdByNodeKey,
     getDragDescriptor,
     getInsertParent,
     getNumericAttr,
+    getNodeKey,
+    getNodeKeyByEditorId,
     getRenderableChildren,
     getViewBoxRect,
     isNodeHidden,
@@ -641,6 +715,7 @@ export function createSvgModel(state) {
     renameNodeId,
     roundCoordinate,
     serialize,
+    syncEditorMetadata,
     snapCoordinate,
     snapNodeToGrid,
     toLocalPoint,

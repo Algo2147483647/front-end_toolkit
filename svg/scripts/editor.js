@@ -9,6 +9,63 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     return state.svgRoot;
   }
 
+  function snapshotEditorState() {
+    return {
+      selectedNodeKey: state.selectedNodeKey,
+      collapsedNodeKeys: [...state.collapsedNodeKeys],
+      lockedNodeKeys: [...state.lockedNodeKeys],
+      hiddenNodeKeys: [...state.hiddenNodeKeys]
+    };
+  }
+
+  function restoreEditorState(snapshot) {
+    state.selectedNodeKey = snapshot?.selectedNodeKey || null;
+    state.collapsedNodeKeys = new Set(snapshot?.collapsedNodeKeys || []);
+    state.lockedNodeKeys = new Set(snapshot?.lockedNodeKeys || []);
+    state.hiddenNodeKeys = new Set(snapshot?.hiddenNodeKeys || []);
+  }
+
+  function resetEditorState() {
+    restoreEditorState(null);
+    state.selectedId = null;
+  }
+
+  function remapMetadataKey(oldKey, newKey) {
+    if (!oldKey || !newKey || oldKey === newKey) {
+      return;
+    }
+
+    if (state.selectedNodeKey === oldKey) {
+      state.selectedNodeKey = newKey;
+    }
+
+    if (state.collapsedNodeKeys.delete(oldKey)) {
+      state.collapsedNodeKeys.add(newKey);
+    }
+
+    if (state.lockedNodeKeys.delete(oldKey)) {
+      state.lockedNodeKeys.add(newKey);
+    }
+
+    if (state.hiddenNodeKeys.delete(oldKey)) {
+      state.hiddenNodeKeys.add(newKey);
+    }
+  }
+
+  function resolveLiveSelection(fallbackEditorId = state.svgRoot?.dataset.editorId || null) {
+    const resolvedEditorId = state.selectedNodeKey
+      ? model.getEditorIdByNodeKey(state.selectedNodeKey)
+      : null;
+
+    state.selectedId = resolvedEditorId || fallbackEditorId;
+
+    if (resolvedEditorId) {
+      state.selectedNodeKey = model.getNodeKeyByEditorId(resolvedEditorId);
+    } else if (!state.selectedNodeKey && fallbackEditorId) {
+      state.selectedNodeKey = model.getNodeKeyByEditorId(fallbackEditorId);
+    }
+  }
+
   function recordHistory(reason) {
     if (!state.svgRoot || state.restoring) {
       return;
@@ -36,7 +93,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     }
 
     state.restoring = true;
-    loadDocument(entry.snapshot, false);
+    loadDocument(entry.snapshot, { pushHistory: false, preserveEditorState: true });
     state.historyIndex = index;
     state.restoring = false;
     renderer.updateActions();
@@ -87,6 +144,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function selectNode(editorId) {
     state.selectedId = editorId;
+    state.selectedNodeKey = model.getNodeKeyByEditorId(editorId);
     renderer.renderTree();
     renderer.renderInspector();
     renderer.renderOverlay();
@@ -100,6 +158,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     model.addEditorIds(node);
     parent.append(node);
     model.rebuildNodeMap();
+    model.syncEditorMetadata();
     renderer.renderWorkspace();
     renderer.renderTree();
     renderer.updateSource();
@@ -211,10 +270,15 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function toggleNodeCollapse(editorId) {
-    if (state.collapsedNodes.has(editorId)) {
-      state.collapsedNodes.delete(editorId);
+    const nodeKey = model.getNodeKeyByEditorId(editorId);
+    if (!nodeKey) {
+      return;
+    }
+
+    if (state.collapsedNodeKeys.has(nodeKey)) {
+      state.collapsedNodeKeys.delete(nodeKey);
     } else {
-      state.collapsedNodes.add(editorId);
+      state.collapsedNodeKeys.add(nodeKey);
     }
 
     renderer.renderTree();
@@ -222,41 +286,46 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function toggleNodeVisibility(editorId) {
     const node = state.nodeMap.get(editorId);
-    if (!node || node === state.svgRoot) {
+    const nodeKey = model.getNodeKeyByEditorId(editorId);
+    if (!node || !nodeKey || node === state.svgRoot) {
       return;
     }
 
-    if (model.isNodeHidden(node)) {
-      const backup = node.dataset.editorDisplayBackup;
-      if (backup) {
-        node.setAttribute("display", backup);
-        delete node.dataset.editorDisplayBackup;
-      } else {
-        node.removeAttribute("display");
-      }
+    let shouldRecordHistory = false;
+
+    if (state.hiddenNodeKeys.has(nodeKey)) {
+      state.hiddenNodeKeys.delete(nodeKey);
+    } else if (node.getAttribute("display") === "none") {
+      node.removeAttribute("display");
+      shouldRecordHistory = true;
     } else {
-      const current = node.getAttribute("display");
-      if (current && current !== "none") {
-        node.dataset.editorDisplayBackup = current;
-      } else {
-        delete node.dataset.editorDisplayBackup;
-      }
-      node.setAttribute("display", "none");
+      state.hiddenNodeKeys.add(nodeKey);
     }
 
+    model.syncEditorMetadata();
     renderer.updateSource();
     renderer.renderWorkspace();
     renderer.renderTree();
-    recordHistory("visibility");
+    renderer.renderInspector();
+    renderer.renderOverlay();
+    if (shouldRecordHistory) {
+      recordHistory("visibility");
+    }
   }
 
   function toggleNodeLock(editorId) {
     const node = state.nodeMap.get(editorId);
-    if (!node || node === state.svgRoot) {
+    const nodeKey = model.getNodeKeyByEditorId(editorId);
+    if (!node || !nodeKey || node === state.svgRoot) {
       return;
     }
 
-    node.dataset.editorLocked = model.isNodeLocked(node) ? "false" : "true";
+    if (state.lockedNodeKeys.has(nodeKey)) {
+      state.lockedNodeKeys.delete(nodeKey);
+    } else {
+      state.lockedNodeKeys.add(nodeKey);
+    }
+
     renderer.renderTree();
     renderer.renderInspector();
     renderer.renderOverlay();
@@ -275,11 +344,15 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
         return;
       }
 
+      const previousNodeKey = model.getNodeKey(node);
       model.renameNodeId(node, value.trim());
+      model.rebuildNodeMap();
+      const nextNodeKey = model.getNodeKey(node);
+      remapMetadataKey(previousNodeKey, nextNodeKey);
+      model.syncEditorMetadata();
       renderer.updateSource();
-      renderer.renderTree();
-      renderer.renderOverlay();
-      renderer.renderInspector();
+      renderer.renderWorkspace();
+      selectNode(node.dataset.editorId);
       recordHistory("field:id");
       return;
     }
@@ -312,6 +385,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     model.addEditorIds(clone);
     node.parentNode.insertBefore(clone, node.nextSibling);
     model.rebuildNodeMap();
+    model.syncEditorMetadata();
     renderer.renderTree();
     renderer.updateSource();
     selectNode(clone.dataset.editorId);
@@ -327,6 +401,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     const fallback = node.previousElementSibling || node.parentElement || state.svgRoot;
     node.remove();
     model.rebuildNodeMap();
+    model.syncEditorMetadata();
     renderer.updateSource();
     renderer.renderTree();
     recordHistory("delete");
@@ -342,21 +417,33 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     URL.revokeObjectURL(url);
   }
 
-  function loadDocument(source, pushHistory = true) {
+  function loadDocument(source, options = {}) {
+    const {
+      pushHistory = true,
+      preserveEditorState = false
+    } = options;
+
+    const preservedEditorState = preserveEditorState ? snapshotEditorState() : null;
     const root = model.parseSvg(source);
     model.addEditorIds(root);
     state.svgRoot = root;
     state.drag = null;
-    state.collapsedNodes.clear();
     model.rebuildNodeMap();
+    if (preservedEditorState) {
+      restoreEditorState(preservedEditorState);
+    } else {
+      resetEditorState();
+    }
+    model.syncEditorMetadata();
+    resolveLiveSelection(root.dataset.editorId);
     renderer.renderWorkspace();
     renderer.renderTree();
+    renderer.renderInspector();
+    renderer.renderOverlay();
     renderer.updateSource();
-    selectNode(root.dataset.editorId);
+    renderer.updateActions();
     if (pushHistory) {
       recordHistory("load");
-    } else {
-      renderer.updateActions();
     }
   }
 
@@ -371,10 +458,10 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.leftPanelHidden));
     ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!state.rightPanelHidden));
     ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
-    ui.newDocumentButton.addEventListener("click", () => loadDocument(emptySvg));
+    ui.newDocumentButton.addEventListener("click", () => loadDocument(emptySvg, { preserveEditorState: false }));
     ui.applySourceButton.addEventListener("click", () => {
       try {
-        loadDocument(ui.sourceEditor.value);
+        loadDocument(ui.sourceEditor.value, { preserveEditorState: true });
       } catch (error) {
         alert(error.message);
       }
@@ -386,7 +473,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
         return;
       }
       try {
-        loadDocument(await file.text());
+        loadDocument(await file.text(), { preserveEditorState: false });
         event.target.value = "";
       } catch (error) {
         alert(error.message);
