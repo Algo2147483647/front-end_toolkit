@@ -86,6 +86,36 @@ const FIELDS = [
 const FIELD_MAP = new Map(FIELDS.flatMap(([, fields]) => fields.map((field) => [field.key, field])));
 const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size"]);
 const COLOR_FIELDS = new Set(["fill", "stroke"]);
+const GRID_SCREEN_SIZE = 28;
+const GRID_SNAP_STORAGE_KEY = "svgStudio.gridSnap";
+const COMMON_FONT_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Trebuchet MS", value: "Trebuchet MS, Helvetica, sans-serif" },
+  { label: "Segoe UI", value: "Segoe UI, Arial, sans-serif" },
+  { label: "Georgia", value: "Georgia, Times New Roman, serif" },
+  { label: "Times New Roman", value: "Times New Roman, Times, serif" },
+  { label: "Courier New", value: "Courier New, Courier, monospace" },
+  { label: "Lucida Console", value: "Lucida Console, Monaco, monospace" },
+  { label: "PingFang SC", value: "PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" },
+  { label: "Microsoft YaHei", value: "Microsoft YaHei, PingFang SC, sans-serif" },
+  { label: "Noto Sans SC", value: "Noto Sans SC, Microsoft YaHei, sans-serif" },
+  { label: "SimSun", value: "SimSun, Songti SC, serif" }
+];
+
+function readStoredBoolean(key, fallback = false) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+  } catch (error) {
+    return fallback;
+  }
+  return fallback;
+}
 
 const state = {
   svgRoot: null,
@@ -93,6 +123,7 @@ const state = {
   selectedId: null,
   nextId: 0,
   zoom: 1,
+  gridSnapEnabled: readStoredBoolean(GRID_SNAP_STORAGE_KEY, false),
   topbarCollapsed: false,
   leftPanelHidden: false,
   rightPanelHidden: false,
@@ -115,6 +146,7 @@ const ui = {
   fileInput: $("#fileInput"),
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
+  gridSnapButton: $("#gridSnapButton"),
   sourceToggleButton: $("#sourceToggleButton"),
   collapseTopbarButton: $("#collapseTopbarButton"),
   showTopbarButton: $("#showTopbarButton"),
@@ -124,7 +156,6 @@ const ui = {
   floatingRightButton: $("#floatingRightButton"),
   insertImageButton: $("#insertImageButton"),
   newDocumentButton: $("#newDocumentButton"),
-  loadSampleButton: $("#loadSampleButton"),
   applySourceButton: $("#applySourceButton"),
   exportButton: $("#exportButton"),
   undoButton: $("#undoButton"),
@@ -505,6 +536,7 @@ function createElementNode(kind) {
 
 function insertNode(node, recordReason = "insert") {
   const parent = getInsertParent();
+  snapNodeToGrid(node);
   addEditorIds(node);
   parent.append(node);
   rebuildNodeMap();
@@ -646,6 +678,64 @@ function getNumericAttr(node, attrName, fallback = 0) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function roundCoordinate(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function getGridMetrics() {
+  const viewBox = getViewBoxRect();
+  const rect = state.svgRoot?.getBoundingClientRect();
+  const width = rect?.width || viewBox.width || GRID_SCREEN_SIZE;
+  const height = rect?.height || viewBox.height || GRID_SCREEN_SIZE;
+
+  return {
+    originX: viewBox.x,
+    originY: viewBox.y,
+    stepX: (viewBox.width / width) * GRID_SCREEN_SIZE,
+    stepY: (viewBox.height / height) * GRID_SCREEN_SIZE
+  };
+}
+
+function snapCoordinate(value, step, origin) {
+  if (!state.gridSnapEnabled || !Number.isFinite(value) || !Number.isFinite(step) || step <= 0) {
+    return value;
+  }
+
+  return origin + (Math.round((value - origin) / step) * step);
+}
+
+function snapNodeToGrid(node) {
+  if (!state.gridSnapEnabled || !node) {
+    return;
+  }
+
+  const grid = getGridMetrics();
+  const tag = node.tagName.toLowerCase();
+
+  if (["rect", "image", "foreignObject", "use", "text"].includes(tag)) {
+    node.setAttribute("x", String(roundCoordinate(snapCoordinate(getNumericAttr(node, "x"), grid.stepX, grid.originX))));
+    node.setAttribute("y", String(roundCoordinate(snapCoordinate(getNumericAttr(node, "y"), grid.stepY, grid.originY))));
+    return;
+  }
+
+  if (["circle", "ellipse"].includes(tag)) {
+    node.setAttribute("cx", String(roundCoordinate(snapCoordinate(getNumericAttr(node, "cx"), grid.stepX, grid.originX))));
+    node.setAttribute("cy", String(roundCoordinate(snapCoordinate(getNumericAttr(node, "cy"), grid.stepY, grid.originY))));
+    return;
+  }
+
+  if (tag === "line") {
+    const nextX1 = snapCoordinate(getNumericAttr(node, "x1"), grid.stepX, grid.originX);
+    const nextY1 = snapCoordinate(getNumericAttr(node, "y1"), grid.stepY, grid.originY);
+    const dx = nextX1 - getNumericAttr(node, "x1");
+    const dy = nextY1 - getNumericAttr(node, "y1");
+    node.setAttribute("x1", String(roundCoordinate(nextX1)));
+    node.setAttribute("y1", String(roundCoordinate(nextY1)));
+    node.setAttribute("x2", String(roundCoordinate(getNumericAttr(node, "x2") + dx)));
+    node.setAttribute("y2", String(roundCoordinate(getNumericAttr(node, "y2") + dy)));
+  }
+}
+
 function toLocalPoint(referenceNode, clientX, clientY) {
   const point = state.svgRoot.createSVGPoint();
   point.x = clientX;
@@ -693,28 +783,40 @@ function getDragDescriptor(node) {
 }
 
 function applyDrag(node, descriptor, dx, dy) {
+  const grid = getGridMetrics();
+
   if (descriptor.mode === "xy") {
-    node.setAttribute("x", String(descriptor.x + dx));
-    node.setAttribute("y", String(descriptor.y + dy));
+    const nextX = snapCoordinate(descriptor.x + dx, grid.stepX, grid.originX);
+    const nextY = snapCoordinate(descriptor.y + dy, grid.stepY, grid.originY);
+    node.setAttribute("x", String(roundCoordinate(nextX)));
+    node.setAttribute("y", String(roundCoordinate(nextY)));
     return;
   }
 
   if (descriptor.mode === "center") {
-    node.setAttribute("cx", String(descriptor.cx + dx));
-    node.setAttribute("cy", String(descriptor.cy + dy));
+    const nextCx = snapCoordinate(descriptor.cx + dx, grid.stepX, grid.originX);
+    const nextCy = snapCoordinate(descriptor.cy + dy, grid.stepY, grid.originY);
+    node.setAttribute("cx", String(roundCoordinate(nextCx)));
+    node.setAttribute("cy", String(roundCoordinate(nextCy)));
     return;
   }
 
   if (descriptor.mode === "line") {
-    node.setAttribute("x1", String(descriptor.x1 + dx));
-    node.setAttribute("y1", String(descriptor.y1 + dy));
-    node.setAttribute("x2", String(descriptor.x2 + dx));
-    node.setAttribute("y2", String(descriptor.y2 + dy));
+    const nextX1 = snapCoordinate(descriptor.x1 + dx, grid.stepX, grid.originX);
+    const nextY1 = snapCoordinate(descriptor.y1 + dy, grid.stepY, grid.originY);
+    const snappedDx = nextX1 - descriptor.x1;
+    const snappedDy = nextY1 - descriptor.y1;
+    node.setAttribute("x1", String(roundCoordinate(nextX1)));
+    node.setAttribute("y1", String(roundCoordinate(nextY1)));
+    node.setAttribute("x2", String(roundCoordinate(descriptor.x2 + snappedDx)));
+    node.setAttribute("y2", String(roundCoordinate(descriptor.y2 + snappedDy)));
     return;
   }
 
   const { a, b, c, d, e, f } = descriptor.baseMatrix;
-  node.setAttribute("transform", `matrix(${a} ${b} ${c} ${d} ${e + dx} ${f + dy})`);
+  const nextE = roundCoordinate(snapCoordinate(e + dx, grid.stepX, 0));
+  const nextF = roundCoordinate(snapCoordinate(f + dy, grid.stepY, 0));
+  node.setAttribute("transform", `matrix(${a} ${b} ${c} ${d} ${nextE} ${nextF})`);
 }
 
 function recordHistory(reason) {
@@ -762,6 +864,29 @@ function syncChrome() {
   ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "×";
 }
 
+function syncChrome() {
+  ui.appShell.classList.toggle("is-topbar-collapsed", state.topbarCollapsed);
+  ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
+  ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
+  ui.workspaceSurface.classList.toggle("is-grid-snap", state.gridSnapEnabled);
+
+  ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
+  ui.collapseTopbarButton.querySelector(".tool-label").textContent = state.topbarCollapsed ? "Show" : "Hide";
+  ui.collapseTopbarButton.querySelector(".tool-icon").textContent = state.topbarCollapsed ? "+" : "-";
+  ui.collapseTopbarButton.title = state.topbarCollapsed ? "Show toolbar" : "Hide toolbar";
+  ui.gridSnapButton.classList.toggle("is-active", state.gridSnapEnabled);
+  ui.gridSnapButton.setAttribute("aria-pressed", String(state.gridSnapEnabled));
+  ui.gridSnapButton.title = state.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
+
+  ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
+  ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
+  ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "X";
+
+  ui.floatingRightButton.textContent = state.rightPanelHidden ? "Show Right" : "Hide Right";
+  ui.floatingRightButton.classList.toggle("is-active", !state.rightPanelHidden);
+  ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "X";
+}
+
 function setTopbarCollapsed(collapsed) {
   state.topbarCollapsed = collapsed;
   syncChrome();
@@ -774,6 +899,16 @@ function setLeftPanelHidden(hidden) {
 
 function setRightPanelHidden(hidden) {
   state.rightPanelHidden = hidden;
+  syncChrome();
+}
+
+function setGridSnapEnabled(enabled) {
+  state.gridSnapEnabled = enabled;
+  try {
+    localStorage.setItem(GRID_SNAP_STORAGE_KEY, String(enabled));
+  } catch (error) {
+    // Ignore storage errors and keep the toggle working for this session.
+  }
   syncChrome();
 }
 
@@ -898,6 +1033,33 @@ function normalizeColorValue(value) {
   return `#${values.map((part) => part.toString(16).padStart(2, "0")).join("")}`;
 }
 
+function syncFontPreset(select, value) {
+  const normalized = value.trim();
+  const customOption = select.querySelector("option[data-font-custom='true']");
+  if (customOption) {
+    customOption.remove();
+  }
+
+  if (!normalized) {
+    select.value = "";
+    return;
+  }
+
+  const presetMatch = [...select.options].find((option) => option.value === normalized);
+  if (presetMatch) {
+    select.value = normalized;
+    return;
+  }
+
+  const option = document.createElement("option");
+  option.value = normalized;
+  option.textContent = `Current (${normalized})`;
+  option.dataset.fontCustom = "true";
+  option.style.fontFamily = normalized;
+  select.append(option);
+  select.value = normalized;
+}
+
 function createInspectorField(node, field, locked) {
   const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
   row.classList.add("inspector-field");
@@ -961,6 +1123,51 @@ function createInspectorField(node, field, locked) {
     textInput.addEventListener("blur", () => updateField(node.dataset.editorId, field, textInput.value, true));
     originalInput.replaceWith(wrapper);
     wrapper.append(colorInput, textInput);
+    return row;
+  }
+
+  if (field.key === "font-family" && field.kind === "attr") {
+    row.classList.add("field-row-font");
+    const wrapper = document.createElement("div");
+    const presetInput = document.createElement("select");
+    const textInput = document.createElement("input");
+    wrapper.className = "field-font";
+    presetInput.className = "field-input field-font-select";
+    textInput.className = `${originalInput.className} field-input-text`;
+    textInput.value = value;
+    textInput.placeholder = "Custom font-family stack";
+    presetInput.disabled = locked;
+    textInput.disabled = locked;
+
+    COMMON_FONT_OPTIONS.forEach((optionConfig) => {
+      const option = document.createElement("option");
+      option.value = optionConfig.value;
+      option.textContent = optionConfig.label;
+      option.style.fontFamily = optionConfig.value || "";
+      presetInput.append(option);
+    });
+    syncFontPreset(presetInput, value);
+
+    presetInput.addEventListener("change", () => {
+      textInput.value = presetInput.value;
+      syncFontPreset(presetInput, textInput.value);
+      updateField(node.dataset.editorId, field, textInput.value, true);
+    });
+    textInput.addEventListener("input", () => {
+      syncFontPreset(presetInput, textInput.value);
+      updateField(node.dataset.editorId, field, textInput.value, false);
+    });
+    textInput.addEventListener("change", () => {
+      syncFontPreset(presetInput, textInput.value);
+      updateField(node.dataset.editorId, field, textInput.value, true);
+    });
+    textInput.addEventListener("blur", () => {
+      syncFontPreset(presetInput, textInput.value);
+      updateField(node.dataset.editorId, field, textInput.value, true);
+    });
+
+    originalInput.replaceWith(wrapper);
+    wrapper.append(presetInput, textInput);
     return row;
   }
 
@@ -1437,6 +1644,7 @@ function loadDocument(source, pushHistory = true) {
 }
 
 ui.importButton.addEventListener("click", () => ui.fileInput.click());
+ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!state.gridSnapEnabled));
 ui.sourceToggleButton.addEventListener("click", () => {
   setSourcePaneVisible(!state.sourceVisible);
 });
@@ -1448,7 +1656,6 @@ ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.
 ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!state.rightPanelHidden));
 ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
 ui.newDocumentButton.addEventListener("click", () => loadDocument(EMPTY_SVG));
-ui.loadSampleButton.addEventListener("click", () => loadDocument(SAMPLE_SVG));
 ui.applySourceButton.addEventListener("click", () => {
   try {
     loadDocument(ui.sourceEditor.value);

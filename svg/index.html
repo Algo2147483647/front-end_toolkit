@@ -24,10 +24,6 @@
           <span class="tool-icon" aria-hidden="true">+</span>
           <span class="tool-label">New</span>
         </button>
-        <button class="tool-button" id="loadSampleButton" type="button" title="Load sample" aria-label="Load sample">
-          <span class="tool-icon" aria-hidden="true">◇</span>
-          <span class="tool-label">Sample</span>
-        </button>
         <button class="tool-button" id="importButton" type="button" title="Import SVG" aria-label="Import SVG">
           <span class="tool-icon" aria-hidden="true">↑</span>
           <span class="tool-label">Import</span>
@@ -59,10 +55,14 @@
         </div>
 
         <div class="toolbar-group">
-        <button class="tool-button" id="sourceToggleButton" type="button" title="Show source" aria-label="Show source" aria-expanded="false">
-          <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
-          <span class="tool-label">Source</span>
-        </button>
+          <button class="tool-button" id="gridSnapButton" type="button" title="Enable grid snap" aria-label="Enable grid snap" aria-pressed="false">
+            <span class="tool-icon" aria-hidden="true">#</span>
+            <span class="tool-label">Snap</span>
+          </button>
+          <button class="tool-button" id="sourceToggleButton" type="button" title="Show source" aria-label="Show source" aria-expanded="false">
+            <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
+            <span class="tool-label">Source</span>
+          </button>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
         </button>
         <button class="tool-button" id="collapseTopbarButton" type="button" title="Hide toolbar" aria-label="Hide toolbar">
           <span class="tool-icon" aria-hidden="true">▴</span>
-          <span class="tool-label">Hide Bar</span>
+          <span class="tool-label">Hide</span>
         </button>
       </div>
     </header>

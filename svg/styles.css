@@ -39,6 +39,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -554,6 +555,14 @@ textarea {
   background-size: 26px 26px;
 }
 
+.workspace-surface.is-grid-snap .surface-grid {
+  border-color: rgba(15, 118, 110, 0.28);
+  background:
+    linear-gradient(rgba(15, 118, 110, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.1) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
 .surface-grid,
 .surface-inner {
   position: absolute;
@@ -751,7 +760,8 @@ textarea {
 }
 
 .field-combo,
-.field-range {
+.field-range,
+.field-font {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
@@ -760,6 +770,10 @@ textarea {
 .field-range {
   grid-template-columns: minmax(0, 1fr) 88px;
   align-items: center;
+}
+
+.field-font {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 }
 
 .field-swatch {
@@ -796,6 +810,10 @@ textarea {
   background: rgba(255, 255, 255, 0.7);
   color: var(--ink);
   padding: 10px 12px;
+}
+
+select.field-input {
+  cursor: pointer;
 }
 
 .field-input[readonly] {
@@ -982,7 +1000,8 @@ textarea.field-input,
 
   .inspector-quick-grid,
   .field-range,
-  .field-combo {
+  .field-combo,
+  .field-font {
     grid-template-columns: minmax(0, 1fr);
   }
 
