@@ -212,7 +212,6 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     const dx = Math.round((currentPoint.x - state.drag.startPoint.x) * 100) / 100;
     const dy = Math.round((currentPoint.y - state.drag.startPoint.y) * 100) / 100;
     model.applyDrag(node, state.drag.descriptor, dx, dy);
-    renderer.updateSource();
     renderer.renderOverlay();
   }
 
@@ -221,6 +220,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
+    renderer.updateSource();
     renderer.renderInspector();
     renderer.renderOverlay();
     recordHistory("drag");
