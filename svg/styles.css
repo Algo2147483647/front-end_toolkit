@@ -905,8 +905,9 @@ textarea.field-input,
 
 .floating-dock {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 35;
   display: flex;
   align-items: center;
@@ -995,6 +996,13 @@ textarea.field-input,
   .app-shell.is-topbar-collapsed .source-pane {
     padding-top: 108px;
   }
+
+  /* 底部 dock 在响应式下的调整 */
+  .floating-dock {
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 @media (max-width: 760px) {
@@ -1048,6 +1056,13 @@ textarea.field-input,
   .app-shell.is-topbar-collapsed .workspace-surface,
   .app-shell.is-topbar-collapsed .source-pane {
     padding-top: 146px;
+  }
+
+  /* 底部 dock 在小屏幕下的调整 */
+  .floating-dock {
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .tree-item {
