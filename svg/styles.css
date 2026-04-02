@@ -324,10 +324,14 @@ textarea {
 }
 
 .insert-card {
-  min-height: 54px;
-  padding: 12px;
-  color: var(--ink);
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 82px;
+  padding: 14px;
+  color: var(--accent);
   cursor: pointer;
+  overflow: hidden;
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
@@ -335,6 +339,58 @@ textarea {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.82);
+}
+
+.insert-card::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(145deg, rgba(208, 90, 47, 0.12), rgba(15, 118, 110, 0.08));
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.insert-card:hover::before,
+.insert-card:focus-visible::before {
+  transform: scale(1.02);
+  opacity: 1;
+}
+
+.insert-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.insert-card[data-insert="rect"] {
+  color: #c65a34;
+}
+
+.insert-card[data-insert="circle"] {
+  color: #0f766e;
+}
+
+.insert-card[data-insert="ellipse"] {
+  color: #2563eb;
+}
+
+.insert-card[data-insert="line"] {
+  color: #7c5a3a;
+}
+
+.insert-card[data-insert="text"] {
+  color: #b45309;
+}
+
+#insertImageButton {
+  color: #0f766e;
+}
+
+.insert-icon {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 8px 14px rgba(36, 24, 15, 0.08));
 }
 
 .tree-panel {
