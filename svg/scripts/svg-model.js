@@ -597,9 +597,12 @@ export function createSvgModel(state) {
     const tag = node.tagName.toLowerCase();
     if (field.kind === "readonly") return true;
     if (field.kind === "text") return ["text", "tspan"].includes(tag);
+    if (field.kind === "typography-controls") return ["text", "tspan"].includes(tag);
     if (field.key === "d") return tag === "path";
     if (field.key === "points") return ["polygon", "polyline"].includes(tag);
-    if (["font-size", "font-family"].includes(field.key)) return ["text", "tspan"].includes(tag);
+    if (["font-size", "font-family", "font-weight", "font-style", "text-decoration", "letter-spacing", "text-anchor"].includes(field.key)) {
+      return ["text", "tspan"].includes(tag);
+    }
     if (["cx", "cy", "r"].includes(field.key)) return tag === "circle";
     if (["rx", "ry"].includes(field.key)) return ["rect", "ellipse"].includes(tag);
     if (["x1", "y1", "x2", "y2"].includes(field.key)) return tag === "line";

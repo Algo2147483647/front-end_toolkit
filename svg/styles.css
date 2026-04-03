@@ -808,31 +808,31 @@ textarea {
 
 .property-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   align-content: start;
 }
 
 .field-row {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .inspector-card {
   border: 1px solid rgba(86, 67, 48, 0.12);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.58);
 }
 
 .inspector-object-card {
-  padding: 14px;
+  padding: 12px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .inspector-object-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -841,10 +841,10 @@ textarea {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  padding: 5px 10px;
+  padding: 4px 9px;
   background: rgba(208, 90, 47, 0.12);
   color: var(--accent-strong);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -856,20 +856,21 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .inspector-object-meta {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .inspector-action-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .inspector-action-button {
@@ -877,9 +878,10 @@ textarea {
   background: rgba(255, 255, 255, 0.7);
   color: var(--ink);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   cursor: pointer;
   font-weight: 700;
+  font-size: 12px;
 }
 
 .inspector-action-button:disabled {
@@ -894,9 +896,9 @@ textarea {
 .inspector-section-summary {
   list-style: none;
   cursor: pointer;
-  padding: 14px;
+  padding: 12px;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -916,14 +918,14 @@ textarea {
 
 .inspector-section-body {
   display: grid;
-  gap: 12px;
-  padding: 0 14px 14px;
+  gap: 10px;
+  padding: 0 12px 12px;
   border-top: 1px solid rgba(86, 67, 48, 0.08);
 }
 
 .inspector-quick-grid {
-  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
 }
 
 .inspector-field {
@@ -943,7 +945,7 @@ textarea {
 }
 
 .inspector-quick-grid .inspector-field--compact {
-  gap: 6px;
+  gap: 4px;
 }
 
 .inspector-quick-grid .inspector-field--compact .field-label {
@@ -952,7 +954,7 @@ textarea {
 }
 
 .inspector-textarea {
-  min-height: 120px;
+  min-height: 96px;
 }
 
 .field-combo,
@@ -960,26 +962,26 @@ textarea {
 .field-font {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .field-range {
-  grid-template-columns: minmax(0, 1fr) 88px;
+  grid-template-columns: minmax(0, 1fr) 76px;
   align-items: center;
 }
 
 .field-font {
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
 }
 
 .inspector-quick-grid .field-combo {
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 6px;
 }
 
 .inspector-quick-grid .field-range {
-  grid-template-columns: minmax(0, 1fr) 92px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 80px;
+  gap: 6px;
 }
 
 .inspector-quick-grid .field-font {
@@ -987,11 +989,11 @@ textarea {
 }
 
 .field-swatch {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.7);
 }
 
@@ -1005,9 +1007,9 @@ textarea {
 }
 
 .inspector-quick-grid .field-swatch {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
 }
 
 .inspector-quick-grid .field-input,
@@ -1015,8 +1017,8 @@ textarea {
 .inspector-quick-grid .field-input-text,
 .inspector-quick-grid .field-font-select,
 .inspector-quick-grid .source-editor {
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
 }
 
 .inspector-quick-grid .field-input-number {
@@ -1024,11 +1026,11 @@ textarea {
 }
 
 .inspector-quick-grid .inspector-textarea {
-  min-height: 120px;
+  min-height: 88px;
 }
 
 .field-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1039,10 +1041,65 @@ textarea {
 .source-editor {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.7);
   color: var(--ink);
-  padding: 10px 12px;
+  padding: 8px 10px;
+}
+
+.inspector-typography {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.inspector-toggle-button {
+  min-width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.inspector-toggle-button--bold {
+  font-weight: 800;
+}
+
+.inspector-toggle-button--italic {
+  font-style: italic;
+}
+
+.inspector-toggle-button--underline {
+  text-decoration: underline;
+}
+
+.inspector-toggle-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.inspector-toggle-button.is-active {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--selection);
+}
+
+.inspector-toggle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 select.field-input {

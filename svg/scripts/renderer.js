@@ -1,10 +1,21 @@
 import {
   COLOR_FIELDS,
   COMMON_FONT_OPTIONS,
+  COMMON_FONT_WEIGHT_OPTIONS,
   FIELD_MAP,
+  FONT_STYLE_OPTIONS,
   GRID_SNAP_SIZE_OPTIONS,
-  NUMERIC_FIELDS
+  NUMERIC_FIELDS,
+  TEXT_ANCHOR_OPTIONS,
+  TEXT_DECORATION_OPTIONS
 } from "./constants.js";
+
+const FIELD_OPTION_SETS = new Map([
+  ["font-weight", COMMON_FONT_WEIGHT_OPTIONS],
+  ["font-style", FONT_STYLE_OPTIONS],
+  ["text-decoration", TEXT_DECORATION_OPTIONS],
+  ["text-anchor", TEXT_ANCHOR_OPTIONS]
+]);
 
 export function createRenderer({ state, ui, model, actions }) {
   function updateSource() {
@@ -135,7 +146,7 @@ export function createRenderer({ state, ui, model, actions }) {
     if (tag === "circle") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "r"];
     if (tag === "ellipse") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "rx", "ry"];
     if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
-    if (tag === "text" || tag === "tspan") return ["textContent", "fill", "opacity", "x", "y", "font-size", "font-family"];
+    if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity"];
     if (tag === "path") return ["fill", "stroke", "stroke-width", "opacity", "d"];
     return ["fill", "stroke", "stroke-width", "opacity", "x", "y", "width", "height"];
   }
@@ -156,11 +167,20 @@ export function createRenderer({ state, ui, model, actions }) {
     return [
       { title: "Quick Edit", open: true, fields: quick },
       { title: "Geometry", open: false, fields: collect(["x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry"]) },
-      { title: "Appearance", open: false, fields: collect(["fill", "stroke", "stroke-width", "opacity", "font-size", "font-family"]) },
+      { title: "Typography", open: false, fields: collect(["font-family", "font-size", "font-weight", "font-style", "text-decoration", "letter-spacing", "text-anchor"]) },
+      { title: "Appearance", open: false, fields: collect(["fill", "stroke", "stroke-width", "opacity"]) },
       { title: "Transform", open: false, fields: collect(["transform"]) },
       { title: "Content", open: quick.some((field) => ["textContent", "d", "points"].includes(field.key)), fields: collect(["textContent", "d", "points"]) },
       { title: "Metadata", open: false, fields: collect(["tagName", "id", "class"]) }
     ].filter((section) => section.fields.length);
+  }
+
+  function getOptionSet(field) {
+    if (typeof field.options === "string") {
+      return FIELD_OPTION_SETS.get(field.options) || [];
+    }
+
+    return Array.isArray(field.options) ? field.options : null;
   }
 
   function isHexColor(value) {
@@ -186,7 +206,7 @@ export function createRenderer({ state, ui, model, actions }) {
   }
 
   function syncFontPreset(select, value) {
-    const normalized = value.trim();
+    const normalized = (value || "").trim();
     const customOption = select.querySelector("option[data-font-custom='true']");
     if (customOption) {
       customOption.remove();
@@ -212,8 +232,95 @@ export function createRenderer({ state, ui, model, actions }) {
     select.value = normalized;
   }
 
+  function syncOptionPreset(select, value) {
+    const normalized = (value || "").trim();
+    const customOption = select.querySelector("option[data-option-custom='true']");
+    if (customOption) {
+      customOption.remove();
+    }
+
+    if (!normalized) {
+      select.value = "";
+      return;
+    }
+
+    const presetMatch = [...select.options].find((option) => option.value === normalized);
+    if (presetMatch) {
+      select.value = normalized;
+      return;
+    }
+
+    const option = document.createElement("option");
+    option.value = normalized;
+    option.textContent = `Current (${normalized})`;
+    option.dataset.optionCustom = "true";
+    select.append(option);
+    select.value = normalized;
+  }
+
+  function getResolvedComputedStyle(node) {
+    try {
+      return globalThis.getComputedStyle?.(node) || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getResolvedTextStyle(node, attrName) {
+    const attrValue = node.getAttribute(attrName)?.trim();
+    if (attrValue) {
+      return attrValue;
+    }
+
+    const computed = getResolvedComputedStyle(node);
+    if (!computed) {
+      return "";
+    }
+
+    if (attrName === "font-weight") {
+      return computed.fontWeight || "";
+    }
+
+    if (attrName === "font-style") {
+      return computed.fontStyle || "";
+    }
+
+    if (attrName === "text-decoration") {
+      return computed.textDecorationLine || computed.textDecoration || "";
+    }
+
+    return "";
+  }
+
+  function isBoldStyleValue(value) {
+    const normalized = (value || "").trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+
+    if (normalized === "bold" || normalized === "bolder") {
+      return true;
+    }
+
+    const numeric = Number.parseInt(normalized, 10);
+    return Number.isFinite(numeric) && numeric >= 600;
+  }
+
+  function isItalicStyleValue(value) {
+    return /(italic|oblique)/i.test((value || "").trim());
+  }
+
+  function getTextDecorationTokens(value) {
+    return new Set(
+      (value || "")
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((token) => ["underline", "overline", "line-through"].includes(token))
+    );
+  }
+
   function getQuickFieldVariant(field) {
-    if (["textContent", "d", "points", "font-family"].includes(field.key) || field.multiline) {
+    if (["typography-controls", "textContent", "d", "points", "font-family"].includes(field.key) || field.multiline) {
       return "full";
     }
 
@@ -222,6 +329,87 @@ export function createRenderer({ state, ui, model, actions }) {
     }
 
     return "default";
+  }
+
+  function createTypographyControls(node, field, label, originalInput, locked) {
+    const wrapper = document.createElement("div");
+    const buttonGroup = document.createElement("div");
+    const buttons = [
+      {
+        label: "B",
+        className: "inspector-toggle-button--bold",
+        title: "Toggle bold",
+        pressed: isBoldStyleValue(getResolvedTextStyle(node, "font-weight")),
+        onClick: () => actions.updateField(
+          node.dataset.editorId,
+          FIELD_MAP.get("font-weight"),
+          isBoldStyleValue(getResolvedTextStyle(node, "font-weight")) ? "400" : "700",
+          true
+        )
+      },
+      {
+        label: "I",
+        className: "inspector-toggle-button--italic",
+        title: "Toggle italic",
+        pressed: isItalicStyleValue(getResolvedTextStyle(node, "font-style")),
+        onClick: () => actions.updateField(
+          node.dataset.editorId,
+          FIELD_MAP.get("font-style"),
+          isItalicStyleValue(getResolvedTextStyle(node, "font-style")) ? "normal" : "italic",
+          true
+        )
+      },
+      {
+        label: "U",
+        className: "inspector-toggle-button--underline",
+        title: "Toggle underline",
+        pressed: getTextDecorationTokens(getResolvedTextStyle(node, "text-decoration")).has("underline"),
+        onClick: () => {
+          const tokens = getTextDecorationTokens(getResolvedTextStyle(node, "text-decoration"));
+          if (tokens.has("underline")) {
+            tokens.delete("underline");
+          } else {
+            tokens.add("underline");
+          }
+
+          actions.updateField(
+            node.dataset.editorId,
+            FIELD_MAP.get("text-decoration"),
+            tokens.size ? [...tokens].join(" ") : "none",
+            true
+          );
+        }
+      }
+    ];
+
+    wrapper.className = "inspector-typography";
+    buttonGroup.className = "inspector-toggle-group";
+    label.textContent = field.label;
+    originalInput.replaceWith(wrapper);
+
+    buttons.forEach((config) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "inspector-toggle-button";
+      if (config.className) {
+        button.classList.add(config.className);
+      }
+      button.textContent = config.label;
+      button.title = config.title;
+      button.setAttribute("aria-label", config.title);
+      button.setAttribute("aria-pressed", String(config.pressed));
+      if (config.pressed) {
+        button.classList.add("is-active");
+      }
+      button.disabled = locked;
+      if (!locked) {
+        button.addEventListener("click", config.onClick);
+      }
+      buttonGroup.append(button);
+    });
+
+    wrapper.append(buttonGroup);
+    return wrapper;
   }
 
   function createInspectorField(node, field, locked, options = {}) {
@@ -235,6 +423,11 @@ export function createRenderer({ state, ui, model, actions }) {
     const originalInput = row.querySelector(".field-input");
     const value = getFieldValue(node, field);
     label.textContent = field.label;
+
+    if (field.kind === "typography-controls") {
+      createTypographyControls(node, field, label, originalInput, locked);
+      return row;
+    }
 
     if (field.multiline) {
       const input = document.createElement("textarea");
@@ -336,6 +529,30 @@ export function createRenderer({ state, ui, model, actions }) {
 
       originalInput.replaceWith(wrapper);
       wrapper.append(presetInput, textInput);
+      return row;
+    }
+
+    if (field.kind === "attr" && getOptionSet(field)) {
+      const select = document.createElement("select");
+      select.className = "field-input field-select";
+      select.disabled = locked;
+
+      getOptionSet(field).forEach((optionConfig) => {
+        const option = document.createElement("option");
+        option.value = optionConfig.value;
+        option.textContent = optionConfig.label;
+        select.append(option);
+      });
+      syncOptionPreset(select, value);
+
+      if (!locked) {
+        select.addEventListener("change", () => {
+          syncOptionPreset(select, select.value);
+          actions.updateField(node.dataset.editorId, field, select.value, true);
+        });
+      }
+
+      originalInput.replaceWith(select);
       return row;
     }
 

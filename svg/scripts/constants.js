@@ -55,11 +55,17 @@ export const FIELDS = [
     { key: "opacity", label: "opacity", kind: "attr" }
   ]],
   ["Appearance", [
+    { key: "typography-controls", label: "Text style", kind: "typography-controls" },
     { key: "fill", label: "fill", kind: "attr" },
     { key: "stroke", label: "stroke", kind: "attr" },
     { key: "stroke-width", label: "stroke-width", kind: "attr" },
     { key: "font-size", label: "font-size", kind: "attr" },
-    { key: "font-family", label: "font-family", kind: "attr" }
+    { key: "font-family", label: "font-family", kind: "attr" },
+    { key: "font-weight", label: "font-weight", kind: "attr", options: "font-weight" },
+    { key: "font-style", label: "font-style", kind: "attr", options: "font-style" },
+    { key: "text-decoration", label: "text-decoration", kind: "attr", options: "text-decoration" },
+    { key: "letter-spacing", label: "letter-spacing", kind: "attr" },
+    { key: "text-anchor", label: "text-anchor", kind: "attr", options: "text-anchor" }
   ]],
   ["Geometry", [
     { key: "x", label: "x", kind: "attr" },
@@ -84,7 +90,7 @@ export const FIELDS = [
 ];
 
 export const FIELD_MAP = new Map(FIELDS.flatMap(([, fields]) => fields.map((field) => [field.key, field])));
-export const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size"]);
+export const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size", "letter-spacing"]);
 export const COLOR_FIELDS = new Set(["fill", "stroke"]);
 export const GRID_SCREEN_SIZE = 28;
 export const GRID_SNAP_SIZE_OPTIONS = [1, 2, 3, 4, 5, 7, 10, 12, 15, 16, 20, 24, 28, 40, 56];
@@ -106,6 +112,37 @@ export const COMMON_FONT_OPTIONS = [
   { label: "Microsoft YaHei", value: "Microsoft YaHei, PingFang SC, sans-serif" },
   { label: "Noto Sans SC", value: "Noto Sans SC, Microsoft YaHei, sans-serif" },
   { label: "SimSun", value: "SimSun, Songti SC, serif" }
+];
+
+export const COMMON_FONT_WEIGHT_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "Normal 400", value: "400" },
+  { label: "Medium 500", value: "500" },
+  { label: "Semibold 600", value: "600" },
+  { label: "Bold 700", value: "700" },
+  { label: "Black 900", value: "900" }
+];
+
+export const FONT_STYLE_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "Normal", value: "normal" },
+  { label: "Italic", value: "italic" },
+  { label: "Oblique", value: "oblique" }
+];
+
+export const TEXT_DECORATION_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "None", value: "none" },
+  { label: "Underline", value: "underline" },
+  { label: "Overline", value: "overline" },
+  { label: "Line-through", value: "line-through" }
+];
+
+export const TEXT_ANCHOR_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "Start", value: "start" },
+  { label: "Middle", value: "middle" },
+  { label: "End", value: "end" }
 ];
 
 export const DANGEROUS_TAGS = new Set(["script", "foreignobject", "iframe", "object", "embed"]);
