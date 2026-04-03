@@ -131,11 +131,17 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function setGridSnapSize(size) {
     const parsed = Number.parseInt(size, 10);
     if (!GRID_SNAP_SIZE_OPTIONS.includes(parsed)) {
-      renderer.syncChrome();
-      return;
+      // If it's a valid number but not in presets, still allow it
+      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) {
+        state.gridSnapSize = parsed;
+      } else {
+        renderer.syncChrome();
+        return;
+      }
+    } else {
+      state.gridSnapSize = parsed;
     }
-
-    state.gridSnapSize = parsed;
+    
     try {
       localStorage.setItem(GRID_SNAP_SIZE_STORAGE_KEY, String(parsed));
     } catch (error) {
@@ -470,7 +476,34 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function bindEvents() {
     ui.importButton.addEventListener("click", () => ui.fileInput.click());
     ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!state.gridSnapEnabled));
-    ui.gridSnapSizeSelect.addEventListener("change", (event) => setGridSnapSize(event.target.value));
+    
+    // Handle grid size input changes
+    ui.gridSnapSizeInput.addEventListener("input", (event) => {
+      const value = event.target.value;
+      if (value === "" || value === "-") {
+        return; // Allow temporary empty/dash state while typing
+      }
+      setGridSnapSize(value);
+    });
+    
+    ui.gridSnapSizeInput.addEventListener("change", (event) => {
+      const value = event.target.value;
+      if (value === "" || value === "-") {
+        // Revert to previous valid value if empty
+        renderer.syncChrome();
+        return;
+      }
+      setGridSnapSize(value);
+    });
+    
+    // Handle preset selection from dropdown
+    ui.gridSnapSizeSelect.addEventListener("change", (event) => {
+      const value = event.target.value;
+      if (value) {
+        setGridSnapSize(value);
+      }
+    });
+    
     ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!state.sourceVisible));
     ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!state.topbarCollapsed));
     ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));

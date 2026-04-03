@@ -33,6 +33,9 @@ function readStoredNumber(key, fallback) {
 
 function normalizeGridSnapSize(value) {
   const parsed = Number.parseFloat(value);
+  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) {
+    return parsed;
+  }
   return GRID_SNAP_SIZE_OPTIONS.includes(parsed) ? parsed : GRID_SCREEN_SIZE;
 }
 
@@ -47,6 +50,8 @@ export const ui = {
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
   gridSnapButton: $("#gridSnapButton"),
+  gridSnapSizeGroup: $("#gridSnapSizeGroup"),
+  gridSnapSizeInput: $("#gridSnapSizeInput"),
   gridSnapSizeSelect: $("#gridSnapSizeSelect"),
   sourceToggleButton: $("#sourceToggleButton"),
   collapseTopbarButton: $("#collapseTopbarButton"),

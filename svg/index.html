@@ -59,7 +59,12 @@
             <span class="tool-icon" aria-hidden="true">#</span>
             <span class="tool-label">Snap</span>
           </button>
-          <select class="tool-select" id="gridSnapSizeSelect" aria-label="Grid size" title="Grid size"></select>
+          <div class="tool-input-group" id="gridSnapSizeGroup">
+            <input class="tool-input" id="gridSnapSizeInput" type="number" min="1" max="100" step="1" aria-label="Grid size" title="Grid size (px)" />
+            <select class="tool-select" id="gridSnapSizeSelect" aria-label="Quick grid size presets" title="Quick grid size presets">
+              <option value="">Presets...</option>
+            </select>
+          </div>
           <button class="tool-button" id="sourceToggleButton" type="button" title="Show source" aria-label="Show source" aria-expanded="false">
             <span class="tool-icon" aria-hidden="true">&lt;/&gt;</span>
             <span class="tool-label">Source</span>

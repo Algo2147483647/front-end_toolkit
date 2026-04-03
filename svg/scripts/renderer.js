@@ -12,7 +12,7 @@ export function createRenderer({ state, ui, model, actions }) {
   }
 
   function ensureGridSizeOptions() {
-    if (ui.gridSnapSizeSelect.options.length) {
+    if (ui.gridSnapSizeSelect.options.length > 1) {
       return;
     }
 
@@ -39,8 +39,12 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.gridSnapButton.classList.toggle("is-active", state.gridSnapEnabled);
     ui.gridSnapButton.setAttribute("aria-pressed", String(state.gridSnapEnabled));
     ui.gridSnapButton.title = state.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
-    ui.gridSnapSizeSelect.value = String(state.gridSnapSize);
-    ui.gridSnapSizeSelect.title = `Grid size: ${state.gridSnapSize}px`;
+    
+    // Only sync input, keep select on preset placeholder
+    ui.gridSnapSizeInput.value = String(state.gridSnapSize);
+    ui.gridSnapSizeSelect.value = "";
+    
+    ui.gridSnapSizeGroup.title = `Grid size: ${state.gridSnapSize}px`;
 
     ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
     ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
