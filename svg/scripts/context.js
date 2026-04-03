@@ -109,7 +109,6 @@ export const state = {
   warnings: [],
   collapsedNodeKeys: new Set(),
   lockedNodeKeys: new Set(),
-  hiddenNodeKeys: new Set(),
   nodeKeyByEditorId: new Map(),
   editorIdByNodeKey: new Map(),
   nodeKeyByNode: new WeakMap()

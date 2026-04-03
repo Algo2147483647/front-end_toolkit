@@ -21,8 +21,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     return {
       selectedNodeKey: state.selectedNodeKey,
       collapsedNodeKeys: [...state.collapsedNodeKeys],
-      lockedNodeKeys: [...state.lockedNodeKeys],
-      hiddenNodeKeys: [...state.hiddenNodeKeys]
+      lockedNodeKeys: [...state.lockedNodeKeys]
     };
   }
 
@@ -30,7 +29,6 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     state.selectedNodeKey = snapshot?.selectedNodeKey || null;
     state.collapsedNodeKeys = new Set(snapshot?.collapsedNodeKeys || []);
     state.lockedNodeKeys = new Set(snapshot?.lockedNodeKeys || []);
-    state.hiddenNodeKeys = new Set(snapshot?.hiddenNodeKeys || []);
   }
 
   function resetEditorState() {
@@ -53,10 +51,6 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
     if (state.lockedNodeKeys.delete(oldKey)) {
       state.lockedNodeKeys.add(newKey);
-    }
-
-    if (state.hiddenNodeKeys.delete(oldKey)) {
-      state.hiddenNodeKeys.add(newKey);
     }
   }
 
@@ -320,20 +314,14 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function toggleNodeVisibility(editorId) {
     const node = state.nodeMap.get(editorId);
-    const nodeKey = model.getNodeKeyByEditorId(editorId);
-    if (!node || !nodeKey || node === state.svgRoot) {
+    if (!node || node === state.svgRoot) {
       return;
     }
 
-    let shouldRecordHistory = false;
-
-    if (state.hiddenNodeKeys.has(nodeKey)) {
-      state.hiddenNodeKeys.delete(nodeKey);
-    } else if (node.getAttribute("display") === "none") {
+    if (node.getAttribute("display") === "none") {
       node.removeAttribute("display");
-      shouldRecordHistory = true;
     } else {
-      state.hiddenNodeKeys.add(nodeKey);
+      node.setAttribute("display", "none");
     }
 
     model.syncEditorMetadata();
@@ -342,9 +330,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     renderer.renderTree();
     renderer.renderInspector();
     renderer.renderOverlay();
-    if (shouldRecordHistory) {
-      recordHistory("visibility");
-    }
+    recordHistory("visibility");
   }
 
   function toggleNodeLock(editorId) {

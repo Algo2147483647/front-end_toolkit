@@ -81,10 +81,6 @@ textarea {
   display: none;
 }
 
-.workspace-svg [data-editor-hidden="true"] {
-  display: none !important;
-}
-
 .app-shell {
   position: relative;
   min-height: 100vh;

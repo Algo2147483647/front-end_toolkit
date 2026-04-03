@@ -543,16 +543,6 @@ export function createSvgModel(state) {
     if (!state.svgRoot) {
       return;
     }
-
-    const nodes = [state.svgRoot, ...state.svgRoot.querySelectorAll("*")];
-    for (const node of nodes) {
-      const nodeKey = getNodeKey(node);
-      if (state.hiddenNodeKeys.has(nodeKey)) {
-        node.dataset.editorHidden = "true";
-      } else {
-        delete node.dataset.editorHidden;
-      }
-    }
   }
 
   function cleanForExport(root) {
@@ -589,8 +579,7 @@ export function createSvgModel(state) {
   }
 
   function isNodeHidden(node) {
-    const nodeKey = getNodeKey(node);
-    return node?.getAttribute("display") === "none" || Boolean(nodeKey && state.hiddenNodeKeys.has(nodeKey));
+    return node?.getAttribute("display") === "none";
   }
 
   function visibleField(node, field) {
