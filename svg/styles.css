@@ -808,11 +808,33 @@ textarea {
 }
 
 .inspector-quick-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 12px;
 }
 
 .inspector-field {
   min-width: 0;
+}
+
+.inspector-quick-grid .inspector-field {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.inspector-quick-grid .inspector-field--full {
+  grid-column: 1 / -1;
+}
+
+.inspector-quick-grid .inspector-field--compact {
+  gap: 6px;
+}
+
+.inspector-quick-grid .inspector-field--compact .field-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
 }
 
 .inspector-textarea {
@@ -836,6 +858,20 @@ textarea {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 }
 
+.inspector-quick-grid .field-combo {
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.inspector-quick-grid .field-range {
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+}
+
+.inspector-quick-grid .field-font {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .field-swatch {
   width: 42px;
   height: 42px;
@@ -852,6 +888,29 @@ textarea {
 .field-input-number,
 .field-input-text {
   min-width: 0;
+}
+
+.inspector-quick-grid .field-swatch {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.inspector-quick-grid .field-input,
+.inspector-quick-grid .field-input-number,
+.inspector-quick-grid .field-input-text,
+.inspector-quick-grid .field-font-select,
+.inspector-quick-grid .source-editor {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.inspector-quick-grid .field-input-number {
+  text-align: right;
+}
+
+.inspector-quick-grid .inspector-textarea {
+  min-height: 120px;
 }
 
 .field-label {

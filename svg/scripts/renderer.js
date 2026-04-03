@@ -167,9 +167,25 @@ export function createRenderer({ state, ui, model, actions }) {
     select.value = normalized;
   }
 
-  function createInspectorField(node, field, locked) {
+  function getQuickFieldVariant(field) {
+    if (["textContent", "d", "points", "font-family"].includes(field.key) || field.multiline) {
+      return "full";
+    }
+
+    if (["fill", "stroke", "stroke-width", "opacity"].includes(field.key)) {
+      return "compact";
+    }
+
+    return "default";
+  }
+
+  function createInspectorField(node, field, locked, options = {}) {
+    const { quickEdit = false } = options;
     const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
     row.classList.add("inspector-field");
+    if (quickEdit) {
+      row.classList.add("inspector-field--quick", `inspector-field--${getQuickFieldVariant(field)}`);
+    }
     const label = row.querySelector(".field-label");
     const originalInput = row.querySelector(".field-input");
     const value = getFieldValue(node, field);
@@ -278,23 +294,28 @@ export function createRenderer({ state, ui, model, actions }) {
       return row;
     }
 
-    if (field.key === "opacity" && field.kind === "attr") {
+    if (["opacity", "stroke-width"].includes(field.key) && field.kind === "attr") {
       row.classList.add("field-row-range");
       const wrapper = document.createElement("div");
       const rangeInput = document.createElement("input");
       const numberInput = document.createElement("input");
+      const parsedValue = Number.parseFloat(value);
+      const fallbackValue = field.key === "opacity" ? "1" : "1";
+      const rangeMax = field.key === "opacity"
+        ? "1"
+        : String(Math.max(32, Math.ceil((Number.isFinite(parsedValue) ? parsedValue : 1) * 2)));
       wrapper.className = "field-range";
       rangeInput.type = "range";
       rangeInput.min = "0";
-      rangeInput.max = "1";
-      rangeInput.step = "0.01";
-      rangeInput.value = value || "1";
+      rangeInput.max = rangeMax;
+      rangeInput.step = field.key === "opacity" ? "0.01" : "0.5";
+      rangeInput.value = value || fallbackValue;
       numberInput.type = "number";
       numberInput.min = "0";
-      numberInput.max = "1";
-      numberInput.step = "0.01";
+      numberInput.max = rangeMax;
+      numberInput.step = field.key === "opacity" ? "0.01" : "0.5";
       numberInput.className = `${originalInput.className} field-input-number`;
-      numberInput.value = value || "1";
+      numberInput.value = value || fallbackValue;
       rangeInput.disabled = locked;
       numberInput.disabled = locked;
       rangeInput.addEventListener("input", () => {
@@ -498,7 +519,9 @@ export function createRenderer({ state, ui, model, actions }) {
       if (section.title === "Quick Edit") {
         content.classList.add("inspector-quick-grid");
       }
-      section.fields.forEach((field) => content.append(createInspectorField(node, field, locked)));
+      section.fields.forEach((field) => content.append(createInspectorField(node, field, locked, {
+        quickEdit: section.title === "Quick Edit"
+      })));
       details.append(summary, content);
       ui.propertyForm.append(details);
     });
