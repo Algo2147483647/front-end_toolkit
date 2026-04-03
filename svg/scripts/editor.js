@@ -167,6 +167,8 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function fitToView() {
+    state.panX = 0;
+    state.panY = 0;
     setZoom(renderer.getFitZoom());
   }
 
@@ -210,6 +212,32 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.dropOverlay.classList.add("hidden");
   }
 
+  function isCanvasBackdropNode(node) {
+    if (!node || node === state.svgRoot || node.parentElement !== state.svgRoot) {
+      return false;
+    }
+
+    if (node.tagName.toLowerCase() !== "rect") {
+      return false;
+    }
+
+    const viewBox = model.getViewBoxRect();
+    const x = Number.parseFloat(node.getAttribute("x") || "0");
+    const y = Number.parseFloat(node.getAttribute("y") || "0");
+    const width = Number.parseFloat(node.getAttribute("width") || "0");
+    const height = Number.parseFloat(node.getAttribute("height") || "0");
+    const epsilon = 0.5;
+
+    return Math.abs(x - viewBox.x) <= epsilon
+      && Math.abs(y - viewBox.y) <= epsilon
+      && Math.abs(width - viewBox.width) <= epsilon
+      && Math.abs(height - viewBox.height) <= epsilon;
+  }
+
+  function setCanvasPanning(active) {
+    ui.workspaceSurface.classList.toggle("is-panning", active);
+  }
+
   function beginDrag(node, event) {
     if (!model.canDragNode(node)) {
       return;
@@ -221,13 +249,41 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       editorId: node.dataset.editorId,
       descriptor: model.getDragDescriptor(node),
       startPoint,
-      referenceNode
+      referenceNode,
+      moved: false,
+      type: "node"
     };
     ui.statusPill.textContent = `Dragging: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
+  function beginCanvasDrag(event, source = "surface") {
+    state.drag = {
+      type: "canvas",
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startPanX: state.panX,
+      startPanY: state.panY,
+      moved: false,
+      source
+    };
+    setCanvasPanning(true);
+    ui.statusPill.textContent = "Panning canvas";
+  }
+
   function moveDrag(event) {
     if (!state.drag) {
+      return;
+    }
+
+    if (state.drag.type === "canvas") {
+      const dx = event.clientX - state.drag.startClientX;
+      const dy = event.clientY - state.drag.startClientY;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        state.drag.moved = true;
+      }
+      state.panX = state.drag.startPanX + dx;
+      state.panY = state.drag.startPanY + dy;
+      renderer.applyZoom();
       return;
     }
 
@@ -239,12 +295,23 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     const currentPoint = model.toLocalPoint(state.drag.referenceNode, event.clientX, event.clientY);
     const dx = Math.round((currentPoint.x - state.drag.startPoint.x) * 100) / 100;
     const dy = Math.round((currentPoint.y - state.drag.startPoint.y) * 100) / 100;
+    if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+      state.drag.moved = true;
+    }
     model.applyDrag(node, state.drag.descriptor, dx, dy);
     renderer.renderOverlay();
   }
 
   function endDrag() {
     if (!state.drag) {
+      return;
+    }
+
+    if (state.drag.type === "canvas") {
+      state.suppressNextSvgClick = state.drag.moved && state.drag.source === "svg";
+      state.drag = null;
+      setCanvasPanning(false);
+      ui.statusPill.textContent = "Canvas moved";
       return;
     }
 
@@ -273,6 +340,11 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function onSvgClick(event) {
+    if (state.suppressNextSvgClick) {
+      state.suppressNextSvgClick = false;
+      return;
+    }
+
     const target = event.target.closest("[data-editor-id]");
     if (!target) {
       return;
@@ -290,6 +362,12 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
     const target = event.target.closest("[data-editor-id]");
     if (!target) {
+      return;
+    }
+
+    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+      event.preventDefault();
+      beginCanvasDrag(event, "svg");
       return;
     }
 
@@ -448,6 +526,11 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     model.addEditorIds(root);
     state.svgRoot = root;
     state.drag = null;
+    setCanvasPanning(false);
+    if (!preserveEditorState) {
+      state.panX = 0;
+      state.panY = 0;
+    }
     model.rebuildNodeMap();
     if (preservedEditorState) {
       restoreEditorState(preservedEditorState);
@@ -553,6 +636,18 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
     ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
     ui.zoomResetButton.addEventListener("click", fitToView);
+    ui.workspaceSurface.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      if (event.target.closest("[data-editor-id]")) {
+        return;
+      }
+
+      event.preventDefault();
+      beginCanvasDrag(event, "surface");
+    });
     ui.workspaceSurface.addEventListener("dragenter", (event) => {
       event.preventDefault();
       state.dropDepth += 1;

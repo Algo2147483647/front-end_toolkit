@@ -67,7 +67,7 @@ export function createRenderer({ state, ui, model, actions }) {
   }
 
   function applyZoom() {
-    ui.svgHost.style.transform = `scale(${state.zoom})`;
+    ui.svgHost.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
     ui.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
   }
 
