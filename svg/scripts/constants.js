@@ -87,7 +87,9 @@ export const FIELD_MAP = new Map(FIELDS.flatMap(([, fields]) => fields.map((fiel
 export const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size"]);
 export const COLOR_FIELDS = new Set(["fill", "stroke"]);
 export const GRID_SCREEN_SIZE = 28;
+export const GRID_SNAP_SIZE_OPTIONS = [1, 2, 3, 4, 5, 7, 10, 12, 15, 16, 20, 24, 28, 40, 56];
 export const GRID_SNAP_STORAGE_KEY = "svgStudio.gridSnap";
+export const GRID_SNAP_SIZE_STORAGE_KEY = "svgStudio.gridSnapSize";
 export const COMMON_FONT_OPTIONS = [
   { label: "Document default", value: "" },
   { label: "Arial", value: "Arial, Helvetica, sans-serif" },

@@ -1,4 +1,8 @@
-import { GRID_SNAP_STORAGE_KEY } from "./constants.js";
+import {
+  GRID_SNAP_SIZE_OPTIONS,
+  GRID_SNAP_SIZE_STORAGE_KEY,
+  GRID_SNAP_STORAGE_KEY
+} from "./constants.js";
 
 export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function ensureDocument() {
@@ -120,6 +124,22 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       localStorage.setItem(GRID_SNAP_STORAGE_KEY, String(enabled));
     } catch (error) {
       // Ignore storage errors and keep the toggle working for this session.
+    }
+    renderer.syncChrome();
+  }
+
+  function setGridSnapSize(size) {
+    const parsed = Number.parseInt(size, 10);
+    if (!GRID_SNAP_SIZE_OPTIONS.includes(parsed)) {
+      renderer.syncChrome();
+      return;
+    }
+
+    state.gridSnapSize = parsed;
+    try {
+      localStorage.setItem(GRID_SNAP_SIZE_STORAGE_KEY, String(parsed));
+    } catch (error) {
+      // Ignore storage errors and keep the selector working for this session.
     }
     renderer.syncChrome();
   }
@@ -450,6 +470,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function bindEvents() {
     ui.importButton.addEventListener("click", () => ui.fileInput.click());
     ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!state.gridSnapEnabled));
+    ui.gridSnapSizeSelect.addEventListener("change", (event) => setGridSnapSize(event.target.value));
     ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!state.sourceVisible));
     ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!state.topbarCollapsed));
     ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));
@@ -562,6 +583,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     onSvgPointerDown,
     selectNode,
     setGridSnapEnabled,
+    setGridSnapSize,
     setLeftPanelHidden,
     setRightPanelHidden,
     setSourcePaneVisible,

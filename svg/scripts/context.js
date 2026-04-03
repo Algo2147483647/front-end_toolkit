@@ -1,4 +1,9 @@
-import { GRID_SNAP_STORAGE_KEY } from "./constants.js";
+import {
+  GRID_SCREEN_SIZE,
+  GRID_SNAP_SIZE_OPTIONS,
+  GRID_SNAP_SIZE_STORAGE_KEY,
+  GRID_SNAP_STORAGE_KEY
+} from "./constants.js";
 
 function readStoredBoolean(key, fallback = false) {
   try {
@@ -12,6 +17,25 @@ function readStoredBoolean(key, fallback = false) {
   return fallback;
 }
 
+function readStoredNumber(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) {
+      return fallback;
+    }
+
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function normalizeGridSnapSize(value) {
+  const parsed = Number.parseFloat(value);
+  return GRID_SNAP_SIZE_OPTIONS.includes(parsed) ? parsed : GRID_SCREEN_SIZE;
+}
+
 const $ = (selector) => document.querySelector(selector);
 
 export const ui = {
@@ -23,6 +47,7 @@ export const ui = {
   imageInput: $("#imageInput"),
   importButton: $("#importButton"),
   gridSnapButton: $("#gridSnapButton"),
+  gridSnapSizeSelect: $("#gridSnapSizeSelect"),
   sourceToggleButton: $("#sourceToggleButton"),
   collapseTopbarButton: $("#collapseTopbarButton"),
   showTopbarButton: $("#showTopbarButton"),
@@ -66,6 +91,7 @@ export const state = {
   nextId: 0,
   zoom: 1,
   gridSnapEnabled: readStoredBoolean(GRID_SNAP_STORAGE_KEY, false),
+  gridSnapSize: normalizeGridSnapSize(readStoredNumber(GRID_SNAP_SIZE_STORAGE_KEY, GRID_SCREEN_SIZE)),
   topbarCollapsed: false,
   leftPanelHidden: false,
   rightPanelHidden: false,

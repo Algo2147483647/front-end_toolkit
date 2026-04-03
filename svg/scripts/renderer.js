@@ -2,6 +2,7 @@ import {
   COLOR_FIELDS,
   COMMON_FONT_OPTIONS,
   FIELD_MAP,
+  GRID_SNAP_SIZE_OPTIONS,
   NUMERIC_FIELDS
 } from "./constants.js";
 
@@ -10,11 +11,26 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.sourceEditor.value = model.serialize();
   }
 
+  function ensureGridSizeOptions() {
+    if (ui.gridSnapSizeSelect.options.length) {
+      return;
+    }
+
+    GRID_SNAP_SIZE_OPTIONS.forEach((size) => {
+      const option = document.createElement("option");
+      option.value = String(size);
+      option.textContent = `${size}px`;
+      ui.gridSnapSizeSelect.append(option);
+    });
+  }
+
   function syncChrome() {
+    ensureGridSizeOptions();
     ui.appShell.classList.toggle("is-topbar-collapsed", state.topbarCollapsed);
     ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
     ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
     ui.workspaceSurface.classList.toggle("is-grid-snap", state.gridSnapEnabled);
+    ui.workspaceSurface.style.setProperty("--grid-size", `${state.gridSnapSize}px`);
 
     ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
     ui.collapseTopbarButton.querySelector(".tool-label").textContent = state.topbarCollapsed ? "Show" : "Hide";
@@ -23,6 +39,8 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.gridSnapButton.classList.toggle("is-active", state.gridSnapEnabled);
     ui.gridSnapButton.setAttribute("aria-pressed", String(state.gridSnapEnabled));
     ui.gridSnapButton.title = state.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
+    ui.gridSnapSizeSelect.value = String(state.gridSnapSize);
+    ui.gridSnapSizeSelect.title = `Grid size: ${state.gridSnapSize}px`;
 
     ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
     ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);

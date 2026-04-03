@@ -178,10 +178,38 @@ textarea {
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
+.tool-select {
+  min-width: 92px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  padding: 10px 36px 10px 14px;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
 .tool-button:hover {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.82);
+}
+
+.tool-select:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.tool-select:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.3);
+  outline-offset: 2px;
+}
+
+.tool-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
 }
 
 .tool-button.is-active {
@@ -568,6 +596,7 @@ textarea {
 }
 
 .workspace-surface {
+  --grid-size: 28px;
   position: relative;
   min-height: 0;
   overflow: hidden;
@@ -612,7 +641,7 @@ textarea {
   background:
     linear-gradient(rgba(15, 118, 110, 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(15, 118, 110, 0.12) 1px, transparent 1px);
-  background-size: 26px 26px;
+  background-size: var(--grid-size) var(--grid-size);
 }
 
 .workspace-surface.is-grid-snap .surface-grid {
@@ -620,7 +649,7 @@ textarea {
   background:
     linear-gradient(rgba(15, 118, 110, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(15, 118, 110, 0.1) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-size: var(--grid-size) var(--grid-size);
 }
 
 .surface-grid,
@@ -634,7 +663,7 @@ textarea {
   background:
     linear-gradient(rgba(86, 67, 48, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(86, 67, 48, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-size: var(--grid-size) var(--grid-size);
   border: 1px dashed rgba(86, 67, 48, 0.12);
   background-color: rgba(255, 255, 255, 0.3);
 }
@@ -1141,5 +1170,10 @@ textarea.field-input,
 
   .tool-label {
     display: none;
+  }
+
+  .tool-select {
+    min-width: 82px;
+    padding-inline: 12px 30px;
   }
 }
