@@ -60,6 +60,29 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
   }
 
+  function getFitZoom() {
+    if (!state.svgRoot) {
+      return 1;
+    }
+
+    const container = ui.svgHost.parentElement;
+    const containerWidth = container?.clientWidth || 0;
+    const containerHeight = container?.clientHeight || 0;
+    const hostWidth = ui.svgHost.offsetWidth || ui.svgHost.clientWidth || 0;
+    const hostHeight = ui.svgHost.offsetHeight || ui.svgHost.clientHeight || 0;
+
+    if (containerWidth > 0 && containerHeight > 0 && hostWidth > 0 && hostHeight > 0) {
+      return Math.min(containerWidth / hostWidth, containerHeight / hostHeight);
+    }
+
+    const viewBox = model.getViewBoxRect();
+    if (!containerWidth || !containerHeight || !viewBox.width || !viewBox.height) {
+      return 1;
+    }
+
+    return Math.min(containerWidth / viewBox.width, containerHeight / viewBox.height);
+  }
+
   function updateActions() {
     const active = state.nodeMap.get(state.selectedId);
     const canChange = Boolean(active && active !== state.svgRoot && !model.isNodeLocked(active));
@@ -612,6 +635,7 @@ export function createRenderer({ state, ui, model, actions }) {
 
   return {
     applyZoom,
+    getFitZoom,
     renderInspector,
     renderOverlay,
     renderTree,

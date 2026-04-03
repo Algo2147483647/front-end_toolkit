@@ -5,6 +5,10 @@ import {
 } from "./constants.js";
 
 export function createEditor({ state, ui, model, renderer, emptySvg }) {
+  function clampZoom(value) {
+    return Math.max(0.3, Math.min(2.5, value));
+  }
+
   function ensureDocument() {
     if (!state.svgRoot) {
       loadDocument(emptySvg);
@@ -164,8 +168,12 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function setZoom(value) {
-    state.zoom = Math.max(0.3, Math.min(2.5, value));
+    state.zoom = clampZoom(value);
     renderer.applyZoom();
+  }
+
+  function fitToView() {
+    setZoom(renderer.getFitZoom());
   }
 
   function selectNode(editorId) {
@@ -558,7 +566,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.deleteButton.addEventListener("click", deleteSelection);
     ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
     ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
-    ui.zoomResetButton.addEventListener("click", () => setZoom(1));
+    ui.zoomResetButton.addEventListener("click", fitToView);
     ui.workspaceSurface.addEventListener("dragenter", (event) => {
       event.preventDefault();
       state.dropDepth += 1;
@@ -621,6 +629,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     setRightPanelHidden,
     setSourcePaneVisible,
     setTopbarCollapsed,
+    fitToView,
     setZoom,
     toggleNodeCollapse,
     toggleNodeLock,
