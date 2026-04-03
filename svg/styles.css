@@ -21,6 +21,39 @@
   box-sizing: border-box;
 }
 
+/* Custom scrollbar styling for better UX */
+.panel::-webkit-scrollbar,
+.workspace-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.panel::-webkit-scrollbar-track,
+.workspace-panel::-webkit-scrollbar-track {
+  background: rgba(86, 67, 48, 0.08);
+  border-radius: 8px;
+}
+
+.panel::-webkit-scrollbar-thumb,
+.workspace-panel::-webkit-scrollbar-thumb {
+  background: rgba(86, 67, 48, 0.24);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.panel::-webkit-scrollbar-thumb:hover,
+.workspace-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(86, 67, 48, 0.36);
+  background-clip: content-box;
+}
+
+/* Firefox scrollbar */
+.panel,
+.workspace-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(86, 67, 48, 0.24) rgba(86, 67, 48, 0.08);
+}
+
 html,
 body {
   margin: 0;
@@ -251,6 +284,7 @@ textarea {
   z-index: 25;
   width: min(280px, calc(100vw - 16px));
   max-height: calc(100vh - 16px);
+  overflow: auto;
 }
 
 .left-panel {
@@ -258,12 +292,13 @@ textarea {
   left: 8px;
   bottom: 8px;
   transition: transform 180ms ease, opacity 180ms ease;
+  overflow: auto;
 }
 
 .workspace-panel {
   position: relative;
   min-height: calc(100vh - 16px);
-  overflow: hidden;
+  overflow: auto;
   background:
     radial-gradient(circle at 18% 18%, rgba(208, 90, 47, 0.12), transparent 22%),
     radial-gradient(circle at 82% 16%, rgba(15, 118, 110, 0.1), transparent 22%),
@@ -277,6 +312,7 @@ textarea {
   right: 8px;
   bottom: 8px;
   transition: transform 180ms ease, opacity 180ms ease;
+  overflow: auto;
 }
 
 .app-shell.is-left-hidden .left-panel {
@@ -599,7 +635,7 @@ textarea {
   --grid-size: 28px;
   position: relative;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding-top: 138px;
 }
 
@@ -672,7 +708,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: visible;
 }
 
 .svg-host {
