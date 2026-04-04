@@ -620,8 +620,10 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       textInput.value = value;
       textInput.placeholder = "Color or transparent";
       transparentButton.type = "button";
-      transparentButton.className = "field-chip-button";
-      transparentButton.textContent = "Transparent";
+      transparentButton.className = "field-chip-button field-chip-button--transparent";
+      transparentButton.textContent = "";
+      transparentButton.title = "Transparent";
+      transparentButton.setAttribute("aria-label", "Transparent");
       const normalized = normalizeColorValue(value);
       colorInput.value = normalized || "#000000";
       colorInput.disabled = locked;
