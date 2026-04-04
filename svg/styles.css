@@ -823,15 +823,6 @@ textarea {
   background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
 }
 
-.workspace-surface.is-grid-snap .surface-grid {
-  border-color: rgba(15, 118, 110, 0.28);
-  background:
-    linear-gradient(rgba(15, 118, 110, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 118, 110, 0.1) 1px, transparent 1px);
-  background-size: var(--grid-step-x, var(--grid-size)) var(--grid-step-y, var(--grid-size));
-  background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
-}
-
 .surface-grid,
 .surface-inner {
   position: absolute;

@@ -31,7 +31,7 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.surfaceGrid.style.removeProperty("--grid-offset-x");
     ui.surfaceGrid.style.removeProperty("--grid-offset-y");
 
-    if (!state.gridSnapEnabled || !state.svgRoot) {
+    if (!state.svgRoot) {
       return;
     }
 
@@ -72,7 +72,6 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.appShell.classList.toggle("is-topbar-collapsed", state.topbarCollapsed);
     ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
     ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
-    ui.workspaceSurface.classList.toggle("is-grid-snap", state.gridSnapEnabled);
     ui.workspaceSurface.style.setProperty("--grid-size", `${state.gridSnapSize}px`);
 
     ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
