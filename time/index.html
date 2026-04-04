@@ -3,87 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometric Clock and Calendar</title>
+    <title>Time Toolkit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <!-- Top Navigation Bar -->
+<body data-view="clock">
     <nav class="navbar">
-        <div class="nav-toggle">
+        <div class="nav-brand">
+            <p class="brand-kicker">Temporal Atelier</p>
+            <h1>Time Toolkit</h1>
+        </div>
+        <div class="nav-toggle" role="tablist" aria-label="Time views">
             <div class="toggle-slider"></div>
-            <button class="toggle-btn active" id="clock-btn">
-                <i class="fas fa-clock"></i> Clock
+            <button class="toggle-btn active" id="clock-btn" type="button" role="tab" aria-selected="true">
+                <i class="fas fa-clock"></i>
+                <span>Clock</span>
             </button>
-            <button class="toggle-btn" id="calendar-btn">
-                <i class="fas fa-calendar-alt"></i> Calendar
+            <button class="toggle-btn" id="calendar-btn" type="button" role="tab" aria-selected="false">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Calendar</span>
             </button>
-            <button class="toggle-btn" id="globe-btn">
-                <i class="fas fa-globe"></i> Globe
+            <button class="toggle-btn" id="globe-btn" type="button" role="tab" aria-selected="false">
+                <i class="fas fa-globe"></i>
+                <span>Globe</span>
             </button>
         </div>
     </nav>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Clock View -->
-        <div class="clock-view fade-in" id="clock-view">
-            <div class="clock-container">
-                <canvas id="clock-face" class="clock-face"></canvas>
-                <div class="digital-clock" id="digital-clock">
-                    <div class="time-part" id="hours">00</div>
-                    <div class="time-separator">:</div>
-                    <div class="time-part" id="minutes">00</div>
-                    <div class="time-separator">:</div>
-                    <div class="time-part" id="seconds">00</div>
+    <main class="container">
+        <section class="clock-view fade-in" id="clock-view">
+            <div class="clock-copy surface-card">
+                <p class="section-kicker">24-hour instrument</p>
+                <h2>Read time as a composed object.</h2>
+                <p class="section-text">
+                    A calmer, more tactile layout for the geometric clock, the infinite calendar, and the rotating globe.
+                </p>
+                <div class="info-strip">
+                    <article class="info-card">
+                        <span>Dial</span>
+                        <strong>24H</strong>
+                    </article>
+                    <article class="info-card">
+                        <span>Motion</span>
+                        <strong>Live Sweep</strong>
+                    </article>
+                    <article class="info-card">
+                        <span>Canvas</span>
+                        <strong>Resizable</strong>
+                    </article>
                 </div>
             </div>
-        </div>
 
-        <!-- Globe View -->
-        <div class="globe-view" id="globe-view" style="display:none;">
-            <div class="globe-container">
-                <canvas id="globe-canvas" class="globe-canvas"></canvas>
-                <div class="globe-overlay">
-                    <div class="coords">
-                        <div>Latitude: <span id="lat-value">0.00</span>°</div>
-                        <div>Longitude: <span id="lon-value">0.00</span>°</div>
-                        <div id="timezone-display" class="timezone-display">UTC±0</div>
+            <div class="clock-visual surface-card">
+                <div class="clock-container">
+                    <canvas id="clock-face" class="clock-face"></canvas>
+                    <div class="digital-clock" id="digital-clock" aria-label="Digital time">
+                        <div class="time-part" id="hours">00</div>
+                        <div class="time-separator">:</div>
+                        <div class="time-part" id="minutes">00</div>
+                        <div class="time-separator">:</div>
+                        <div class="time-part" id="seconds">00</div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Calendar View -->
-        <div class="calendar-view" id="calendar-view">
-            <div class="calendar-header">
-                <div class="calendar-title">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span id="calendar-month-year">October 2023</span>
+        <section class="globe-view" id="globe-view" style="display:none;">
+            <div class="globe-shell">
+                <div class="globe-copy surface-card">
+                    <p class="section-kicker">Spatial offset</p>
+                    <h2>Orbit across longitude and light.</h2>
+                    <p class="section-text">
+                        Explore an approximate timezone by latitude, longitude, tilt, rotation speed, and the visible day-night boundary.
+                    </p>
+                    <div class="globe-note">
+                        Drag the sphere directly or use the control panel to tune the view.
+                    </div>
                 </div>
-                <div class="calendar-nav">
-                    <button class="nav-btn" id="prev-month"><i class="fas fa-chevron-left"></i></button>
-                    <button class="nav-btn" id="today-btn">Today</button>
-                    <button class="nav-btn" id="next-month"><i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
-            <div class="calendar-weekdays" id="calendar-weekdays">
-                <!-- Weekday headers will be dynamically generated by JavaScript -->
-            </div>
-            <div class="calendar-grid" id="calendar-grid">
-                <!-- Calendar months will be dynamically generated by JavaScript -->
-            </div>
-        </div>
-    </div>
 
-    <!-- Settings Button and Panel -->
+                <div class="globe-container surface-card">
+                    <canvas id="globe-canvas" class="globe-canvas"></canvas>
+                    <div class="globe-overlay">
+                        <div class="overlay-label">Approximate position</div>
+                        <div class="coords">
+                            <div class="coord-item">
+                                <span>Latitude</span>
+                                <strong><span id="lat-value">0.00</span>&deg;</strong>
+                            </div>
+                            <div class="coord-item">
+                                <span>Longitude</span>
+                                <strong><span id="lon-value">0.00</span>&deg;</strong>
+                            </div>
+                            <div class="coord-item coord-item--timezone">
+                                <span>Timezone</span>
+                                <strong id="timezone-display" class="timezone-display">UTC+0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="calendar-view" id="calendar-view">
+            <div class="calendar-shell">
+                <aside class="calendar-sidebar surface-card">
+                    <p class="section-kicker">Continuum planner</p>
+                    <h2>Scroll through decades without losing focus.</h2>
+                    <p class="section-text">
+                        The current month stays legible, selected days remain clear, and the board is tuned for long-range browsing.
+                    </p>
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-swatch legend-swatch--today"></span>
+                            <span>Today</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-swatch legend-swatch--selected"></span>
+                            <span>Selected day</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-swatch legend-swatch--muted"></span>
+                            <span>Outside focus month</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="calendar-board surface-card">
+                    <div class="calendar-header">
+                        <div class="calendar-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="calendar-month-year">October 2023</span>
+                        </div>
+                        <div class="calendar-nav">
+                            <button class="nav-btn" id="prev-month" type="button" aria-label="Previous month">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="nav-btn" id="today-btn" type="button">Today</button>
+                            <button class="nav-btn" id="next-month" type="button" aria-label="Next month">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-weekdays" id="calendar-weekdays"></div>
+                    <div class="calendar-grid" id="calendar-grid"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
     <div class="settings-container">
-        <button class="settings-toggle-btn" id="settings-toggle">
-            <i class="fas fa-cog"></i>
+        <button class="settings-toggle-btn" id="settings-toggle" type="button" aria-label="Open settings">
+            <i class="fas fa-sliders"></i>
         </button>
         <div class="settings-panel" id="settings-panel">
+            <div class="settings-panel-header">
+                <p class="section-kicker">Controls</p>
+                <h2>Instrument tuning</h2>
+            </div>
             <div class="settings-content">
-                <!-- Clock Settings -->
                 <div class="settings-group" id="clock-settings">
                     <h3>Clock Settings</h3>
                     <label>
@@ -99,10 +179,9 @@
                     </label>
                 </div>
 
-                <!-- Globe Settings -->
                 <div class="settings-group" id="globe-settings">
                     <h3>Globe Settings</h3>
-                    <button id="globe-center-location" class="settings-btn">Center On My Location</button>
+                    <button id="globe-center-location" class="settings-btn" type="button">Center On My Location</button>
                     <label>
                         <span class="setting-label">Globe Size</span>
                         <input type="range" min="200" max="1200" value="700" class="size-slider" id="globe-size">
@@ -111,7 +190,7 @@
                         <span class="setting-label">Globe Tilt</span>
                         <div class="control-row">
                             <input type="range" min="-45" max="45" value="23.5" step="0.1" class="tilt-slider" id="globe-tilt">
-                            <button id="reset-tilt" class="settings-icon-btn" title="Reset Tilt">
+                            <button id="reset-tilt" class="settings-icon-btn" type="button" title="Reset Tilt">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -120,12 +199,12 @@
                         <span class="setting-label">Rotation Speed</span>
                         <div class="control-row">
                             <input type="range" min="0" max="10" value="2.5" step="0.1" class="speed-slider" id="globe-speed">
-                            <button id="globe-rotate-toggle" class="settings-icon-btn" title="Pause Rotation">
+                            <button id="globe-rotate-toggle" class="settings-icon-btn" type="button" title="Pause Rotation">
                                 <i class="fas fa-pause"></i>
                             </button>
                         </div>
                     </label>
-                    <button id="terminator-toggle" class="settings-btn">Hide Terminator</button>
+                    <button id="terminator-toggle" class="settings-btn" type="button">Hide Terminator</button>
                     <div class="coordinate-control">
                         <label>
                             <span class="setting-label">Latitude</span>

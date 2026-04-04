@@ -64,6 +64,20 @@
             R = Math.min(width, height) * 0.45;
         }
 
+        function getResponsiveCanvasSize(requestedSize) {
+            const maxViewportSize = Math.max(
+                260,
+                Math.min(window.innerWidth - 64, window.innerHeight - 220, 1200)
+            );
+            return Math.min(requestedSize, maxViewportSize);
+        }
+
+        function applyCanvasSize(requestedSize) {
+            const size = getResponsiveCanvasSize(requestedSize);
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }
+
         function clear() {
             ctx.clearRect(0, 0, width, height);
         }
@@ -581,12 +595,10 @@
 
             if (globeSizeInput) {
                 const initialV = parseInt(globeSizeInput.value, 10) || 700;
-                canvas.style.width = initialV + 'px';
-                canvas.style.height = initialV + 'px';
+                applyCanvasSize(initialV);
                 globeSizeInput.addEventListener('input', () => {
                     const v = parseInt(globeSizeInput.value, 10) || 700;
-                    canvas.style.width = v + 'px';
-                    canvas.style.height = v + 'px';
+                    applyCanvasSize(v);
                     resize();
                 });
             }
@@ -672,7 +684,12 @@
             }
 
             // Also observe window resize
-            window.addEventListener('resize', resize);
+            window.addEventListener('resize', () => {
+                if (globeSizeInput) {
+                    applyCanvasSize(parseInt(globeSizeInput.value, 10) || 700);
+                }
+                resize();
+            });
 
             // Pointer drag for manual rotation (supports mouse and touch via pointer events)
             canvas.addEventListener('pointerdown', (ev) => {

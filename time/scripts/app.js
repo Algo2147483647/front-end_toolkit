@@ -12,6 +12,7 @@ class TimeApp {
         this.secondHandMotion = document.getElementById('second-hand-motion');
         this.settingsToggle = document.getElementById('settings-toggle');
         this.settingsPanel = document.getElementById('settings-panel');
+        this.settingsContainer = document.querySelector('.settings-container');
         this.clockSettings = document.getElementById('clock-settings');
         this.globeSettings = document.getElementById('globe-settings');
         
@@ -45,6 +46,9 @@ class TimeApp {
         this.clockBtn.classList.add('active');
         this.calendarBtn.classList.remove('active');
         if (this.globeBtn) this.globeBtn.classList.remove('active');
+        this.clockBtn.setAttribute('aria-selected', 'true');
+        this.calendarBtn.setAttribute('aria-selected', 'false');
+        if (this.globeBtn) this.globeBtn.setAttribute('aria-selected', 'false');
         this.toggleSlider.style.transform = 'translateX(0)';
 
         this.clockView.classList.remove('hidden');
@@ -63,6 +67,9 @@ class TimeApp {
         this.calendarBtn.classList.add('active');
         this.clockBtn.classList.remove('active');
         if (this.globeBtn) this.globeBtn.classList.remove('active');
+        this.calendarBtn.setAttribute('aria-selected', 'true');
+        this.clockBtn.setAttribute('aria-selected', 'false');
+        if (this.globeBtn) this.globeBtn.setAttribute('aria-selected', 'false');
         this.toggleSlider.style.transform = 'translateX(100%)';
 
         this.clockView.classList.add('hidden');
@@ -79,6 +86,9 @@ class TimeApp {
         this.globeBtn.classList.add('active');
         this.clockBtn.classList.remove('active');
         this.calendarBtn.classList.remove('active');
+        this.globeBtn.setAttribute('aria-selected', 'true');
+        this.clockBtn.setAttribute('aria-selected', 'false');
+        this.calendarBtn.setAttribute('aria-selected', 'false');
         this.toggleSlider.style.transform = 'translateX(200%)';
 
         this.clockView.classList.add('hidden');
@@ -124,6 +134,15 @@ class TimeApp {
                 // No specific settings for calendar currently
                 break;
         }
+
+        const hasSettings = this.currentView === 'clock' || this.currentView === 'globe';
+        if (this.settingsContainer) {
+            this.settingsContainer.classList.toggle('is-hidden', !hasSettings);
+        }
+        if (!hasSettings && this.settingsPanel) {
+            this.settingsPanel.classList.remove('active');
+        }
+        document.body.dataset.view = this.currentView;
     }
 
     init() {

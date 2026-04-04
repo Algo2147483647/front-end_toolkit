@@ -23,7 +23,7 @@ class Calendar {
         // Virtualization settings
         this.startYear = 1970;
         this.endYear = 2030;
-        this.rowHeight = 70; // px per week-row (matches .calendar-day height)
+        this.rowHeight = this.getRowHeight();
         this.bufferRows = 3; // extra rows to render above/below viewport
         // Align totalStartDate to the Sunday at or before Jan 1 of startYear
         const rawStart = new Date(this.startYear, 0, 1);
@@ -48,6 +48,15 @@ class Calendar {
 
         // Listen for timezone changes and reinitialize the calendar view
         window.addEventListener('timezoneChanged', () => this.handleTimezoneChange());
+        window.addEventListener('resize', () => this.handleResize());
+    }
+
+    getRowHeight() {
+        const value = getComputedStyle(document.documentElement)
+            .getPropertyValue('--calendar-row-height')
+            .trim();
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 70;
     }
 
     initElements() {
@@ -234,6 +243,7 @@ class Calendar {
         // 使用防抖优化性能并虚拟渲染窗口
         clearTimeout(this.titleUpdateTimer);
         this.titleUpdateTimer = setTimeout(() => {
+            this.rowHeight = this.getRowHeight();
             const scrollTop = this.calendarGrid.scrollTop;
             const newFirstVisibleRow = Math.floor(scrollTop / this.rowHeight);
             if (newFirstVisibleRow !== this.firstVisibleRow) {
@@ -392,12 +402,12 @@ class Calendar {
         setTimeout(() => {
             const todayElement = this.daysContainer.querySelector('.calendar-day.today');
             if (todayElement) {
-                todayElement.style.backgroundColor = '#ffeb3b';
-                todayElement.style.transform = 'scale(1.1)';
+                todayElement.style.transform = 'translateY(-2px) scale(1.05)';
+                todayElement.style.boxShadow = '0 0 0 6px rgba(240, 141, 105, 0.18), 0 18px 28px rgba(215, 88, 71, 0.28)';
                 todayElement.style.transition = 'all 0.3s ease';
                 setTimeout(() => {
-                    todayElement.style.backgroundColor = '';
                     todayElement.style.transform = '';
+                    todayElement.style.boxShadow = '';
                 }, 1000);
             }
         }, 200);
@@ -416,6 +426,18 @@ class Calendar {
             this.init();
         } catch (e) {
             console.warn('Calendar failed to handle timezone change', e);
+        }
+    }
+
+    handleResize() {
+        try {
+            const previousRowHeight = this.rowHeight || 70;
+            const rowIndex = Math.floor(this.calendarGrid.scrollTop / previousRowHeight);
+            this.rowHeight = this.getRowHeight();
+            this.calendarGrid.scrollTop = rowIndex * this.rowHeight;
+            this.handleScroll();
+        } catch (e) {
+            console.warn('Calendar resize sync failed', e);
         }
     }
 

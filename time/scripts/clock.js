@@ -195,7 +195,12 @@ function updateClockSize() {
     const clockFace = document.getElementById('clock-face');
     const digitalClock = document.getElementById('digital-clock');
 
-    let clockSize = parseInt(sizeSlider.value);
+    const desiredClockSize = parseInt(sizeSlider.value, 10);
+    const maxViewportClockSize = Math.max(
+        240,
+        Math.min(window.innerWidth - 48, window.innerHeight - 240, 800)
+    );
+    const clockSize = Math.min(desiredClockSize, maxViewportClockSize);
 
     // 处理高分辨率屏幕显示模糊问题
     const devicePixelRatio = window.devicePixelRatio || 1;
@@ -235,5 +240,13 @@ window.addEventListener('timezoneChanged', () => {
         updateDigitalClock();
     } catch (e) {
         console.warn('Clock refresh on timezone change failed', e);
+    }
+});
+
+window.addEventListener('resize', () => {
+    try {
+        updateClockSize();
+    } catch (e) {
+        console.warn('Clock resize sync failed', e);
     }
 });
