@@ -178,7 +178,7 @@ export function createInteractionController({
     ui.sendToBackButton.disabled = !canReorder;
   }
 
-  function resolveContextMenuTarget(startNode) {
+  function resolveSelectionTarget(startNode) {
     const rawTarget = startNode?.closest?.("[data-editor-id]") || null;
     if (!rawTarget || rawTarget === state.svgRoot) {
       return rawTarget;
@@ -215,6 +215,10 @@ export function createInteractionController({
       return false;
     }
 
+    if (node.hasAttribute?.("data-cell-id")) {
+      return true;
+    }
+
     return !NON_GEOMETRY_TAGS.has(node.tagName.toLowerCase());
   }
 
@@ -231,7 +235,7 @@ export function createInteractionController({
   }
 
   function collectSelectionBoxMatches(box) {
-    const matches = [];
+    const matches = new Set();
     for (const [editorId, node] of state.nodeMap.entries()) {
       if (!isSelectableGeometryNode(node)) {
         continue;
@@ -243,11 +247,16 @@ export function createInteractionController({
       }
 
       if (rectsIntersect(box, bounds)) {
-        matches.push(editorId);
+        const resolvedTarget = resolveSelectionTarget(node) || node;
+        if (resolvedTarget?.dataset?.editorId) {
+          matches.add(resolvedTarget.dataset.editorId);
+        } else {
+          matches.add(editorId);
+        }
       }
     }
 
-    return matches;
+    return [...matches];
   }
 
   function setCanvasPanning(active) {
@@ -561,7 +570,7 @@ export function createInteractionController({
       return;
     }
 
-    const target = event.target.closest("[data-editor-id]");
+    const target = resolveSelectionTarget(event.target);
     if (!target) {
       return;
     }
@@ -579,7 +588,7 @@ export function createInteractionController({
 
   function onSvgPointerDown(event) {
     hideContextMenu();
-    const target = event.target.closest("[data-editor-id]");
+    const target = resolveSelectionTarget(event.target);
     if (!target) {
       return;
     }
@@ -633,7 +642,7 @@ export function createInteractionController({
   }
 
   function onWorkspaceContextMenu(event) {
-    const target = resolveContextMenuTarget(event.target);
+    const target = resolveSelectionTarget(event.target);
     if (!target || target === state.svgRoot) {
       hideContextMenu();
       event.preventDefault();

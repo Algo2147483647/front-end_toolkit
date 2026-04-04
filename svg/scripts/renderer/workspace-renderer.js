@@ -87,12 +87,11 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
       stroke = "#0f766e",
       strokeWidth = "2"
     } = options;
-    const padding = Math.max(2, Math.min(box.width || 12, box.height || 12) * 0.03);
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", String(box.x - padding));
-    rect.setAttribute("y", String(box.y - padding));
-    rect.setAttribute("width", String(box.width + padding * 2));
-    rect.setAttribute("height", String(box.height + padding * 2));
+    rect.setAttribute("x", String(box.x));
+    rect.setAttribute("y", String(box.y));
+    rect.setAttribute("width", String(box.width));
+    rect.setAttribute("height", String(box.height));
     rect.setAttribute("rx", "8");
     rect.setAttribute("fill", fill);
     rect.setAttribute("fill-opacity", opacity);
