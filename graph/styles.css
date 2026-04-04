@@ -48,6 +48,12 @@ body {
   overflow: hidden;
 }
 
+body.graph-is-panning,
+body.graph-is-panning * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
 body::before {
   content: "";
   position: fixed;
