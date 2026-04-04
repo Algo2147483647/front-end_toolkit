@@ -86,7 +86,8 @@ textarea {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  padding: 8px;
+  padding: 0;
+  background: #fff;
 }
 
 .topbar,
@@ -169,8 +170,8 @@ textarea {
   font-weight: 600;
   line-height: 0.98;
   letter-spacing: 0.02em;
-  color: var(--accent-strong);
-  text-shadow: 0 10px 24px rgba(208, 90, 47, 0.12);
+  color: #000;
+  text-shadow: none;
 }
 
 .status-pill,
@@ -389,14 +390,11 @@ textarea {
 
 .workspace-panel {
   position: relative;
-  min-height: calc(100vh - 16px);
+  min-height: 100vh;
   overflow: auto;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(208, 90, 47, 0.12), transparent 22%),
-    radial-gradient(circle at 82% 16%, rgba(15, 118, 110, 0.1), transparent 22%),
-    linear-gradient(180deg, rgba(250, 246, 240, 0.96) 0%, rgba(239, 230, 218, 0.94) 100%);
-  border-radius: 28px;
-  border: 1px solid rgba(86, 67, 48, 0.12);
+  background: #fff;
+  border-radius: 0;
+  border: 0;
 }
 
 .inspector-panel {
@@ -779,7 +777,8 @@ textarea {
   position: relative;
   min-height: 0;
   overflow: hidden;
-  padding-top: 138px;
+  padding: 138px 0 0;
+  background: #fff;
 }
 
 .source-pane {
@@ -836,8 +835,7 @@ textarea {
 .surface-grid,
 .surface-inner {
   position: absolute;
-  inset: 18px;
-  border-radius: 16px;
+  inset: 0;
 }
 
 .surface-grid {
@@ -846,8 +844,7 @@ textarea {
     linear-gradient(90deg, rgba(86, 67, 48, 0.06) 1px, transparent 1px);
   background-size: var(--grid-step-x, var(--grid-size)) var(--grid-step-y, var(--grid-size));
   background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
-  border: 1px dashed rgba(86, 67, 48, 0.12);
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: #fff;
 }
 
 .surface-inner {
@@ -1368,7 +1365,7 @@ textarea.field-input,
 
 @media (max-width: 1200px) {
   .app-shell {
-    padding: 6px;
+    padding: 0;
   }
 
   .topbar {
@@ -1404,6 +1401,10 @@ textarea.field-input,
     padding-top: 162px;
   }
 
+  .workspace-surface {
+    padding: 162px 0 0;
+  }
+
   .app-shell.is-topbar-collapsed .left-panel,
   .app-shell.is-topbar-collapsed .inspector-panel {
     top: 56px;
@@ -1418,6 +1419,10 @@ textarea.field-input,
     padding-top: 108px;
   }
 
+  .app-shell.is-topbar-collapsed .workspace-surface {
+    padding: 108px 0 0;
+  }
+
   /* 底部 dock 在响应式下的调整 */
   .floating-dock {
     bottom: 6px;
@@ -1428,7 +1433,7 @@ textarea.field-input,
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 4px;
+    padding: 0;
   }
 
   .topbar {
@@ -1470,6 +1475,10 @@ textarea.field-input,
     padding-top: 188px;
   }
 
+  .workspace-surface {
+    padding: 188px 0 0;
+  }
+
   .app-shell.is-topbar-collapsed .workspace-header {
     top: 60px;
   }
@@ -1477,6 +1486,10 @@ textarea.field-input,
   .app-shell.is-topbar-collapsed .workspace-surface,
   .app-shell.is-topbar-collapsed .source-pane {
     padding-top: 146px;
+  }
+
+  .app-shell.is-topbar-collapsed .workspace-surface {
+    padding: 146px 0 0;
   }
 
   /* 底部 dock 在小屏幕下的调整 */
