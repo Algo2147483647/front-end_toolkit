@@ -656,7 +656,10 @@ export function createInteractionController({
         return;
       }
       try {
-        documentController.loadDocument(await file.text(), { preserveEditorState: false });
+        documentController.loadDocument(await file.text(), {
+          fitScale: 0.7,
+          preserveEditorState: false
+        });
         event.target.value = "";
       } catch (error) {
         alert(error.message);

@@ -339,6 +339,7 @@ export function createDocumentController({
 
   function loadDocument(source, options = {}) {
     const {
+      fitScale = null,
       pushHistory = true,
       preserveEditorState = false
     } = options;
@@ -369,6 +370,16 @@ export function createDocumentController({
       source: true,
       actions: true
     });
+    if (Number.isFinite(fitScale) && fitScale > 0) {
+      const applyFittedZoom = () => {
+        state.panX = 0;
+        state.panY = 0;
+        state.zoom = Math.max(0.01, Math.min(2.5, renderer.getFitZoom() * fitScale));
+        renderer.applyZoom();
+      };
+      applyFittedZoom();
+      requestAnimationFrame(applyFittedZoom);
+    }
     if (pushHistory) {
       historyController.recordHistory("load");
     }
