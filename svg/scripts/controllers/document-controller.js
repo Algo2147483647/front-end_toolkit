@@ -33,6 +33,14 @@ export function createDocumentController({
     return true;
   }
 
+  function buildExportFileName() {
+    const sourceName = (state.currentFileName || "edited-graphic").trim();
+    const baseName = sourceName.replace(/\.svg$/i, "") || "edited-graphic";
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+    return `${baseName}-${timestamp}.svg`;
+  }
+
   function ensureDocument() {
     if (!state.svgRoot) {
       loadDocument(emptySvg);
@@ -376,7 +384,7 @@ export function createDocumentController({
     const url = URL.createObjectURL(new Blob([model.serialize()], { type: "image/svg+xml;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "edited-graphic.svg";
+    link.download = buildExportFileName();
     link.click();
     URL.revokeObjectURL(url);
   }
