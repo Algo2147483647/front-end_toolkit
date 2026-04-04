@@ -1,4 +1,4 @@
-import { GRID_SNAP_SIZE_OPTIONS } from "./constants.js";
+import { GRID_SNAP_DEFAULT_SIZE, GRID_SNAP_SIZE_OPTIONS } from "./constants.js";
 import { createInspectorRenderer } from "./renderer/inspector-renderer.js";
 import { createTreeRenderer } from "./renderer/tree-renderer.js";
 import { createWorkspaceRenderer } from "./renderer/workspace-renderer.js";
@@ -31,7 +31,7 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.surfaceGrid.style.removeProperty("--grid-offset-x");
     ui.surfaceGrid.style.removeProperty("--grid-offset-y");
 
-    if (!state.svgRoot) {
+    if (!state.gridSnapEnabled || !state.svgRoot) {
       return;
     }
 
@@ -40,7 +40,7 @@ export function createRenderer({ state, ui, model, actions }) {
     const surfaceHeight = ui.surfaceGrid.clientHeight || ui.surfaceInner?.clientHeight || 0;
     const hostWidth = ui.svgHost.offsetWidth || 0;
     const hostHeight = ui.svgHost.offsetHeight || 0;
-    const gridSize = state.gridSnapSize || GRID_SNAP_SIZE_OPTIONS[0] || 1;
+    const gridSize = state.gridSnapSize || GRID_SNAP_DEFAULT_SIZE || GRID_SNAP_SIZE_OPTIONS[0] || 1;
 
     if (!viewBox.width || !viewBox.height || !surfaceWidth || !surfaceHeight || !hostWidth || !hostHeight || !gridSize) {
       return;
@@ -73,6 +73,7 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
     ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
     ui.workspaceSurface.style.setProperty("--grid-size", `${state.gridSnapSize}px`);
+    ui.surfaceGrid.classList.toggle("hidden", !state.gridSnapEnabled);
 
     ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
     ui.collapseTopbarButton.querySelector(".tool-label").textContent = state.topbarCollapsed ? "Show" : "Hide";

@@ -1,5 +1,5 @@
 import {
-  GRID_SCREEN_SIZE,
+  GRID_SNAP_DEFAULT_SIZE,
   GRID_SNAP_SIZE_OPTIONS,
   GRID_SNAP_SIZE_STORAGE_KEY,
   GRID_SNAP_STORAGE_KEY
@@ -36,7 +36,7 @@ function normalizeGridSnapSize(value) {
   if (Number.isFinite(parsed) && parsed >= 1) {
     return parsed;
   }
-  return GRID_SNAP_SIZE_OPTIONS.includes(parsed) ? parsed : GRID_SCREEN_SIZE;
+  return GRID_SNAP_SIZE_OPTIONS.includes(parsed) ? parsed : GRID_SNAP_DEFAULT_SIZE;
 }
 
 const $ = (selector) => document.querySelector(selector);
@@ -109,8 +109,8 @@ export const state = {
   zoom: 1,
   panX: 0,
   panY: 0,
-  gridSnapEnabled: readStoredBoolean(GRID_SNAP_STORAGE_KEY, false),
-  gridSnapSize: normalizeGridSnapSize(readStoredNumber(GRID_SNAP_SIZE_STORAGE_KEY, GRID_SCREEN_SIZE)),
+  gridSnapEnabled: readStoredBoolean(GRID_SNAP_STORAGE_KEY, true),
+  gridSnapSize: normalizeGridSnapSize(readStoredNumber(GRID_SNAP_SIZE_STORAGE_KEY, GRID_SNAP_DEFAULT_SIZE)),
   topbarCollapsed: false,
   leftPanelHidden: false,
   leftPanelView: "insert",
