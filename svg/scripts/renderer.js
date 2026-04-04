@@ -157,9 +157,43 @@ export function createRenderer({ state, ui, model, actions }) {
     updateGridSurface
   });
 
+  function refresh(options = {}) {
+    const {
+      workspace = false,
+      tree = false,
+      inspector = false,
+      source = false,
+      actions: refreshActions = false,
+      overlay = false
+    } = options;
+
+    if (workspace) {
+      renderWorkspace();
+    } else if (overlay) {
+      renderOverlay();
+    }
+
+    if (tree) {
+      renderTree();
+    }
+
+    if (inspector) {
+      renderInspector();
+    }
+
+    if (source) {
+      updateSource();
+    }
+
+    if (refreshActions) {
+      updateActions();
+    }
+  }
+
   return {
     applyZoom,
     getFitZoom,
+    refresh,
     renderInspector,
     renderOverlay,
     renderTree,
