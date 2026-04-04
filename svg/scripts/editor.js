@@ -5,6 +5,21 @@ import {
 } from "./constants.js";
 
 export function createEditor({ state, ui, model, renderer, emptySvg }) {
+  const NON_GEOMETRY_TAGS = new Set([
+    "svg",
+    "g",
+    "defs",
+    "style",
+    "clipPath",
+    "mask",
+    "symbol",
+    "linearGradient",
+    "radialGradient",
+    "stop",
+    "pattern",
+    "marker"
+  ]);
+
   function clampZoom(value) {
     return Math.max(0.3, Math.min(2.5, value));
   }
@@ -20,6 +35,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function snapshotEditorState() {
     return {
       selectedNodeKey: state.selectedNodeKey,
+      selectedNodeKeys: [...state.selectedNodeKeys],
       collapsedNodeKeys: [...state.collapsedNodeKeys],
       lockedNodeKeys: [...state.lockedNodeKeys]
     };
@@ -27,6 +43,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function restoreEditorState(snapshot) {
     state.selectedNodeKey = snapshot?.selectedNodeKey || null;
+    state.selectedNodeKeys = new Set(snapshot?.selectedNodeKeys || []);
     state.collapsedNodeKeys = new Set(snapshot?.collapsedNodeKeys || []);
     state.lockedNodeKeys = new Set(snapshot?.lockedNodeKeys || []);
   }
@@ -34,6 +51,8 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   function resetEditorState() {
     restoreEditorState(null);
     state.selectedId = null;
+    state.selectedIds = new Set();
+    state.selectionBox = null;
   }
 
   function remapMetadataKey(oldKey, newKey) {
@@ -43,6 +62,10 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
     if (state.selectedNodeKey === oldKey) {
       state.selectedNodeKey = newKey;
+    }
+
+    if (state.selectedNodeKeys.delete(oldKey)) {
+      state.selectedNodeKeys.add(newKey);
     }
 
     if (state.collapsedNodeKeys.delete(oldKey)) {
@@ -55,17 +78,20 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function resolveLiveSelection(fallbackEditorId = state.svgRoot?.dataset.editorId || null) {
+    const resolvedEditorIds = [...state.selectedNodeKeys]
+      .map((nodeKey) => model.getEditorIdByNodeKey(nodeKey))
+      .filter(Boolean);
     const resolvedEditorId = state.selectedNodeKey
       ? model.getEditorIdByNodeKey(state.selectedNodeKey)
       : null;
+    const fallbackIds = resolvedEditorIds.length
+      ? resolvedEditorIds
+      : (fallbackEditorId ? [fallbackEditorId] : []);
 
-    state.selectedId = resolvedEditorId || fallbackEditorId;
-
-    if (resolvedEditorId) {
-      state.selectedNodeKey = model.getNodeKeyByEditorId(resolvedEditorId);
-    } else if (!state.selectedNodeKey && fallbackEditorId) {
-      state.selectedNodeKey = model.getNodeKeyByEditorId(fallbackEditorId);
-    }
+    setSelection(fallbackIds, {
+      primaryId: resolvedEditorId || fallbackIds[0] || null,
+      render: false
+    });
   }
 
   function recordHistory(reason) {
@@ -172,13 +198,46 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     setZoom(renderer.getFitZoom());
   }
 
-  function selectNode(editorId) {
-    state.selectedId = editorId;
-    state.selectedNodeKey = model.getNodeKeyByEditorId(editorId);
+  function renderSelectionState() {
     renderer.renderTree();
     renderer.renderInspector();
     renderer.renderOverlay();
     renderer.updateActions();
+  }
+
+  function setSelection(editorIds, options = {}) {
+    const { primaryId = null, render = true } = options;
+    const validIds = [...new Set(editorIds.filter((editorId) => state.nodeMap.has(editorId)))];
+    const nextPrimaryId = validIds.includes(primaryId)
+      ? primaryId
+      : (validIds[0] || null);
+
+    state.selectedIds = new Set(validIds);
+    state.selectedId = nextPrimaryId;
+    state.selectedNodeKey = nextPrimaryId
+      ? model.getNodeKeyByEditorId(nextPrimaryId)
+      : null;
+    state.selectedNodeKeys = new Set(
+      validIds
+        .map((editorId) => model.getNodeKeyByEditorId(editorId))
+        .filter(Boolean)
+    );
+
+    if (render) {
+      renderSelectionState();
+    }
+  }
+
+  function getSelectedEditorIds() {
+    return [...state.selectedIds].filter((editorId) => state.nodeMap.has(editorId));
+  }
+
+  function clearSelection() {
+    setSelection([]);
+  }
+
+  function selectNode(editorId) {
+    setSelection(editorId ? [editorId] : [], { primaryId: editorId || null });
   }
 
   function insertNode(node, recordReason = "insert") {
@@ -212,6 +271,82 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.dropOverlay.classList.add("hidden");
   }
 
+  function normalizeBox(startPoint, endPoint) {
+    const x = Math.min(startPoint.x, endPoint.x);
+    const y = Math.min(startPoint.y, endPoint.y);
+    return {
+      x,
+      y,
+      width: Math.abs(endPoint.x - startPoint.x),
+      height: Math.abs(endPoint.y - startPoint.y)
+    };
+  }
+
+  function rectsIntersect(a, b) {
+    return a.x <= b.x + b.width
+      && a.x + a.width >= b.x
+      && a.y <= b.y + b.height
+      && a.y + a.height >= b.y;
+  }
+
+  function isSelectableGeometryNode(node) {
+    if (!node || node === state.svgRoot || model.isNodeLocked(node) || model.isNodeHidden(node)) {
+      return false;
+    }
+
+    return !NON_GEOMETRY_TAGS.has(node.tagName.toLowerCase());
+  }
+
+  function getNodeBounds(node) {
+    try {
+      const box = node.getBBox();
+      if (!Number.isFinite(box.x) || !Number.isFinite(box.y) || !Number.isFinite(box.width) || !Number.isFinite(box.height)) {
+        return null;
+      }
+      return box;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function collectSelectionBoxMatches(box) {
+    const matches = [];
+    for (const [editorId, node] of state.nodeMap.entries()) {
+      if (!isSelectableGeometryNode(node)) {
+        continue;
+      }
+
+      const bounds = getNodeBounds(node);
+      if (!bounds) {
+        continue;
+      }
+
+      if (rectsIntersect(box, bounds)) {
+        matches.push(editorId);
+      }
+    }
+
+    return matches;
+  }
+
+  function getSelectionTargets() {
+    const selectedIds = new Set(getSelectedEditorIds());
+
+    return getSelectedEditorIds()
+      .map((editorId) => state.nodeMap.get(editorId))
+      .filter((node) => node && node !== state.svgRoot && node.parentNode)
+      .filter((node) => {
+        let parent = node.parentElement;
+        while (parent) {
+          if (selectedIds.has(parent.dataset?.editorId)) {
+            return false;
+          }
+          parent = parent.parentElement;
+        }
+        return true;
+      });
+  }
+
   function isCanvasBackdropNode(node) {
     if (!node || node === state.svgRoot || node.parentElement !== state.svgRoot) {
       return false;
@@ -238,22 +373,39 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.workspaceSurface.classList.toggle("is-panning", active);
   }
 
+  function setSelectionBoxActive(active) {
+    ui.workspaceSurface.classList.toggle("is-selecting", active);
+  }
+
   function beginDrag(node, event) {
-    if (!model.canDragNode(node)) {
+    const selectedEditorIds = state.selectedIds.has(node.dataset.editorId)
+      ? getSelectedEditorIds()
+      : [node.dataset.editorId];
+    const dragItems = selectedEditorIds
+      .map((editorId) => state.nodeMap.get(editorId))
+      .filter((selectedNode) => selectedNode && model.canDragNode(selectedNode))
+      .map((selectedNode) => {
+        const referenceNode = selectedNode.parentElement || state.svgRoot;
+        return {
+          editorId: selectedNode.dataset.editorId,
+          descriptor: model.getDragDescriptor(selectedNode),
+          startPoint: model.toLocalPoint(referenceNode, event.clientX, event.clientY),
+          referenceNode
+        };
+      });
+
+    if (!dragItems.length) {
       return;
     }
 
-    const referenceNode = node.parentElement || state.svgRoot;
-    const startPoint = model.toLocalPoint(referenceNode, event.clientX, event.clientY);
     state.drag = {
-      editorId: node.dataset.editorId,
-      descriptor: model.getDragDescriptor(node),
-      startPoint,
-      referenceNode,
+      items: dragItems,
       moved: false,
-      type: "node"
+      type: "selection"
     };
-    ui.statusPill.textContent = `Dragging: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
+    ui.statusPill.textContent = dragItems.length > 1
+      ? `Dragging ${dragItems.length} objects`
+      : `Dragging: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
   function beginCanvasDrag(event, source = "surface") {
@@ -268,6 +420,26 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     };
     setCanvasPanning(true);
     ui.statusPill.textContent = "Panning canvas";
+  }
+
+  function beginSelectionBox(event, source = "surface") {
+    const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
+    state.drag = {
+      currentPoint: point,
+      moved: false,
+      source,
+      startPoint: point,
+      type: "selection-box"
+    };
+    state.selectionBox = {
+      x: point.x,
+      y: point.y,
+      width: 0,
+      height: 0
+    };
+    setSelectionBoxActive(true);
+    ui.statusPill.textContent = "Selecting objects";
+    renderer.renderOverlay();
   }
 
   function moveDrag(event) {
@@ -287,18 +459,34 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
-    const node = state.nodeMap.get(state.drag.editorId);
-    if (!node) {
+    if (state.drag.type === "selection-box") {
+      const currentPoint = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
+      const box = normalizeBox(state.drag.startPoint, currentPoint);
+      state.drag.currentPoint = currentPoint;
+      state.drag.moved = box.width > 1 || box.height > 1;
+      state.selectionBox = box;
+      setSelection(collectSelectionBoxMatches(box), { render: false });
+      renderer.renderTree();
+      renderer.renderInspector();
+      renderer.renderOverlay();
+      renderer.updateActions();
       return;
     }
 
-    const currentPoint = model.toLocalPoint(state.drag.referenceNode, event.clientX, event.clientY);
-    const dx = Math.round((currentPoint.x - state.drag.startPoint.x) * 100) / 100;
-    const dy = Math.round((currentPoint.y - state.drag.startPoint.y) * 100) / 100;
-    if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-      state.drag.moved = true;
+    for (const item of state.drag.items) {
+      const node = state.nodeMap.get(item.editorId);
+      if (!node) {
+        continue;
+      }
+
+      const currentPoint = model.toLocalPoint(item.referenceNode, event.clientX, event.clientY);
+      const dx = Math.round((currentPoint.x - item.startPoint.x) * 100) / 100;
+      const dy = Math.round((currentPoint.y - item.startPoint.y) * 100) / 100;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        state.drag.moved = true;
+      }
+      model.applyDrag(node, item.descriptor, dx, dy);
     }
-    model.applyDrag(node, state.drag.descriptor, dx, dy);
     renderer.renderOverlay();
   }
 
@@ -315,11 +503,34 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
+    if (state.drag.type === "selection-box") {
+      const moved = state.drag.moved;
+      const source = state.drag.source;
+      state.drag = null;
+      state.selectionBox = null;
+      setSelectionBoxActive(false);
+      if (!moved) {
+        clearSelection();
+      } else {
+        renderSelectionState();
+        state.suppressNextSvgClick = source === "svg";
+      }
+      return;
+    }
+
+    const moved = state.drag.moved;
+    state.drag = null;
+    if (!moved) {
+      renderer.renderOverlay();
+      renderer.renderInspector();
+      return;
+    }
+
+    state.suppressNextSvgClick = true;
     renderer.updateSource();
     renderer.renderInspector();
     renderer.renderOverlay();
     recordHistory("drag");
-    state.drag = null;
   }
 
   async function handleWorkspaceFiles(fileList) {
@@ -352,22 +563,34 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+      clearSelection();
+      return;
+    }
+
     selectNode(target.dataset.editorId);
   }
 
   function onSvgPointerDown(event) {
-    if (event.button !== 0) {
-      return;
-    }
-
     const target = event.target.closest("[data-editor-id]");
     if (!target) {
       return;
     }
 
-    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+    if (event.button === 2 && (target === state.svgRoot || isCanvasBackdropNode(target))) {
       event.preventDefault();
       beginCanvasDrag(event, "svg");
+      return;
+    }
+
+    if (event.button !== 0) {
+      return;
+    }
+
+    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+      event.preventDefault();
+      beginSelectionBox(event, "svg");
       return;
     }
 
@@ -477,37 +700,41 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   }
 
   function duplicateSelection() {
-    const node = state.nodeMap.get(state.selectedId);
-    if (!node || node === state.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
+    const nodes = getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    if (!nodes.length) {
       return;
     }
 
-    const clone = node.cloneNode(true);
-    model.remapSubtreeIds(clone);
-    model.addEditorIds(clone);
-    node.parentNode.insertBefore(clone, node.nextSibling);
+    const cloneIds = [];
+    nodes.forEach((node) => {
+      const clone = node.cloneNode(true);
+      model.remapSubtreeIds(clone);
+      model.addEditorIds(clone);
+      node.parentNode.insertBefore(clone, node.nextSibling);
+      cloneIds.push(clone.dataset.editorId);
+    });
     model.rebuildNodeMap();
     model.syncEditorMetadata();
     renderer.renderTree();
     renderer.updateSource();
-    selectNode(clone.dataset.editorId);
+    setSelection(cloneIds, { primaryId: cloneIds[cloneIds.length - 1] || null });
     recordHistory("duplicate");
   }
 
   function deleteSelection() {
-    const node = state.nodeMap.get(state.selectedId);
-    if (!node || node === state.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
+    const nodes = getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    if (!nodes.length) {
       return;
     }
 
-    const fallback = node.previousElementSibling || node.parentElement || state.svgRoot;
-    node.remove();
+    const fallback = nodes[0].previousElementSibling || nodes[0].parentElement || state.svgRoot;
+    nodes.forEach((node) => node.remove());
     model.rebuildNodeMap();
     model.syncEditorMetadata();
     renderer.updateSource();
     renderer.renderTree();
     recordHistory("delete");
-    selectNode(fallback.dataset.editorId);
+    selectNode(state.nodeMap.has(fallback?.dataset?.editorId) ? fallback.dataset.editorId : state.svgRoot?.dataset?.editorId || null);
   }
 
   function downloadSvg() {
@@ -530,7 +757,9 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     model.addEditorIds(root);
     state.svgRoot = root;
     state.drag = null;
+    state.selectionBox = null;
     setCanvasPanning(false);
+    setSelectionBoxActive(false);
     if (!preserveEditorState) {
       state.panX = 0;
       state.panY = 0;
@@ -640,7 +869,16 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
     ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
     ui.zoomResetButton.addEventListener("click", fitToView);
+    ui.workspaceSurface.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
     ui.workspaceSurface.addEventListener("pointerdown", (event) => {
+      if (event.button === 2) {
+        event.preventDefault();
+        beginCanvasDrag(event, "surface");
+        return;
+      }
+
       if (event.button !== 0) {
         return;
       }
@@ -650,7 +888,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       }
 
       event.preventDefault();
-      beginCanvasDrag(event, "surface");
+      beginSelectionBox(event, "surface");
     });
     ui.workspaceSurface.addEventListener("dragenter", (event) => {
       event.preventDefault();

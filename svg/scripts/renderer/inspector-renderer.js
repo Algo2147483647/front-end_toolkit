@@ -530,8 +530,11 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   }
 
   function renderInspector() {
+    const selectedNodes = [...state.selectedIds]
+      .map((editorId) => state.nodeMap.get(editorId))
+      .filter(Boolean);
     const node = state.nodeMap.get(state.selectedId);
-    if (!node) {
+    if (!selectedNodes.length || !node) {
       ui.inspectorEmpty.classList.remove("hidden");
       ui.propertyForm.classList.add("hidden");
       ui.propertyForm.innerHTML = "";
@@ -541,6 +544,35 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     ui.inspectorEmpty.classList.add("hidden");
     ui.propertyForm.classList.remove("hidden");
     ui.propertyForm.innerHTML = "";
+
+    if (selectedNodes.length > 1) {
+      const summaryCard = document.createElement("section");
+      const summaryTop = document.createElement("div");
+      const summaryMeta = document.createElement("div");
+      const typeChip = document.createElement("span");
+      const name = document.createElement("strong");
+      const note = document.createElement("p");
+
+      summaryCard.className = "inspector-card inspector-object-card";
+      summaryTop.className = "inspector-object-top";
+      summaryMeta.className = "inspector-object-meta";
+      typeChip.className = "inspector-type-chip";
+      name.className = "inspector-object-name";
+      typeChip.textContent = "multi";
+      name.textContent = `${selectedNodes.length} objects selected`;
+      summaryMeta.textContent = selectedNodes
+        .slice(0, 4)
+        .map((selectedNode) => `${selectedNode.tagName.toLowerCase()} ${model.labelFor(selectedNode)}`)
+        .join(" | ");
+      note.className = "inspector-note";
+      note.textContent = "Drag any selected object to move the group. Attribute editing is available after reducing the selection to one object.";
+
+      summaryTop.append(typeChip, name);
+      summaryCard.append(summaryTop, summaryMeta, note);
+      ui.propertyForm.append(summaryCard);
+      return;
+    }
+
     const locked = model.isNodeLocked(node);
     const hidden = model.isNodeHidden(node);
 

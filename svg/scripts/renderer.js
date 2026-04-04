@@ -127,8 +127,11 @@ export function createRenderer({ state, ui, model, actions }) {
   }
 
   function updateActions() {
-    const active = state.nodeMap.get(state.selectedId);
-    const canChange = Boolean(active && active !== state.svgRoot && !model.isNodeLocked(active));
+    const selectedNodes = [...state.selectedIds]
+      .map((editorId) => state.nodeMap.get(editorId))
+      .filter(Boolean);
+    const canChange = selectedNodes.length > 0
+      && selectedNodes.every((node) => node !== state.svgRoot && !model.isNodeLocked(node));
     ui.undoButton.disabled = state.historyIndex <= 0;
     ui.redoButton.disabled = state.historyIndex >= state.history.length - 1 || state.historyIndex < 0;
     ui.duplicateButton.disabled = !canChange;

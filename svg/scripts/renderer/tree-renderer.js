@@ -25,7 +25,7 @@ export function createTreeRenderer({ state, ui, model, actions }) {
       const label = document.createElement("span");
 
       row.className = "tree-item";
-      if (node.dataset.editorId === state.selectedId) row.classList.add("is-selected");
+      if (state.selectedIds.has(node.dataset.editorId)) row.classList.add("is-selected");
       if (locked) row.classList.add("is-locked");
       if (hidden) row.classList.add("is-hidden");
       row.style.setProperty("--depth", depth);

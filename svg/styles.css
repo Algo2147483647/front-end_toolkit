@@ -777,6 +777,13 @@ textarea {
   cursor: grabbing;
 }
 
+.workspace-surface.is-selecting .surface-inner,
+.workspace-surface.is-selecting .svg-host,
+.workspace-surface.is-selecting .workspace-svg,
+.workspace-surface.is-selecting .workspace-svg [data-editor-id] {
+  cursor: crosshair;
+}
+
 .workspace-svg {
   cursor: grab;
 }
