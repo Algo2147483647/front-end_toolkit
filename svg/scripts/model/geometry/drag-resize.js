@@ -228,6 +228,20 @@ export function createSvgDragResizeTools({
     ];
   }
 
+  function getPointHandles(node) {
+    const tag = node?.tagName?.toLowerCase?.();
+    if (!["polyline", "polygon"].includes(tag) || isNodeLocked(node)) {
+      return [];
+    }
+
+    return parsePointList(node.getAttribute("points")).map((point, index) => ({
+      key: `point-${index}`,
+      cursor: "move",
+      x: point.x,
+      y: point.y
+    }));
+  }
+
   function getDragDescriptor(node) {
     const tag = node.tagName.toLowerCase();
 
@@ -395,6 +409,35 @@ export function createSvgDragResizeTools({
     };
   }
 
+  function getPointHandleDescriptor(node, handle) {
+    const tag = node?.tagName?.toLowerCase?.();
+    if (!["polyline", "polygon"].includes(tag) || isNodeLocked(node)) {
+      return null;
+    }
+
+    const match = String(handle || "").match(/^point-(\d+)$/);
+    if (!match) {
+      return null;
+    }
+
+    const index = Number.parseInt(match[1], 10);
+    const points = parsePointList(node.getAttribute("points"));
+    const point = points[index];
+    if (!point) {
+      return null;
+    }
+
+    return {
+      index,
+      mode: "point-handle",
+      points,
+      startHandle: {
+        x: point.x,
+        y: point.y
+      }
+    };
+  }
+
   function applyDrag(node, descriptor, dx, dy) {
     if (descriptor.mode === "xy") {
       const nextX = snapCoordinate(descriptor.x + dx, state.gridSnapSize || 1, 0);
@@ -537,6 +580,24 @@ export function createSvgDragResizeTools({
     }
   }
 
+  function applyPointHandle(node, descriptor, point) {
+    if (!descriptor || descriptor.mode !== "point-handle") {
+      return false;
+    }
+
+    const points = [...descriptor.points];
+    if (!points[descriptor.index]) {
+      return false;
+    }
+
+    points[descriptor.index] = {
+      x: snapCoordinate(point.x, state.gridSnapSize || 1, 0),
+      y: snapCoordinate(point.y, state.gridSnapSize || 1, 0)
+    };
+    node.setAttribute("points", serializePointList(points));
+    return true;
+  }
+
   function getPolygonSideCount(node) {
     return Math.max(0, parsePointList(node?.getAttribute?.("points")).length);
   }
@@ -575,11 +636,14 @@ export function createSvgDragResizeTools({
   }
 
   return {
+    applyPointHandle,
     applyDrag,
     applyResize,
     canDragNode,
     canResizeNode,
     getDragDescriptor,
+    getPointHandleDescriptor,
+    getPointHandles,
     getPolygonSideCount,
     getPolylinePointCount,
     getResizeDescriptor,

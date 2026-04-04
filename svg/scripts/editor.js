@@ -32,6 +32,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     bindEvents: interactionController.bindEvents,
     fitToView: interactionController.fitToView,
     loadDocument: documentController.loadDocument,
+    onPointHandlePointerDown: interactionController.onPointHandlePointerDown,
     onPathBezierHandlePointerDown: interactionController.onPathBezierHandlePointerDown,
     onResizeHandlePointerDown: interactionController.onResizeHandlePointerDown,
     onSvgClick: interactionController.onSvgClick,

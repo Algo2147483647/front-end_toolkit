@@ -344,6 +344,26 @@ export function createInteractionController({
     ui.statusPill.textContent = `Editing curve: ${model.labelFor(node)}`;
   }
 
+  function beginPointHandleDrag(editorId, handle, event) {
+    const node = state.nodeMap.get(editorId);
+    if (!node || !["polyline", "polygon"].includes(node.tagName.toLowerCase()) || model.isNodeLocked(node)) {
+      return;
+    }
+
+    const descriptor = model.getPointHandleDescriptor(node, handle);
+    if (!descriptor) {
+      return;
+    }
+
+    state.drag = {
+      descriptor,
+      editorId,
+      moved: false,
+      type: "point-handle"
+    };
+    ui.statusPill.textContent = `Editing points: ${model.labelFor(node)}`;
+  }
+
   function beginSelectionBox(event, source = "surface") {
     hideContextMenu();
     const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
@@ -400,6 +420,27 @@ export function createInteractionController({
         state.drag.moved = true;
       }
       model.applyPathBezierHandle(node, state.drag.descriptor, currentPoint);
+      renderer.refresh({
+        inspector: true,
+        source: true,
+        overlay: true
+      });
+      return;
+    }
+
+    if (state.drag.type === "point-handle") {
+      const node = state.nodeMap.get(state.drag.editorId);
+      if (!node) {
+        return;
+      }
+
+      const currentPoint = model.toLocalPoint(node, event.clientX, event.clientY);
+      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        state.drag.moved = true;
+      }
+      model.applyPointHandle(node, state.drag.descriptor, currentPoint);
       renderer.refresh({
         inspector: true,
         source: true,
@@ -502,6 +543,25 @@ export function createInteractionController({
         overlay: true
       });
       historyController.recordHistory("path-bezier");
+      return;
+    }
+
+    if (state.drag.type === "point-handle") {
+      const moved = state.drag.moved;
+      state.drag = null;
+      if (!moved) {
+        renderer.refresh({ overlay: true });
+        return;
+      }
+
+      state.suppressNextSvgClick = true;
+      renderer.refresh({
+        tree: true,
+        inspector: true,
+        source: true,
+        overlay: true
+      });
+      historyController.recordHistory("point-handle");
       return;
     }
 
@@ -632,6 +692,19 @@ export function createInteractionController({
       selectionController.selectNode(editorId);
     }
     beginPathBezierDrag(editorId, handle, event);
+  }
+
+  function onPointHandlePointerDown(event, editorId, handle) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (!state.selectedIds.has(editorId)) {
+      selectionController.selectNode(editorId);
+    }
+    beginPointHandleDrag(editorId, handle, event);
   }
 
   function onWorkspaceContextMenu(event) {
@@ -889,6 +962,7 @@ export function createInteractionController({
   return {
     bindEvents,
     fitToView,
+    onPointHandlePointerDown,
     onPathBezierHandlePointerDown,
     onResizeHandlePointerDown,
     onSvgClick,

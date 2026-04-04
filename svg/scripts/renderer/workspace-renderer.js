@@ -79,6 +79,24 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
     });
   }
 
+  function drawPointHandles(node, radius) {
+    model.getPointHandles(node).forEach((handleConfig) => {
+      drawOverlayHandle({
+        className: "overlay-handle overlay-handle--point",
+        cursor: handleConfig.cursor,
+        editorId: node.dataset.editorId,
+        fill: "#fff",
+        handle: handleConfig.key,
+        onPointerDown: actions.onPointHandlePointerDown,
+        radius: Math.max(6, radius - 1),
+        stroke: "#0f766e",
+        strokeWidth: "2",
+        x: handleConfig.x,
+        y: handleConfig.y
+      });
+    });
+  }
+
   function drawSelectionRect(box, options = {}) {
     const {
       dasharray = null,
@@ -137,6 +155,9 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
         drawSelectionRect(box);
         if (selectedNodes.length === 1 && model.canResizeNode(node)) {
           const radius = Math.max(8, Math.min(14, Math.max(box.width, box.height, 32) * 0.03));
+          if (["polyline", "polygon"].includes(node.tagName.toLowerCase())) {
+            drawPointHandles(node, radius);
+          }
           if (node.tagName.toLowerCase() === "path" && model.getPathBezier(node)) {
             drawBezierHandles(node, radius);
           }
