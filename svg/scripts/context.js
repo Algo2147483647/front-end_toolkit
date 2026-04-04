@@ -75,6 +75,7 @@ export const ui = {
   statusPill: $("#statusPill"),
   nodeCountBadge: $("#nodeCountBadge"),
   treePanel: $("#treePanel"),
+  surfaceGrid: $(".surface-grid"),
   svgHost: $("#svgHost"),
   overlay: $("#selectionOverlay"),
   insertGrid: $("#insertGrid"),

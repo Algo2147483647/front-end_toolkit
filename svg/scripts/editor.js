@@ -455,10 +455,14 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
+    const nextValue = record && field.kind === "attr"
+      ? model.snapFieldValue(field.key, value)
+      : value;
+
     if (field.kind === "text") {
       node.textContent = value;
-    } else if (value.trim()) {
-      node.setAttribute(field.key, value.trim());
+    } else if (nextValue.trim()) {
+      node.setAttribute(field.key, nextValue.trim());
     } else {
       node.removeAttribute(field.key);
     }
@@ -681,6 +685,10 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     });
     window.addEventListener("pointercancel", () => {
       endDrag();
+    });
+    window.addEventListener("resize", () => {
+      renderer.applyZoom();
+      renderer.renderOverlay();
     });
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && state.sourceVisible) {

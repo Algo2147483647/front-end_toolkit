@@ -623,17 +623,13 @@ export function createSvgModel(state) {
   }
 
   function getGridMetrics() {
-    const viewBox = getViewBoxRect();
-    const rect = state.svgRoot?.getBoundingClientRect();
     const gridScreenSize = state.gridSnapSize || GRID_SCREEN_SIZE;
-    const width = rect?.width || viewBox.width || gridScreenSize;
-    const height = rect?.height || viewBox.height || gridScreenSize;
 
     return {
-      originX: viewBox.x,
-      originY: viewBox.y,
-      stepX: (viewBox.width / width) * gridScreenSize,
-      stepY: (viewBox.height / height) * gridScreenSize
+      originX: 0,
+      originY: 0,
+      stepX: gridScreenSize,
+      stepY: gridScreenSize
     };
   }
 
@@ -675,6 +671,29 @@ export function createSvgModel(state) {
       node.setAttribute("x2", String(roundCoordinate(getNumericAttr(node, "x2") + dx)));
       node.setAttribute("y2", String(roundCoordinate(getNumericAttr(node, "y2") + dy)));
     }
+  }
+
+  function snapFieldValue(fieldKey, value) {
+    if (!state.gridSnapEnabled) {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    const parsed = Number.parseFloat(trimmed);
+    if (!trimmed || !Number.isFinite(parsed)) {
+      return value;
+    }
+
+    const grid = getGridMetrics();
+    if (["x", "x1", "x2", "cx"].includes(fieldKey)) {
+      return String(roundCoordinate(snapCoordinate(parsed, grid.stepX, grid.originX)));
+    }
+
+    if (["y", "y1", "y2", "cy"].includes(fieldKey)) {
+      return String(roundCoordinate(snapCoordinate(parsed, grid.stepY, grid.originY)));
+    }
+
+    return value;
   }
 
   function toLocalPoint(referenceNode, clientX, clientY) {
@@ -790,6 +809,7 @@ export function createSvgModel(state) {
     serialize,
     syncEditorMetadata,
     snapCoordinate,
+    snapFieldValue,
     snapNodeToGrid,
     toLocalPoint,
     viewBoxFor,

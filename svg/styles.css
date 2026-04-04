@@ -722,7 +722,8 @@ textarea {
   background:
     linear-gradient(rgba(15, 118, 110, 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(15, 118, 110, 0.12) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
+  background-size: var(--grid-step-x, var(--grid-size)) var(--grid-step-y, var(--grid-size));
+  background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
 }
 
 .workspace-surface.is-grid-snap .surface-grid {
@@ -730,7 +731,8 @@ textarea {
   background:
     linear-gradient(rgba(15, 118, 110, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(15, 118, 110, 0.1) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
+  background-size: var(--grid-step-x, var(--grid-size)) var(--grid-step-y, var(--grid-size));
+  background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
 }
 
 .surface-grid,
@@ -744,7 +746,8 @@ textarea {
   background:
     linear-gradient(rgba(86, 67, 48, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(86, 67, 48, 0.06) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
+  background-size: var(--grid-step-x, var(--grid-size)) var(--grid-step-y, var(--grid-size));
+  background-position: var(--grid-offset-x, 0px) var(--grid-offset-y, 0px);
   border: 1px dashed rgba(86, 67, 48, 0.12);
   background-color: rgba(255, 255, 255, 0.3);
 }

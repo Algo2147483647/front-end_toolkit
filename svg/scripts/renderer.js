@@ -64,11 +64,59 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.floatingRightButton.textContent = state.rightPanelHidden ? "Show Right" : "Hide Right";
     ui.floatingRightButton.classList.toggle("is-active", !state.rightPanelHidden);
     ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "X";
+    updateGridSurface();
   }
 
   function applyZoom() {
     ui.svgHost.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
     ui.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+    updateGridSurface();
+  }
+
+  function updateGridSurface() {
+    if (!ui.surfaceGrid) {
+      return;
+    }
+
+    ui.surfaceGrid.style.removeProperty("--grid-step-x");
+    ui.surfaceGrid.style.removeProperty("--grid-step-y");
+    ui.surfaceGrid.style.removeProperty("--grid-offset-x");
+    ui.surfaceGrid.style.removeProperty("--grid-offset-y");
+
+    if (!state.gridSnapEnabled || !state.svgRoot) {
+      return;
+    }
+
+    const viewBox = model.getViewBoxRect();
+    const surfaceWidth = ui.surfaceGrid.clientWidth || ui.surfaceInner?.clientWidth || 0;
+    const surfaceHeight = ui.surfaceGrid.clientHeight || ui.surfaceInner?.clientHeight || 0;
+    const hostWidth = ui.svgHost.offsetWidth || 0;
+    const hostHeight = ui.svgHost.offsetHeight || 0;
+    const gridSize = state.gridSnapSize || GRID_SNAP_SIZE_OPTIONS[0] || 1;
+
+    if (!viewBox.width || !viewBox.height || !surfaceWidth || !surfaceHeight || !hostWidth || !hostHeight || !gridSize) {
+      return;
+    }
+
+    const screenUnitX = (hostWidth / viewBox.width) * state.zoom;
+    const screenUnitY = (hostHeight / viewBox.height) * state.zoom;
+    const stepX = gridSize * screenUnitX;
+    const stepY = gridSize * screenUnitY;
+    if (!stepX || !stepY) {
+      return;
+    }
+
+    const renderedLeft = ((surfaceWidth - hostWidth) / 2) + state.panX + ((1 - state.zoom) * hostWidth / 2);
+    const renderedTop = ((surfaceHeight - hostHeight) / 2) + state.panY + ((1 - state.zoom) * hostHeight / 2);
+    const docOffsetX = ((-viewBox.x % gridSize) + gridSize) % gridSize;
+    const docOffsetY = ((-viewBox.y % gridSize) + gridSize) % gridSize;
+    const offsetX = renderedLeft + (docOffsetX * screenUnitX);
+    const offsetY = renderedTop + (docOffsetY * screenUnitY);
+
+    ui.surfaceGrid.style.setProperty("--grid-step-x", `${stepX}px`);
+    ui.surfaceGrid.style.setProperty("--grid-step-y", `${stepY}px`);
+    ui.surfaceGrid.style.setProperty("--grid-offset-x", `${offsetX}px`);
+    ui.surfaceGrid.style.setProperty("--grid-offset-y", `${offsetY}px`);
   }
 
   function getFitZoom() {
@@ -846,6 +894,7 @@ export function createRenderer({ state, ui, model, actions }) {
     state.svgRoot.removeEventListener("pointerdown", actions.onSvgPointerDown);
     state.svgRoot.addEventListener("click", actions.onSvgClick);
     state.svgRoot.addEventListener("pointerdown", actions.onSvgPointerDown);
+    updateGridSurface();
     applyZoom();
     renderOverlay();
   }
