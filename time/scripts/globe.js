@@ -61,15 +61,24 @@
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
             ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-            R = Math.min(width, height) * 0.45;
+            R = Math.min(width, height) * 0.485;
         }
 
         function getResponsiveCanvasSize(requestedSize) {
+            const container = canvas.closest('.globe-container');
+            const overlay = container ? container.querySelector('.globe-overlay') : null;
+            const overlayHeight = overlay ? overlay.offsetHeight : 0;
             const maxViewportSize = Math.max(
-                260,
-                Math.min(window.innerWidth - 64, window.innerHeight - 220, 1200)
+                320,
+                Math.min(window.innerWidth - 64, window.innerHeight - 180, 1200)
             );
-            return Math.min(requestedSize, maxViewportSize);
+            const maxContainerSize = container
+                ? Math.max(
+                    320,
+                    Math.min(container.clientWidth - 72, container.clientHeight - overlayHeight - 72, maxViewportSize)
+                )
+                : maxViewportSize;
+            return Math.min(requestedSize, maxContainerSize);
         }
 
         function applyCanvasSize(requestedSize) {
@@ -261,14 +270,33 @@
             const cx = width/2;
             const cy = height/2;
 
+            // Atmosphere glow
+            ctx.beginPath();
+            ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(117, 167, 214, 0.12)';
+            ctx.shadowColor = 'rgba(117, 167, 214, 0.18)';
+            ctx.shadowBlur = 32;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
             // Globe background
-            const grad = ctx.createRadialGradient(cx - R*0.4, cy - R*0.4, R*0.2, cx, cy, R);
-            grad.addColorStop(0, '#ffffff');
-            grad.addColorStop(0.6, '#dfeeff');
-            grad.addColorStop(1, '#bfcff7');
+            const grad = ctx.createRadialGradient(cx - R*0.34, cy - R*0.42, R*0.16, cx, cy, R);
+            grad.addColorStop(0, '#fbfdff');
+            grad.addColorStop(0.4, '#dce9ff');
+            grad.addColorStop(0.76, '#a7bfec');
+            grad.addColorStop(1, '#5f78a9');
             ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.arc(cx, cy, R, 0, Math.PI*2);
+            ctx.fill();
+
+            // Globe shadow
+            const shadowGrad = ctx.createRadialGradient(cx + R * 0.2, cy + R * 0.22, R * 0.22, cx, cy, R);
+            shadowGrad.addColorStop(0, 'rgba(14, 23, 40, 0)');
+            shadowGrad.addColorStop(1, 'rgba(14, 23, 40, 0.24)');
+            ctx.fillStyle = shadowGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
             ctx.fill();
 
             // Draw terminator (day/night boundary)
@@ -297,47 +325,56 @@
                         }
                     }
                     
-                    ctx.strokeStyle = 'rgba(30, 30, 60, 0.7)';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(255, 133, 110, 0.85)';
+                    ctx.lineWidth = 2.2;
                     ctx.stroke();
                 }
             }
 
-            // subtle edge shading
+            // Edge highlight and shading
             const edgeGrad = ctx.createRadialGradient(cx, cy, R*0.6, cx, cy, R);
             edgeGrad.addColorStop(0.9, 'rgba(255,255,255,0)');
-            edgeGrad.addColorStop(1, 'rgba(30,40,60,0.07)');
+            edgeGrad.addColorStop(1, 'rgba(15,25,45,0.12)');
             ctx.fillStyle = edgeGrad;
             ctx.beginPath();
             ctx.arc(cx, cy, R, 0, Math.PI*2);
             ctx.fill();
 
+            const glossGrad = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.42, R * 0.04, cx - R * 0.28, cy - R * 0.3, R * 0.78);
+            glossGrad.addColorStop(0, 'rgba(255,255,255,0.72)');
+            glossGrad.addColorStop(0.4, 'rgba(255,255,255,0.18)');
+            glossGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = glossGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.fill();
+
             // Draw graticule: meridians and parallels
-            ctx.lineWidth = 0.9;
-            ctx.strokeStyle = 'rgba(50,60,90,0.25)';
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(64, 91, 142, 0.24)';
 
             // Meridians
             const meridians = 24;
             for (let m=0;m<meridians;m++){
                 const lambda = (m/meridians)*360 - 180;
-                drawLongitude(lambda, 'rgba(60,80,120,0.18)');
+                drawLongitude(lambda, 'rgba(76, 104, 158, 0.2)');
             }
 
             // Parallels
             const parallels = 13; // from -60 to 60 roughly
             for (let p=0;p<parallels;p++){
                 const phi = (p/(parallels-1))*180 - 90;
-                drawLatitude(phi, 'rgba(60,80,120,0.18)');
+                drawLatitude(phi, 'rgba(76, 104, 158, 0.2)');
             }
 
             // Equator and prime meridian stronger
-            drawLatitude(0, 'rgba(40,60,120,0.45)', 1.4);
-            drawLongitude(0, 'rgba(40,60,120,0.45)', 1.4);
+            drawLatitude(0, 'rgba(62, 89, 156, 0.62)', 1.5);
+            drawLongitude(0, 'rgba(62, 89, 156, 0.62)', 1.5);
 
             // location marker and lines
             if (hasLocation) {
-                drawLongitude(lon, 'rgba(220,40,40,0.85)', 1.5);
-                drawLatitude(lat, 'rgba(220,40,40,0.85)', 1.5);
+                drawLongitude(lon, 'rgba(255,110,92,0.88)', 1.8);
+                drawLatitude(lat, 'rgba(255,110,92,0.88)', 1.8);
 
                 const p = project3D(lat, lon);
                 const visible = p.z > 0.15 * R; // some tolerance
@@ -346,24 +383,24 @@
                     const sy = height/2 - p.y;
                     // shadow
                     ctx.beginPath();
-                    ctx.fillStyle = 'rgba(0,0,0,0.12)';
-                    ctx.arc(sx+3, sy+4, 6, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                    ctx.arc(sx+4, sy+5, 7, 0, Math.PI*2);
                     ctx.fill();
                     // red dot
                     ctx.beginPath();
-                    ctx.fillStyle = '#ff4040';
-                    ctx.arc(sx, sy, 5.5, 0, Math.PI*2);
+                    ctx.fillStyle = '#ff725f';
+                    ctx.arc(sx, sy, 6.5, 0, Math.PI*2);
                     ctx.fill();
-                    ctx.strokeStyle = '#fff2';
-                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 1.4;
                     ctx.stroke();
                 }
             }
 
-            // subtle outline
+            // Outer outline
             ctx.beginPath();
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = 'rgba(40,50,80,0.12)';
+            ctx.lineWidth = 1.6;
+            ctx.strokeStyle = 'rgba(35, 53, 91, 0.26)';
             ctx.arc(cx, cy, R, 0, Math.PI*2);
             ctx.stroke();
         }
@@ -747,9 +784,17 @@
             }
         }
 
+        window.refreshGlobeCanvas = () => {
+            const globeSizeInput = document.getElementById('globe-size');
+            if (globeSizeInput) {
+                applyCanvasSize(parseInt(globeSizeInput.value, 10) || 700);
+            }
+            resize();
+        };
+
         // init
         wireUI();
-        resize();
+        window.refreshGlobeCanvas();
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(handleGeoSuccess, handleGeoError, {maximumAge: 600000, timeout: 8000});
         } else {

@@ -319,9 +319,10 @@ select {
 }
 
 .clock-visual::after {
-    width: 92%;
+    width: 86%;
     aspect-ratio: 1;
-    border: 1px solid rgba(21, 36, 44, 0.08);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 58%, rgba(21, 36, 44, 0.06) 59%, transparent 66%);
+    opacity: 0.6;
 }
 
 .clock-container {
@@ -329,7 +330,7 @@ select {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    padding-bottom: 130px;
+    padding-bottom: 156px;
     z-index: 1;
 }
 
@@ -351,16 +352,16 @@ select {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    min-width: 288px;
-    padding: 18px 24px;
+    min-width: 320px;
+    padding: 18px 28px;
     border-radius: 999px;
     color: #f8f2e8;
-    background: rgba(16, 30, 39, 0.84);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 20px 45px rgba(16, 30, 39, 0.26);
-    backdrop-filter: blur(20px);
+    background: rgba(16, 30, 39, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 24px 50px rgba(16, 30, 39, 0.28);
+    backdrop-filter: blur(24px);
     font-family: "JetBrains Mono", monospace;
-    font-size: clamp(1.3rem, 2vw, 1.75rem);
+    font-size: clamp(1.45rem, 2.1vw, 1.95rem);
     font-weight: 700;
     letter-spacing: 0.12em;
 }
@@ -401,16 +402,17 @@ select {
 }
 
 .globe-container::before {
-    width: 76%;
+    width: 68%;
     aspect-ratio: 1;
-    background: radial-gradient(circle, rgba(55, 122, 147, 0.2), transparent 62%);
-    filter: blur(14px);
+    background: radial-gradient(circle, rgba(55, 122, 147, 0.28), transparent 62%);
+    filter: blur(18px);
 }
 
 .globe-container::after {
-    width: 88%;
+    width: 60%;
     aspect-ratio: 1;
-    border: 1px solid rgba(21, 36, 44, 0.08);
+    background: radial-gradient(circle, transparent 57%, rgba(70, 109, 164, 0.08) 58%, transparent 64%);
+    opacity: 0.55;
 }
 
 .globe-canvas {
@@ -421,6 +423,8 @@ select {
     max-width: 100%;
     max-height: 100%;
     touch-action: none;
+    transform: translateY(-24px);
+    filter: drop-shadow(0 34px 46px rgba(28, 52, 92, 0.18));
 }
 
 .globe-overlay {
@@ -1028,9 +1032,9 @@ select {
     }
 
     .digital-clock {
-        min-width: 220px;
-        padding: 14px 18px;
-        font-size: 1rem;
+        min-width: 248px;
+        padding: 14px 20px;
+        font-size: 1.1rem;
         letter-spacing: 0.08em;
     }
 

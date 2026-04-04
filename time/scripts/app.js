@@ -57,6 +57,9 @@ class TimeApp {
 
         setTimeout(() => {
             this.clockView.classList.add('fade-in');
+            if (typeof updateClockSize === 'function') {
+                updateClockSize();
+            }
         }, 50);
         
         this.currentView = 'clock';
@@ -98,7 +101,14 @@ class TimeApp {
 
         this.globeView.style.display = 'block';
         // allow CSS animation to pick up
-        setTimeout(() => this.globeView.classList.add('active'), 30);
+        setTimeout(() => {
+            this.globeView.classList.add('active');
+            if (typeof window.refreshGlobeCanvas === 'function') {
+                window.refreshGlobeCanvas();
+            } else {
+                window.dispatchEvent(new Event('resize'));
+            }
+        }, 30);
         
         this.currentView = 'globe';
         this.updateSettingsVisibility();
