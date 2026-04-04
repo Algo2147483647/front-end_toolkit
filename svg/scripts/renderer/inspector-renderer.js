@@ -241,6 +241,11 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     return "";
   }
 
+  function isTransparentColorValue(value) {
+    const trimmed = String(value || "").trim().toLowerCase();
+    return trimmed === "transparent";
+  }
+
   function isBoldStyleValue(value) {
     const normalized = (value || "").trim().toLowerCase();
     if (!normalized) {
@@ -607,38 +612,56 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       const wrapper = document.createElement("div");
       const colorInput = document.createElement("input");
       const textInput = document.createElement("input");
+      const transparentButton = document.createElement("button");
       wrapper.className = "field-combo";
       colorInput.type = "color";
       colorInput.className = "field-swatch";
       textInput.className = `${originalInput.className} field-input-text`;
       textInput.value = value;
+      textInput.placeholder = "Color or transparent";
+      transparentButton.type = "button";
+      transparentButton.className = "field-chip-button";
+      transparentButton.textContent = "Transparent";
       const normalized = normalizeColorValue(value);
       colorInput.value = normalized || "#000000";
       colorInput.disabled = locked;
       textInput.disabled = locked;
-      if (!normalized) {
-        colorInput.classList.add("is-unset");
-      }
+      transparentButton.disabled = locked;
+
+      const syncColorUiState = (rawValue) => {
+        const nextNormalized = normalizeColorValue(rawValue);
+        const transparent = isTransparentColorValue(rawValue);
+        if (nextNormalized) {
+          colorInput.value = nextNormalized;
+        }
+        colorInput.classList.toggle("is-unset", !nextNormalized);
+        colorInput.classList.toggle("is-transparent", transparent);
+        transparentButton.classList.toggle("is-active", transparent);
+      };
+
+      syncColorUiState(value);
+
       colorInput.addEventListener("input", () => {
         textInput.value = colorInput.value;
-        colorInput.classList.remove("is-unset");
+        syncColorUiState(colorInput.value);
         actions.updateField(node.dataset.editorId, field, colorInput.value, false);
       });
       colorInput.addEventListener("change", () => actions.updateField(node.dataset.editorId, field, colorInput.value, true));
       textInput.addEventListener("input", () => {
-        const nextNormalized = normalizeColorValue(textInput.value);
-        if (nextNormalized) {
-          colorInput.value = nextNormalized;
-          colorInput.classList.remove("is-unset");
-        } else {
-          colorInput.classList.add("is-unset");
-        }
+        syncColorUiState(textInput.value);
         actions.updateField(node.dataset.editorId, field, textInput.value, false);
       });
       textInput.addEventListener("change", () => actions.updateField(node.dataset.editorId, field, textInput.value, true));
       textInput.addEventListener("blur", () => actions.updateField(node.dataset.editorId, field, textInput.value, true));
+      if (!locked) {
+        transparentButton.addEventListener("click", () => {
+          textInput.value = "transparent";
+          syncColorUiState("transparent");
+          actions.updateField(node.dataset.editorId, field, "transparent", true);
+        });
+      }
       originalInput.replaceWith(wrapper);
-      wrapper.append(colorInput, textInput);
+      wrapper.append(colorInput, textInput, transparentButton);
       return row;
     }
 
