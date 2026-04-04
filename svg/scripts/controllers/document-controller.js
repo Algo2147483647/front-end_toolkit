@@ -178,8 +178,20 @@ export function createDocumentController({
     }
   }
 
-  function bringSelectionToFront() {
-    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+  function getReorderTargets(editorId = null) {
+    if (editorId) {
+      const node = state.nodeMap.get(editorId);
+      if (!node || node === state.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
+        return [];
+      }
+      return [node];
+    }
+
+    return selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+  }
+
+  function bringSelectionToFront(editorId = null) {
+    const nodes = getReorderTargets(editorId);
     if (!nodes.length) {
       return;
     }
@@ -187,11 +199,14 @@ export function createDocumentController({
     nodes.forEach((node) => {
       node.parentElement?.append(node);
     });
+    if (editorId) {
+      selectionController.selectNode(editorId, { render: false });
+    }
     rebuildAfterStructureChange("z-order:front");
   }
 
-  function sendSelectionToBack() {
-    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+  function sendSelectionToBack(editorId = null) {
+    const nodes = getReorderTargets(editorId);
     if (!nodes.length) {
       return;
     }
@@ -218,6 +233,9 @@ export function createDocumentController({
         parent.insertBefore(node, anchor);
       });
     });
+    if (editorId) {
+      selectionController.selectNode(editorId, { render: false });
+    }
     rebuildAfterStructureChange("z-order:back");
   }
 

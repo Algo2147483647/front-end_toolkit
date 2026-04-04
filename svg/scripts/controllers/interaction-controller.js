@@ -142,9 +142,27 @@ export function createInteractionController({
     ui.contextMenu.style.top = `${top}px`;
     ui.contextMenu.classList.remove("hidden");
 
-    const hasTargets = selectionController.getSelectionTargets().some((node) => !model.isNodeLocked(node));
-    ui.bringToFrontButton.disabled = !hasTargets;
-    ui.sendToBackButton.disabled = !hasTargets;
+    const menuTarget = editorId ? state.nodeMap.get(editorId) : null;
+    const canReorder = !!(menuTarget
+      && menuTarget !== state.svgRoot
+      && menuTarget.parentNode
+      && !model.isNodeLocked(menuTarget));
+    ui.bringToFrontButton.disabled = !canReorder;
+    ui.sendToBackButton.disabled = !canReorder;
+  }
+
+  function resolveContextMenuTarget(startNode) {
+    const rawTarget = startNode?.closest?.("[data-editor-id]") || null;
+    if (!rawTarget || rawTarget === state.svgRoot) {
+      return rawTarget;
+    }
+
+    const semanticGroup = rawTarget.closest?.("[data-cell-id]");
+    if (semanticGroup?.dataset?.editorId) {
+      return semanticGroup;
+    }
+
+    return rawTarget;
   }
 
   function normalizeBox(startPoint, endPoint) {
@@ -588,7 +606,7 @@ export function createInteractionController({
   }
 
   function onWorkspaceContextMenu(event) {
-    const target = event.target.closest("[data-editor-id]");
+    const target = resolveContextMenuTarget(event.target);
     if (!target || target === state.svgRoot) {
       hideContextMenu();
       event.preventDefault();
@@ -597,9 +615,7 @@ export function createInteractionController({
 
     event.preventDefault();
     event.stopPropagation();
-    if (!state.selectedIds.has(target.dataset.editorId)) {
-      selectionController.selectNode(target.dataset.editorId);
-    }
+    selectionController.selectNode(target.dataset.editorId);
     showContextMenu(target.dataset.editorId, event.clientX, event.clientY);
   }
 
@@ -746,11 +762,11 @@ export function createInteractionController({
       event.stopPropagation();
     });
     ui.bringToFrontButton.addEventListener("click", () => {
-      documentController.bringSelectionToFront();
+      documentController.bringSelectionToFront(state.contextMenu.editorId);
       hideContextMenu();
     });
     ui.sendToBackButton.addEventListener("click", () => {
-      documentController.sendSelectionToBack();
+      documentController.sendSelectionToBack(state.contextMenu.editorId);
       hideContextMenu();
     });
     window.addEventListener("pointermove", (event) => {
