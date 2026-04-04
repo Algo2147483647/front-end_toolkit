@@ -141,6 +141,15 @@ export function createInteractionController({
     ui.dropOverlay.classList.add("hidden");
   }
 
+  function isFileDragEvent(event) {
+    const types = event?.dataTransfer?.types;
+    if (!types) {
+      return false;
+    }
+
+    return [...types].some((type) => type === "Files" || type === "application/x-moz-file");
+  }
+
   function hideContextMenu() {
     state.contextMenu.visible = false;
     state.contextMenu.editorId = null;
@@ -877,15 +886,24 @@ export function createInteractionController({
       beginSelectionBox(event, "surface");
     });
     ui.workspaceSurface.addEventListener("dragenter", (event) => {
+      if (!isFileDragEvent(event)) {
+        return;
+      }
       event.preventDefault();
       state.dropDepth += 1;
       ui.workspaceSurface.classList.add("is-dropping");
       ui.dropOverlay.classList.remove("hidden");
     });
     ui.workspaceSurface.addEventListener("dragover", (event) => {
+      if (!isFileDragEvent(event)) {
+        return;
+      }
       event.preventDefault();
     });
     ui.workspaceSurface.addEventListener("dragleave", (event) => {
+      if (!state.dropDepth) {
+        return;
+      }
       event.preventDefault();
       state.dropDepth = Math.max(0, state.dropDepth - 1);
       if (state.dropDepth === 0) {
@@ -893,6 +911,10 @@ export function createInteractionController({
       }
     });
     ui.workspaceSurface.addEventListener("drop", async (event) => {
+      if (!isFileDragEvent(event)) {
+        clearDropState();
+        return;
+      }
       event.preventDefault();
       clearDropState();
       try {
@@ -925,6 +947,12 @@ export function createInteractionController({
       hideContextMenu();
       renderer.applyZoom();
       renderer.refresh({ overlay: true });
+    });
+    window.addEventListener("dragend", () => {
+      clearDropState();
+    });
+    window.addEventListener("drop", () => {
+      clearDropState();
     });
     window.addEventListener("pointerdown", (event) => {
       if (event.button === 0 && !event.target.closest("#contextMenu")) {
