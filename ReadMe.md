@@ -146,7 +146,7 @@ This module combines event relationships with a timeline layout and is useful fo
 
 Key capabilities:
 
-- Loads the repository sample dataset from `physics.json` by default.
+- Loads the repository sample dataset from `example.json` by default.
 - Supports loading a same-origin JSON path or uploading a local JSON file.
 - Renders both point-in-time events and time-range events.
 - Draws parent-child links and highlights upstream/downstream lineage on hover.
@@ -154,7 +154,7 @@ Key capabilities:
 - Supports zooming and SVG export.
 - Hover cards show time, location, relationship counts, and extra metadata.
 
-`timeline/physics.json` reflects the recommended data shape. A typical event object looks like this:
+`timeline/example.json` reflects the recommended data shape. A typical event object looks like this:
 
 ```json
 [

@@ -9,10 +9,10 @@ window.TIMELINE_STATE = {
   eventMap: new Map(),
   hoveredKey: null,
   scale: 1,
-  sourceLabel: 'physics.json',
+  sourceLabel: 'example.json',
 };
 
-async function loadData(source = 'physics.json') {
+async function loadData(source = 'example.json') {
   const response = await fetch(source);
   if (!response.ok) {
     throw new Error(`HTTP error: ${response.status}`);
@@ -186,7 +186,7 @@ function setHistoryData(data, sourceLabel) {
 }
 
 async function loadTimelineFromPath(path) {
-  const normalizedPath = (path || '').trim() || 'physics.json';
+  const normalizedPath = (path || '').trim() || 'example.json';
   updateTimelineSummary(`Loading ${normalizedPath}...`);
 
   try {
@@ -283,6 +283,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   svgElement = document.getElementById('timeline-svg');
 
   setupEventListeners();
-  await loadTimelineFromPath('physics.json');
+  await loadTimelineFromPath('example.json');
   applyZoom();
 });

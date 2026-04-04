@@ -56,34 +56,10 @@
     </main>
   </div>
 
-  <script src="scripts/analyze_graph.js"></script>
-  <script src="scripts/render_svg.js"></script>
-  <script>
-    function handleFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const fileName = file.name;
-      document.querySelector('.file-input-text').textContent =
-        fileName.length > 26 ? fileName.substring(0, 23) + '...' : fileName;
-
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const json = JSON.parse(e.target.result);
-          window.LoadDagData(json);
-        } catch (error) {
-          window.SetGraphMessage('The selected file could not be parsed as JSON.');
-          const message = document.getElementById('empty-state-message');
-          if (message) {
-            message.textContent = 'The selected file could not be parsed as JSON.';
-          }
-          console.error(error);
-        }
-      };
-      reader.readAsText(file);
-    }
-  </script>
-  <script src="scripts/setting_panel.js"></script>
+  <script src="scripts/state.js"></script>
+  <script src="scripts/normalize.js"></script>
+  <script src="scripts/layout.js"></script>
+  <script src="scripts/svg_render.js"></script>
+  <script src="scripts/interaction.js"></script>
 </body>
 </html>
