@@ -582,6 +582,18 @@ textarea {
   color: #b45309;
 }
 
+.insert-card[data-insert="polyline"] {
+  color: #0f766e;
+}
+
+.insert-card[data-insert="polygon"] {
+  color: #2563eb;
+}
+
+.insert-card[data-insert="path"] {
+  color: #b5461d;
+}
+
 #insertImageButton {
   color: #0f766e;
 }
@@ -893,6 +905,22 @@ textarea {
   height: 100%;
   pointer-events: none;
   overflow: visible;
+}
+
+.overlay-handle {
+  pointer-events: all;
+  cursor: nwse-resize;
+  filter: drop-shadow(0 4px 10px rgba(15, 118, 110, 0.18));
+}
+
+.overlay-handle--ne,
+.overlay-handle--sw {
+  cursor: nesw-resize;
+}
+
+.overlay-handle--start,
+.overlay-handle--end {
+  cursor: move;
 }
 
 .drop-overlay {

@@ -10,6 +10,7 @@ const renderer = createRenderer({ state, ui, model, actions });
 const editor = createEditor({ state, ui, model, renderer, emptySvg: EMPTY_SVG });
 
 Object.assign(actions, {
+  onResizeHandlePointerDown: editor.onResizeHandlePointerDown,
   onSvgClick: editor.onSvgClick,
   onSvgPointerDown: editor.onSvgPointerDown,
   selectNode: editor.selectNode,

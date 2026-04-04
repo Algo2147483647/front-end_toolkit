@@ -427,6 +427,26 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.statusPill.textContent = "Panning canvas";
   }
 
+  function beginResizeDrag(editorId, handle, event) {
+    const node = state.nodeMap.get(editorId);
+    if (!node || !model.canResizeNode(node)) {
+      return;
+    }
+
+    const descriptor = model.getResizeDescriptor(node, handle);
+    if (!descriptor) {
+      return;
+    }
+
+    state.drag = {
+      descriptor,
+      editorId,
+      moved: false,
+      type: "resize"
+    };
+    ui.statusPill.textContent = `Resizing: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
+  }
+
   function beginSelectionBox(event, source = "surface") {
     const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
     state.drag = {
@@ -449,6 +469,23 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function moveDrag(event) {
     if (!state.drag) {
+      return;
+    }
+
+    if (state.drag.type === "resize") {
+      const node = state.nodeMap.get(state.drag.editorId);
+      if (!node) {
+        return;
+      }
+
+      const currentPoint = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
+      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        state.drag.moved = true;
+      }
+      model.applyResize(node, state.drag.descriptor, currentPoint);
+      renderer.renderOverlay();
       return;
     }
 
@@ -497,6 +534,23 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
 
   function endDrag() {
     if (!state.drag) {
+      return;
+    }
+
+    if (state.drag.type === "resize") {
+      const moved = state.drag.moved;
+      state.drag = null;
+      if (!moved) {
+        renderer.renderOverlay();
+        return;
+      }
+
+      state.suppressNextSvgClick = true;
+      renderer.updateSource();
+      renderer.renderTree();
+      renderer.renderInspector();
+      renderer.renderOverlay();
+      recordHistory("resize");
       return;
     }
 
@@ -603,6 +657,19 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       selectNode(target.dataset.editorId);
     }
     beginDrag(target, event);
+  }
+
+  function onResizeHandlePointerDown(event, editorId, handle) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (!state.selectedIds.has(editorId)) {
+      selectNode(editorId);
+    }
+    beginResizeDrag(editorId, handle, event);
   }
 
   function toggleNodeCollapse(editorId) {
@@ -956,6 +1023,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   return {
     bindEvents,
     loadDocument,
+    onResizeHandlePointerDown,
     onSvgClick,
     onSvgPointerDown,
     selectNode,

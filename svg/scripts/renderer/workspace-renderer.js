@@ -1,4 +1,19 @@
 export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, updateGridSurface }) {
+  function drawResizeHandle(x, y, position, editorId, radius) {
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    handle.setAttribute("cx", String(x));
+    handle.setAttribute("cy", String(y));
+    handle.setAttribute("r", String(radius));
+    handle.setAttribute("fill", "#fffaf0");
+    handle.setAttribute("stroke", "#0f766e");
+    handle.setAttribute("stroke-width", "2");
+    handle.setAttribute("class", `overlay-handle overlay-handle--${position}`);
+    handle.dataset.editorId = editorId;
+    handle.dataset.handle = position;
+    handle.addEventListener("pointerdown", (event) => actions.onResizeHandlePointerDown?.(event, editorId, position));
+    ui.overlay.append(handle);
+  }
+
   function drawSelectionRect(box, options = {}) {
     const {
       dasharray = null,
@@ -56,6 +71,12 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
           return;
         }
         drawSelectionRect(box);
+        if (selectedNodes.length === 1 && model.canResizeNode(node)) {
+          const radius = Math.max(8, Math.min(14, Math.max(box.width, box.height, 32) * 0.03));
+          model.getResizeHandles(node).forEach((handle) => {
+            drawResizeHandle(handle.x, handle.y, handle.key, node.dataset.editorId, radius);
+          });
+        }
       } catch (error) {
         ui.statusPill.textContent = `${node.tagName.toLowerCase()} selected`;
       }

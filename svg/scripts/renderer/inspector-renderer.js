@@ -61,6 +61,8 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     if (tag === "ellipse") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "rx", "ry"];
     if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
     if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity"];
+    if (tag === "polyline") return ["stroke", "stroke-width", "opacity", "points"];
+    if (tag === "polygon") return ["fill", "stroke", "stroke-width", "opacity", "points"];
     if (tag === "path") return ["fill", "stroke", "stroke-width", "opacity", "d"];
     return ["fill", "stroke", "stroke-width", "opacity", "x", "y", "width", "height"];
   }

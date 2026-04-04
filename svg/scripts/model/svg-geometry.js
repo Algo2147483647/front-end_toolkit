@@ -1,6 +1,8 @@
 import { GRID_SCREEN_SIZE } from "../constants.js";
 
 export function createSvgGeometryTools({ state, isNodeLocked }) {
+  const RESIZABLE_TAGS = new Set(["rect", "circle", "ellipse", "line", "polyline", "polygon", "path"]);
+
   function normalizeRect(rect) {
     if (!rect) {
       return null;
@@ -134,6 +136,41 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   }
 
+  function normalizeMatrix(matrix) {
+    return {
+      a: Number.isFinite(matrix?.a) ? matrix.a : 1,
+      b: Number.isFinite(matrix?.b) ? matrix.b : 0,
+      c: Number.isFinite(matrix?.c) ? matrix.c : 0,
+      d: Number.isFinite(matrix?.d) ? matrix.d : 1,
+      e: Number.isFinite(matrix?.e) ? matrix.e : 0,
+      f: Number.isFinite(matrix?.f) ? matrix.f : 0
+    };
+  }
+
+  function multiplyMatrix(left, right) {
+    return {
+      a: (left.a * right.a) + (left.c * right.b),
+      b: (left.b * right.a) + (left.d * right.b),
+      c: (left.a * right.c) + (left.c * right.d),
+      d: (left.b * right.c) + (left.d * right.d),
+      e: (left.a * right.e) + (left.c * right.f) + left.e,
+      f: (left.b * right.e) + (left.d * right.f) + left.f
+    };
+  }
+
+  function translateMatrix(x, y) {
+    return { a: 1, b: 0, c: 0, d: 1, e: x, f: y };
+  }
+
+  function scaleMatrix(x, y) {
+    return { a: x, b: 0, c: 0, d: y, e: 0, f: 0 };
+  }
+
+  function matrixToTransform(matrix) {
+    const { a, b, c, d, e, f } = normalizeMatrix(matrix);
+    return `matrix(${roundCoordinate(a)} ${roundCoordinate(b)} ${roundCoordinate(c)} ${roundCoordinate(d)} ${roundCoordinate(e)} ${roundCoordinate(f)})`;
+  }
+
   function createElementNode(kind) {
     const box = getViewBoxRect();
     const centerX = box.x + box.width / 2;
@@ -189,6 +226,56 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       node.setAttribute("font-size", "42");
       node.setAttribute("font-family", "IBM Plex Sans, Segoe UI, sans-serif");
       node.textContent = "New text";
+    }
+
+    if (kind === "polyline") {
+      node.setAttribute("id", nextNodeName("polyline"));
+      node.setAttribute(
+        "points",
+        [
+          `${centerX - 140},${centerY + 36}`,
+          `${centerX - 52},${centerY - 42}`,
+          `${centerX + 10},${centerY + 8}`,
+          `${centerX + 132},${centerY - 78}`
+        ].join(" ")
+      );
+      node.setAttribute("fill", "none");
+      node.setAttribute("stroke", "#0f766e");
+      node.setAttribute("stroke-width", "12");
+      node.setAttribute("stroke-linecap", "round");
+      node.setAttribute("stroke-linejoin", "round");
+    }
+
+    if (kind === "polygon") {
+      node.setAttribute("id", nextNodeName("polygon"));
+      node.setAttribute(
+        "points",
+        [
+          `${centerX},${centerY - 96}`,
+          `${centerX + 112},${centerY - 18}`,
+          `${centerX + 70},${centerY + 98}`,
+          `${centerX - 70},${centerY + 98}`,
+          `${centerX - 112},${centerY - 18}`
+        ].join(" ")
+      );
+      node.setAttribute("fill", "#2563eb");
+      node.setAttribute("stroke", "#173f94");
+      node.setAttribute("stroke-width", "8");
+      node.setAttribute("stroke-linejoin", "round");
+      node.setAttribute("opacity", "0.9");
+    }
+
+    if (kind === "path") {
+      node.setAttribute("id", nextNodeName("path"));
+      node.setAttribute(
+        "d",
+        `M ${centerX - 148} ${centerY + 44} C ${centerX - 112} ${centerY - 88}, ${centerX - 20} ${centerY - 96}, ${centerX + 12} ${centerY - 12} S ${centerX + 122} ${centerY + 78}, ${centerX + 150} ${centerY - 44}`
+      );
+      node.setAttribute("fill", "none");
+      node.setAttribute("stroke", "#b5461d");
+      node.setAttribute("stroke-width", "12");
+      node.setAttribute("stroke-linecap", "round");
+      node.setAttribute("stroke-linejoin", "round");
     }
 
     return node;
@@ -250,6 +337,48 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
 
     const tag = node.tagName.toLowerCase();
     return !isNodeLocked(node) && !["defs", "clipPath", "mask", "symbol", "linearGradient", "radialGradient", "stop"].includes(tag);
+  }
+
+  function canResizeNode(node) {
+    if (!node || node === state.svgRoot || isNodeLocked(node)) {
+      return false;
+    }
+
+    return RESIZABLE_TAGS.has(node.tagName.toLowerCase());
+  }
+
+  function getResizeHandles(node) {
+    if (!canResizeNode(node)) {
+      return [];
+    }
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "line") {
+      return [
+        {
+          key: "start",
+          x: getNumericAttr(node, "x1"),
+          y: getNumericAttr(node, "y1")
+        },
+        {
+          key: "end",
+          x: getNumericAttr(node, "x2"),
+          y: getNumericAttr(node, "y2")
+        }
+      ];
+    }
+
+    const box = normalizeRect(node.getBBox());
+    if (!box || (!box.width && !box.height)) {
+      return [];
+    }
+
+    return [
+      { key: "nw", x: box.x, y: box.y },
+      { key: "ne", x: box.x + box.width, y: box.y },
+      { key: "se", x: box.x + box.width, y: box.y + box.height },
+      { key: "sw", x: box.x, y: box.y + box.height }
+    ];
   }
 
   function getNumericAttr(node, attrName, fallback = 0) {
@@ -386,6 +515,53 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     };
   }
 
+  function getResizeDescriptor(node, handle) {
+    if (!canResizeNode(node)) {
+      return null;
+    }
+
+    if (node.tagName.toLowerCase() === "line") {
+      return {
+        handle,
+        mode: "line-endpoint",
+        x1: getNumericAttr(node, "x1"),
+        y1: getNumericAttr(node, "y1"),
+        x2: getNumericAttr(node, "x2"),
+        y2: getNumericAttr(node, "y2")
+      };
+    }
+
+    const box = normalizeRect(node.getBBox());
+    if (!box || box.width < 1 || box.height < 1) {
+      return null;
+    }
+
+    const corners = {
+      nw: { x: box.x, y: box.y },
+      ne: { x: box.x + box.width, y: box.y },
+      se: { x: box.x + box.width, y: box.y + box.height },
+      sw: { x: box.x, y: box.y + box.height }
+    };
+    const oppositeHandleByHandle = {
+      nw: "se",
+      ne: "sw",
+      se: "nw",
+      sw: "ne"
+    };
+    const anchorHandle = oppositeHandleByHandle[handle];
+    if (!anchorHandle) {
+      return null;
+    }
+
+    return {
+      anchor: corners[anchorHandle],
+      baseMatrix: normalizeMatrix(node.transform?.baseVal?.consolidate()?.matrix),
+      box,
+      handle,
+      startHandle: corners[handle]
+    };
+  }
+
   function applyDrag(node, descriptor, dx, dy) {
     const grid = getGridMetrics();
 
@@ -423,14 +599,70 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     node.setAttribute("transform", `matrix(${a} ${b} ${c} ${d} ${nextE} ${nextF})`);
   }
 
+  function applyResize(node, descriptor, point) {
+    if (!descriptor || !canResizeNode(node)) {
+      return;
+    }
+
+    const grid = getGridMetrics();
+    const snappedPoint = {
+      x: snapCoordinate(point.x, grid.stepX, grid.originX),
+      y: snapCoordinate(point.y, grid.stepY, grid.originY)
+    };
+
+    if (descriptor.mode === "line-endpoint") {
+      if (descriptor.handle === "start") {
+        node.setAttribute("x1", String(roundCoordinate(snappedPoint.x)));
+        node.setAttribute("y1", String(roundCoordinate(snappedPoint.y)));
+        return;
+      }
+
+      node.setAttribute("x2", String(roundCoordinate(snappedPoint.x)));
+      node.setAttribute("y2", String(roundCoordinate(snappedPoint.y)));
+      return;
+    }
+
+    const startVectorX = descriptor.startHandle.x - descriptor.anchor.x;
+    const startVectorY = descriptor.startHandle.y - descriptor.anchor.y;
+    const currentVectorX = snappedPoint.x - descriptor.anchor.x;
+    const currentVectorY = snappedPoint.y - descriptor.anchor.y;
+
+    let scaleX = Math.abs(startVectorX) > 0.001 ? currentVectorX / startVectorX : 1;
+    let scaleY = Math.abs(startVectorY) > 0.001 ? currentVectorY / startVectorY : 1;
+
+    if (!Number.isFinite(scaleX) || scaleX <= 0) {
+      scaleX = 0.05;
+    }
+    if (!Number.isFinite(scaleY) || scaleY <= 0) {
+      scaleY = 0.05;
+    }
+
+    const nextMatrix = multiplyMatrix(
+      multiplyMatrix(
+        multiplyMatrix(
+          translateMatrix(descriptor.anchor.x, descriptor.anchor.y),
+          scaleMatrix(scaleX, scaleY)
+        ),
+        translateMatrix(-descriptor.anchor.x, -descriptor.anchor.y)
+      ),
+      descriptor.baseMatrix
+    );
+
+    node.setAttribute("transform", matrixToTransform(nextMatrix));
+  }
+
   return {
     applyDrag,
+    applyResize,
     canDragNode,
+    canResizeNode,
     createElementNode,
     createImageNodeFromFile,
     getDragDescriptor,
     getInsertParent,
     getNumericAttr,
+    getResizeHandles,
+    getResizeDescriptor,
     getViewBoxRect,
     roundCoordinate,
     snapCoordinate,
