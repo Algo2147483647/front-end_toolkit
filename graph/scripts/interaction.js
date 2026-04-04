@@ -1,5 +1,40 @@
 (function () {
     const GraphApp = window.GraphApp || (window.GraphApp = {});
+    const EXPORT_STYLE_PROPERTIES = [
+        "display",
+        "visibility",
+        "opacity",
+        "fill",
+        "fill-opacity",
+        "stroke",
+        "stroke-opacity",
+        "stroke-width",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "paint-order",
+        "vector-effect",
+        "filter",
+        "font-family",
+        "font-size",
+        "font-style",
+        "font-weight",
+        "letter-spacing",
+        "text-anchor",
+        "dominant-baseline",
+        "transform",
+        "transform-origin",
+        "transform-box",
+        "pointer-events",
+    ];
+    const EXPORT_OPTIONAL_NONE_PROPERTIES = new Set([
+        "filter",
+        "transform",
+        "stroke-dasharray",
+        "paint-order",
+        "vector-effect",
+    ]);
     const panState = {
         isActive: false,
         startX: 0,
@@ -137,14 +172,89 @@
     }
 
     function exportSvg(svg) {
-        const svgData = new XMLSerializer().serializeToString(svg);
-        const blob = new Blob([svgData], { type: "image/svg+xml" });
+        const exportSvgNode = buildExportSvg(svg);
+        const svgData = `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(exportSvgNode)}`;
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const downloadLink = document.createElement("a");
         downloadLink.href = url;
         downloadLink.download = GraphApp.state.constants.defaultExportFileName;
         downloadLink.click();
         URL.revokeObjectURL(url);
+    }
+
+    function buildExportSvg(sourceSvg) {
+        const clone = sourceSvg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        clone.setAttribute("version", "1.1");
+        clone.removeAttribute("style");
+        clone.removeAttribute("data-zoom-scale");
+        clone.removeAttribute("data-margin-left");
+        clone.removeAttribute("data-margin-top");
+
+        copyInlineSvgStyles(sourceSvg, clone);
+        normalizeExportMarkerColor(sourceSvg, clone);
+        return clone;
+    }
+
+    function copyInlineSvgStyles(sourceSvg, cloneSvg) {
+        const sourceElements = [sourceSvg, ...sourceSvg.querySelectorAll("*")];
+        const cloneElements = [cloneSvg, ...cloneSvg.querySelectorAll("*")];
+
+        sourceElements.forEach((sourceElement, index) => {
+            const cloneElement = cloneElements[index];
+            if (!cloneElement) {
+                return;
+            }
+
+            const computedStyle = window.getComputedStyle(sourceElement);
+            const inlineStyle = EXPORT_STYLE_PROPERTIES
+                .map(propertyName => {
+                    const propertyValue = computedStyle.getPropertyValue(propertyName);
+                    if (!propertyValue) {
+                        return "";
+                    }
+
+                    const trimmedValue = propertyValue.trim();
+                    if (!trimmedValue || trimmedValue === "normal") {
+                        return "";
+                    }
+
+                    if (trimmedValue === "none" && EXPORT_OPTIONAL_NONE_PROPERTIES.has(propertyName)) {
+                        return "";
+                    }
+
+                    if (propertyName === "filter" && /^url\(/i.test(trimmedValue)) {
+                        return "";
+                    }
+
+                    return `${propertyName}: ${trimmedValue};`;
+                })
+                .filter(Boolean)
+                .join(" ");
+
+            if (inlineStyle) {
+                cloneElement.setAttribute("style", inlineStyle);
+            } else {
+                cloneElement.removeAttribute("style");
+            }
+        });
+    }
+
+    function normalizeExportMarkerColor(sourceSvg, cloneSvg) {
+        const firstEdge = sourceSvg.querySelector(".graph-edge");
+        const edgeStroke = firstEdge ? window.getComputedStyle(firstEdge).stroke.trim() : "";
+        if (!edgeStroke) {
+            return;
+        }
+
+        cloneSvg.querySelectorAll("marker path").forEach(path => {
+            if (path.getAttribute("fill") === "context-stroke") {
+                path.setAttribute("fill", edgeStroke);
+                path.style.setProperty("fill", edgeStroke);
+            }
+        });
     }
 
     function zoomGraphIn() {
