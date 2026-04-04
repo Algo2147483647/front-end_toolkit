@@ -162,16 +162,45 @@ export function createDocumentController({
       return;
     }
 
+    if (["width", "height"].includes(field.key) && node.tagName.toLowerCase() === "text") {
+      const changed = model.updateTextBoxDimension(node, field.key, value);
+      if (!changed) {
+        return;
+      }
+
+      renderer.refresh({
+        tree: true,
+        inspector: true,
+        source: true,
+        overlay: true,
+        actions: true
+      });
+      if (record) {
+        historyController.recordHistory(`field:${field.key}`);
+      }
+      return;
+    }
+
     const nextValue = record && field.kind === "attr"
       ? model.snapFieldValue(field.key, value)
       : value;
 
     if (field.kind === "text") {
-      node.textContent = value;
+      if (node.tagName.toLowerCase() === "text") {
+        model.updateTextContent(node, value);
+      } else {
+        node.textContent = value;
+      }
     } else if (nextValue.trim()) {
       node.setAttribute(field.key, nextValue.trim());
     } else {
       node.removeAttribute(field.key);
+    }
+
+    if (field.kind === "attr"
+      && node.tagName.toLowerCase() === "text"
+      && ["x", "y", "font-size", "font-family", "font-weight", "font-style", "letter-spacing", "text-anchor"].includes(field.key)) {
+      model.refreshTextLayout(node);
     }
 
     renderer.refresh({

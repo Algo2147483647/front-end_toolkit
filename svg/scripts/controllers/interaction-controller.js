@@ -193,6 +193,13 @@ export function createInteractionController({
       return rawTarget;
     }
 
+    if (rawTarget.tagName?.toLowerCase?.() === "tspan") {
+      const parentText = rawTarget.closest?.("text[data-editor-id]");
+      if (parentText?.dataset?.editorId) {
+        return parentText;
+      }
+    }
+
     const semanticGroup = rawTarget.closest?.("[data-cell-id]");
     if (semanticGroup?.dataset?.editorId) {
       return semanticGroup;

@@ -50,6 +50,10 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   }
 
   function getFieldValue(node, field) {
+    if (["width", "height"].includes(field.key) && node.tagName.toLowerCase() === "text") {
+      return model.getTextBoxDimension(node, field.key);
+    }
+
     return field.kind === "readonly"
       ? field.value(node)
       : field.kind === "z-order"
@@ -94,7 +98,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     if (tag === "circle") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "r"];
     if (tag === "ellipse") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "rx", "ry"];
     if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
-    if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity"];
+    if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity", "width", "height"];
     if (tag === "polyline") return ["polyline-points", "stroke", "stroke-width", "opacity", "points"];
     if (tag === "polygon") return ["polygon-sides", "polygon-regularize", "fill", "stroke", "stroke-width", "opacity", "points"];
     if (tag === "path") return ["path-bezier", "fill", "stroke", "stroke-width", "opacity", "d"];

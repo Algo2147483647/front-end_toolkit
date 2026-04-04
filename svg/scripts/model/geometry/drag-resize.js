@@ -10,7 +10,9 @@ export function createSvgDragResizeTools({
   translateSimpleCubicBezier,
   translatePathData
 }) {
-  const RESIZABLE_TAGS = new Set(["rect", "circle", "ellipse", "line", "polyline", "polygon", "path"]);
+  const RESIZABLE_TAGS = new Set(["rect", "circle", "ellipse", "line", "polyline", "polygon", "path", "text"]);
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DEFAULT_TEXT_LINE_HEIGHT = 1.25;
 
   function clampInteger(value, min, max, fallback) {
     const parsed = Number.parseInt(value, 10);
@@ -195,6 +197,316 @@ export function createSvgDragResizeTools({
     }));
   }
 
+  function getBoxCorner(box, handle) {
+    if (!box) {
+      return null;
+    }
+
+    const corners = {
+      nw: { x: box.x, y: box.y },
+      ne: { x: box.x + box.width, y: box.y },
+      se: { x: box.x + box.width, y: box.y + box.height },
+      sw: { x: box.x, y: box.y + box.height }
+    };
+
+    return corners[handle] || null;
+  }
+
+  function getResolvedFontSize(node) {
+    const explicit = Number.parseFloat(node?.getAttribute?.("font-size"));
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return explicit;
+    }
+
+    try {
+      const computed = globalThis.getComputedStyle?.(node);
+      const fallback = Number.parseFloat(computed?.fontSize);
+      if (Number.isFinite(fallback) && fallback > 0) {
+        return fallback;
+      }
+    } catch (error) {
+      return 16;
+    }
+
+    return 16;
+  }
+
+  function getManagedTextSource(node) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return "";
+    }
+
+    const stored = node.getAttribute("data-editor-text");
+    if (stored != null) {
+      return stored;
+    }
+
+    const tspans = [...node.children].filter((child) => child.tagName?.toLowerCase?.() === "tspan");
+    if (isLineTspanText(node, tspans)) {
+      return tspans.map((child) => child.textContent || "").join("\n");
+    }
+
+    return node.textContent || "";
+  }
+
+  function getManagedWrapWidth(node) {
+    const raw = Number.parseFloat(node?.getAttribute?.("data-editor-wrap-width"));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }
+
+  function hasManagedTextLayout(node) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return false;
+    }
+
+    const tspans = [...node.children].filter((child) => child.tagName?.toLowerCase?.() === "tspan");
+
+    return node.hasAttribute("data-editor-text")
+      || node.hasAttribute("data-editor-wrap-width")
+      || isLineTspanText(node, tspans);
+  }
+
+  function isLineTspanText(node, tspans = [...node.children].filter((child) => child.tagName?.toLowerCase?.() === "tspan")) {
+    if (!tspans.length) {
+      return false;
+    }
+
+    return tspans.every((tspan) => tspan.hasAttribute("x") || tspan.hasAttribute("y") || tspan.hasAttribute("dy"));
+  }
+
+  function tokenizeWrapContent(text) {
+    if (!text) {
+      return [];
+    }
+
+    if (/\s/.test(text)) {
+      return text.split(/(\s+)/).filter((token) => token.length > 0);
+    }
+
+    return [...text];
+  }
+
+  function measureTextLine(node, value) {
+    const probe = document.createElementNS(SVG_NS, "tspan");
+    probe.setAttribute("xml:space", "preserve");
+    probe.setAttribute("visibility", "hidden");
+    probe.textContent = value || " ";
+    node.append(probe);
+
+    let length = 0;
+    try {
+      length = probe.getComputedTextLength?.() || 0;
+    } catch (error) {
+      length = 0;
+    }
+
+    probe.remove();
+    return length;
+  }
+
+  function wrapTextParagraph(node, text, wrapWidth) {
+    if (!wrapWidth || wrapWidth <= 0) {
+      return [text];
+    }
+
+    const tokens = tokenizeWrapContent(text);
+    if (!tokens.length) {
+      return [""];
+    }
+
+    const lines = [];
+    let currentLine = "";
+
+    const pushLine = (line) => {
+      lines.push(line.replace(/\s+$/g, ""));
+    };
+
+    const appendToken = (token) => {
+      if (!token) {
+        return;
+      }
+
+      const candidate = `${currentLine}${token}`;
+      if (!currentLine || measureTextLine(node, candidate) <= wrapWidth) {
+        currentLine = candidate;
+        return;
+      }
+
+      if (/^\s+$/.test(token)) {
+        pushLine(currentLine);
+        currentLine = "";
+        return;
+      }
+
+      pushLine(currentLine);
+      currentLine = "";
+
+      if (measureTextLine(node, token) <= wrapWidth) {
+        currentLine = token.replace(/^\s+/g, "");
+        return;
+      }
+
+      [...token].forEach((char) => {
+        const charCandidate = `${currentLine}${char}`;
+        if (!currentLine || measureTextLine(node, charCandidate) <= wrapWidth) {
+          currentLine = charCandidate;
+          return;
+        }
+
+        pushLine(currentLine);
+        currentLine = char;
+      });
+    };
+
+    tokens.forEach(appendToken);
+
+    if (currentLine || !lines.length) {
+      pushLine(currentLine);
+    }
+
+    return lines.length ? lines : [text];
+  }
+
+  function applyManagedTextLayout(node) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return false;
+    }
+
+    const source = getManagedTextSource(node);
+    const wrapWidth = getManagedWrapWidth(node);
+    const hasExplicitLineBreak = source.includes("\n");
+    const shouldWrap = Boolean(wrapWidth) || hasExplicitLineBreak;
+
+    if (!shouldWrap) {
+      if ([...node.children].some((child) => child.tagName?.toLowerCase?.() === "tspan")) {
+        node.replaceChildren();
+        node.textContent = source;
+        return true;
+      }
+      if (node.textContent !== source) {
+        node.textContent = source;
+        return true;
+      }
+      return false;
+    }
+
+    const x = node.getAttribute("x") || "0";
+    const y = Number.parseFloat(node.getAttribute("y"));
+    const baseY = Number.isFinite(y) ? y : 0;
+    const fontSize = getResolvedFontSize(node);
+    const lineHeight = roundCoordinate(fontSize * DEFAULT_TEXT_LINE_HEIGHT);
+    const paragraphs = source.split("\n");
+    const lines = paragraphs.flatMap((paragraph) => wrapTextParagraph(node, paragraph, wrapWidth));
+
+    node.replaceChildren();
+
+    lines.forEach((line, index) => {
+      const tspan = document.createElementNS(SVG_NS, "tspan");
+      tspan.setAttribute("xml:space", "preserve");
+      tspan.setAttribute("x", x);
+      tspan.setAttribute("y", String(roundCoordinate(baseY + (index * lineHeight))));
+      tspan.textContent = line || " ";
+      node.append(tspan);
+    });
+
+    return true;
+  }
+
+  function getTextBoxDimension(node, key) {
+    if (node?.tagName?.toLowerCase?.() !== "text" || !["width", "height"].includes(key)) {
+      return "";
+    }
+
+    if (key === "width") {
+      const wrapWidth = getManagedWrapWidth(node);
+      if (wrapWidth) {
+        return String(roundCoordinate(wrapWidth));
+      }
+    }
+
+    const box = getNodeGeometryBounds(node);
+    if (!box) {
+      return "";
+    }
+
+    return String(roundCoordinate(key === "width" ? box.width : box.height));
+  }
+
+  function updateTextBoxDimensions(node, dimensions = {}) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return false;
+    }
+
+    const rawText = getManagedTextSource(node);
+    node.setAttribute("data-editor-text", rawText);
+
+    const currentBox = getNodeGeometryBounds(node);
+    if (!currentBox || currentBox.width <= 0 || currentBox.height <= 0) {
+      return false;
+    }
+
+    let changed = false;
+    const nextHeightRaw = dimensions.height;
+    const hasHeight = nextHeightRaw !== null && nextHeightRaw !== undefined && String(nextHeightRaw).trim() !== "";
+    if (hasHeight) {
+      const nextHeight = Number.parseFloat(nextHeightRaw);
+      if (Number.isFinite(nextHeight) && nextHeight > 0) {
+        const currentFontSize = getResolvedFontSize(node);
+        const scaledFontSize = currentFontSize * (nextHeight / currentBox.height);
+        if (Number.isFinite(scaledFontSize) && scaledFontSize > 0) {
+          node.setAttribute("font-size", String(roundCoordinate(scaledFontSize)));
+          changed = true;
+        }
+      }
+    } else if (Object.prototype.hasOwnProperty.call(dimensions, "height")) {
+      node.removeAttribute("font-size");
+      changed = true;
+    }
+
+    const widthBaseBox = getNodeGeometryBounds(node) || currentBox;
+    const nextWidthRaw = dimensions.width;
+    const hasWidth = nextWidthRaw !== null && nextWidthRaw !== undefined && String(nextWidthRaw).trim() !== "";
+    if (hasWidth) {
+      const nextWidth = Number.parseFloat(nextWidthRaw);
+      if (Number.isFinite(nextWidth) && nextWidth > 0 && widthBaseBox.width > 0) {
+        node.setAttribute("data-editor-wrap-width", String(roundCoordinate(nextWidth)));
+        applyManagedTextLayout(node);
+        changed = true;
+      }
+    } else if (Object.prototype.hasOwnProperty.call(dimensions, "width")) {
+      node.removeAttribute("data-editor-wrap-width");
+      applyManagedTextLayout(node);
+      changed = true;
+    }
+
+    return changed;
+  }
+
+  function updateTextBoxDimension(node, key, value) {
+    if (!["width", "height"].includes(key)) {
+      return false;
+    }
+
+    return updateTextBoxDimensions(node, { [key]: value });
+  }
+
+  function updateTextContent(node, value) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return false;
+    }
+
+    node.setAttribute("data-editor-text", String(value ?? ""));
+    return applyManagedTextLayout(node);
+  }
+
+  function refreshTextLayout(node) {
+    if (!hasManagedTextLayout(node)) {
+      return false;
+    }
+
+    return applyManagedTextLayout(node);
+  }
+
   function canDragNode(node) {
     if (!node || node === state.svgRoot) {
       return false;
@@ -265,11 +577,28 @@ export function createSvgDragResizeTools({
   function getDragDescriptor(node) {
     const tag = node.tagName.toLowerCase();
 
-    if (["rect", "image", "foreignObject", "use", "text"].includes(tag)) {
+    if (["rect", "image", "foreignObject", "use"].includes(tag)) {
       return {
         mode: "xy",
         x: getNumericAttr(node, "x"),
         y: getNumericAttr(node, "y")
+      };
+    }
+
+    if (tag === "text") {
+      const tspans = [...node.children]
+        .filter((child) => child.tagName?.toLowerCase?.() === "tspan")
+        .map((child) => ({
+          node: child,
+          x: child.hasAttribute("x") ? getNumericAttr(child, "x") : null,
+          y: child.hasAttribute("y") ? getNumericAttr(child, "y") : null
+        }));
+
+      return {
+        mode: "text-xy",
+        x: getNumericAttr(node, "x"),
+        y: getNumericAttr(node, "y"),
+        tspans
       };
     }
 
@@ -373,6 +702,17 @@ export function createSvgDragResizeTools({
       };
     }
 
+    if (tag === "text") {
+      return {
+        anchor: corners[anchorHandle],
+        anchorHandle,
+        box,
+        handle,
+        mode: "text-box",
+        startHandle: corners[handle]
+      };
+    }
+
     if (tag === "circle") {
       return {
         anchor: corners[anchorHandle],
@@ -464,6 +804,24 @@ export function createSvgDragResizeTools({
       const nextY = snapCoordinate(descriptor.y + dy, state.gridSnapSize || 1, 0);
       node.setAttribute("x", String(roundCoordinate(nextX)));
       node.setAttribute("y", String(roundCoordinate(nextY)));
+      return;
+    }
+
+    if (descriptor.mode === "text-xy") {
+      const nextX = snapCoordinate(descriptor.x + dx, state.gridSnapSize || 1, 0);
+      const nextY = snapCoordinate(descriptor.y + dy, state.gridSnapSize || 1, 0);
+      const snappedDx = nextX - descriptor.x;
+      const snappedDy = nextY - descriptor.y;
+      node.setAttribute("x", String(roundCoordinate(nextX)));
+      node.setAttribute("y", String(roundCoordinate(nextY)));
+      descriptor.tspans?.forEach((entry) => {
+        if (entry.x !== null) {
+          entry.node.setAttribute("x", String(roundCoordinate(entry.x + snappedDx)));
+        }
+        if (entry.y !== null) {
+          entry.node.setAttribute("y", String(roundCoordinate(entry.y + snappedDy)));
+        }
+      });
       return;
     }
 
@@ -597,6 +955,31 @@ export function createSvgDragResizeTools({
         return;
       }
       node.setAttribute("d", serializeSimpleCubicBezier(nextBezier));
+      return;
+    }
+
+    if (descriptor.mode === "text-box") {
+      const nextBox = createResizeBox(descriptor.anchor, snappedPoint);
+      const changed = updateTextBoxDimensions(node, {
+        width: nextBox.width,
+        height: nextBox.height
+      });
+      if (!changed) {
+        return;
+      }
+
+      const actualBox = getNodeGeometryBounds(node);
+      const actualAnchor = getBoxCorner(actualBox, descriptor.anchorHandle);
+      if (!actualAnchor) {
+        return;
+      }
+
+      const dx = descriptor.anchor.x - actualAnchor.x;
+      const dy = descriptor.anchor.y - actualAnchor.y;
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+        node.setAttribute("x", String(roundCoordinate(getNumericAttr(node, "x") + dx)));
+        node.setAttribute("y", String(roundCoordinate(getNumericAttr(node, "y") + dy)));
+      }
     }
   }
 
@@ -702,7 +1085,11 @@ export function createSvgDragResizeTools({
     regularizePolygonEqualSides,
     getResizeDescriptor,
     getResizeHandles,
+    getTextBoxDimension,
+    refreshTextLayout,
     updatePolygonSideCount,
-    updatePolylinePointCount
+    updatePolylinePointCount,
+    updateTextBoxDimension,
+    updateTextContent
   };
 }

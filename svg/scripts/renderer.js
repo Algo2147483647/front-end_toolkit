@@ -106,11 +106,11 @@ export function createRenderer({ state, ui, model, actions }) {
 
     ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
     ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
-    ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "X";
+    ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "×";
 
     ui.floatingRightButton.textContent = state.rightPanelHidden ? "Show Right" : "Hide Right";
     ui.floatingRightButton.classList.toggle("is-active", !state.rightPanelHidden);
-    ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "X";
+    ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "×";
     updateGridSurface();
   }
 
