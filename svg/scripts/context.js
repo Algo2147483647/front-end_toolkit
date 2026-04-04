@@ -33,7 +33,7 @@ function readStoredNumber(key, fallback) {
 
 function normalizeGridSnapSize(value) {
   const parsed = Number.parseFloat(value);
-  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) {
+  if (Number.isFinite(parsed) && parsed >= 1) {
     return parsed;
   }
   return GRID_SNAP_SIZE_OPTIONS.includes(parsed) ? parsed : GRID_SCREEN_SIZE;

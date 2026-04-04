@@ -93,7 +93,7 @@ export function createInteractionController({
   function setGridSnapSize(size) {
     const parsed = Number.parseInt(size, 10);
     if (!GRID_SNAP_SIZE_OPTIONS.includes(parsed)) {
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) {
+      if (Number.isFinite(parsed) && parsed >= 1) {
         state.gridSnapSize = parsed;
       } else {
         renderer.syncChrome();
