@@ -541,8 +541,8 @@ textarea {
 .insert-card::before {
   content: "";
   position: absolute;
-  inset: 6px;
-  border-radius: 12px;
+  inset: 0;
+  border-radius: inherit;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 58%),
     linear-gradient(145deg, rgba(208, 90, 47, 0.12), rgba(15, 118, 110, 0.08));
