@@ -160,17 +160,17 @@ textarea {
 }
 
 .brand-row h1 {
-  font-size: 30px;
-  letter-spacing: -0.04em;
+  font-size: clamp(30px, 2.4vw, 38px);
+  letter-spacing: 0.02em;
 }
 
 .brand-row .brand-title {
   font-family: var(--font-brand);
-  font-size: clamp(28px, 2.2vw, 34px);
+  font-size: clamp(30px, 2.4vw, 38px);
   font-weight: 600;
-  line-height: 0.98;
+  line-height: 0.96;
   letter-spacing: 0.02em;
-  color: #000;
+  color: var(--ink);
   text-shadow: none;
 }
 

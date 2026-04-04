@@ -1,7 +1,10 @@
 const ExportSvg = window.ExportSvg;
+const controls = document.getElementById("floating-controls");
+const settingsButton = document.getElementById("settings-btn");
+const settingsPanel = document.getElementById("settings-panel");
 
 document.getElementById("fileInput").addEventListener("change", handleFile);
-document.getElementById("settings-btn").addEventListener("click", toggleSettingsPanel);
+settingsButton.addEventListener("click", toggleSettingsPanel);
 document.getElementById("export-btn").addEventListener("click", () => {
   const svgElement = document.querySelector("#main-content svg");
   if (svgElement) {
@@ -13,10 +16,22 @@ document.getElementById("export-btn").addEventListener("click", () => {
 document.getElementById("back-btn").addEventListener("click", () => {
   window.NavigateBack();
 });
+document.addEventListener("click", event => {
+  if (!controls.contains(event.target)) {
+    setSettingsPanelVisibility(false);
+  }
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    setSettingsPanelVisibility(false);
+  }
+});
 
 function toggleSettingsPanel() {
-  const panel = document.getElementById("settings-panel");
-  const button = document.getElementById("settings-btn");
-  const isVisible = panel.classList.toggle("settings-panel-visible");
-  button.setAttribute("aria-expanded", String(isVisible));
+  setSettingsPanelVisibility(!settingsPanel.classList.contains("settings-panel-visible"));
+}
+
+function setSettingsPanelVisibility(isVisible) {
+  settingsPanel.classList.toggle("settings-panel-visible", isVisible);
+  settingsButton.setAttribute("aria-expanded", String(isVisible));
 }

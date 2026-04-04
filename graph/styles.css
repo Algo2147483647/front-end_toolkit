@@ -3,6 +3,7 @@
   --bg-bottom: #dbe3ef;
   --panel: rgba(255, 255, 255, 0.62);
   --panel-strong: rgba(255, 255, 255, 0.76);
+  --panel-float: rgba(255, 255, 255, 0.78);
   --panel-border: rgba(66, 86, 119, 0.12);
   --text-strong: #162033;
   --text-muted: #5f6d82;
@@ -38,7 +39,7 @@ body {
 }
 
 body {
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-strong);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 30%),
@@ -71,6 +72,8 @@ body::before {
 }
 
 .topbar {
+  position: relative;
+  z-index: 5;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -83,7 +86,18 @@ body::before {
   backdrop-filter: blur(12px);
 }
 
-.topbar h1,
+.topbar h1 {
+  margin: 0;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.topbar h1 {
+  font-size: clamp(30px, 2.6vw, 40px);
+  line-height: 0.96;
+}
+
 .empty-state h2 {
   margin: 0;
   font-family: "Georgia", "Times New Roman", serif;
@@ -91,11 +105,6 @@ body::before {
   letter-spacing: 0.03em;
 }
 
-.topbar h1 {
-  font-size: 28px;
-}
-
-.eyebrow,
 .empty-state__eyebrow {
   margin: 0 0 6px;
   color: var(--text-soft);
@@ -108,6 +117,7 @@ body::before {
 .topbar-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   min-height: 44px;
 }
@@ -123,6 +133,7 @@ body::before {
 
 .workspace {
   position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   border-radius: 26px;
@@ -189,26 +200,10 @@ body::before {
   line-height: 1.72;
 }
 
-.control-card {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 3;
-  width: min(290px, calc(100vw - 48px));
-  padding: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.54));
-  border: 1px solid var(--panel-border);
-  border-radius: 18px;
-  box-shadow: 0 14px 28px rgba(26, 39, 63, 0.08);
-  backdrop-filter: blur(14px);
-}
-
-.control-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+.control-dock {
+  position: relative;
+  z-index: 4;
+  flex-shrink: 0;
 }
 
 .settings-toggle-btn,
@@ -223,17 +218,21 @@ body::before {
 .ghost-btn {
   padding: 9px 13px;
   border-radius: 999px;
-  background: rgba(243, 246, 250, 0.88);
+  background: rgba(243, 246, 250, 0.62);
   color: var(--text-strong);
   font-size: 12px;
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.06);
 }
 
 .settings-toggle-btn:hover,
 .ghost-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: rgba(236, 242, 250, 0.96);
+  background: rgba(236, 242, 250, 0.82);
+}
+
+.settings-toggle-btn[aria-expanded="true"] {
+  background: rgba(233, 240, 250, 0.88);
 }
 
 .ghost-btn:disabled {
@@ -242,12 +241,40 @@ body::before {
 }
 
 .settings-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
   display: grid;
   gap: 10px;
+  width: min(280px, calc(100vw - 48px));
+  padding: 14px;
+  background: linear-gradient(180deg, var(--panel-float), rgba(255, 255, 255, 0.68));
+  border: 1px solid rgba(66, 86, 119, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 14px 24px rgba(26, 39, 63, 0.06);
+  backdrop-filter: blur(18px);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
 }
 
-.settings-panel:not(.settings-panel-visible) {
-  display: none;
+.settings-panel.settings-panel-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.control-label {
+  margin: 0 0 2px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .file-input-label {
@@ -258,7 +285,7 @@ body::before {
   padding: 12px 14px;
   border: 1px dashed rgba(96, 118, 151, 0.28);
   border-radius: 14px;
-  background: rgba(248, 250, 252, 0.84);
+  background: rgba(248, 250, 252, 0.72);
   color: var(--text-muted);
   cursor: pointer;
   text-align: center;
@@ -266,7 +293,7 @@ body::before {
 
 .file-input-label:hover {
   border-color: rgba(40, 95, 223, 0.34);
-  background: rgba(243, 247, 252, 0.96);
+  background: rgba(243, 247, 252, 0.9);
 }
 
 #settings-panel input[type="file"] {
@@ -283,16 +310,16 @@ body::before {
   min-height: 46px;
   padding: 0 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(38, 86, 196, 0.92), rgba(27, 67, 159, 0.96));
+  background: linear-gradient(135deg, rgba(38, 86, 196, 0.84), rgba(27, 67, 159, 0.88));
   color: #fff;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 10px 18px rgba(40, 95, 223, 0.16);
+  box-shadow: 0 8px 16px rgba(40, 95, 223, 0.12);
 }
 
 .primary-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 22px rgba(40, 95, 223, 0.18);
+  box-shadow: 0 10px 18px rgba(40, 95, 223, 0.14);
 }
 
 .control-hint {
@@ -398,27 +425,39 @@ body::before {
   fill: rgba(40, 95, 223, 0.78);
 }
 
-.graph-node__eyebrow {
-  fill: var(--text-soft);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 .graph-node__title {
   fill: var(--text-strong);
-  font-size: 15px;
-  font-weight: 700;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.graph-node__detail {
+  fill: rgba(67, 79, 100, 0.88);
+  font-size: 11.5px;
 }
 
 .graph-node__meta {
   fill: var(--text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
 }
 
-.graph-node__note {
-  fill: rgba(46, 82, 152, 0.74);
+.graph-node__affordance {
+  opacity: 0;
+  transform: translateY(4px);
+  transform-origin: center;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.graph-node__affordance-bg {
+  fill: rgba(235, 241, 251, 0.94);
+  stroke: rgba(70, 96, 148, 0.16);
+  stroke-width: 1;
+}
+
+.graph-node__affordance-text {
+  fill: rgba(46, 82, 152, 0.76);
   font-size: 10px;
   font-weight: 700;
 }
@@ -434,14 +473,23 @@ body::before {
 }
 
 .graph-node.is-hovered .graph-node__shape,
-.graph-node:hover .graph-node__shape {
+.graph-node:hover .graph-node__shape,
+.graph-node.is-focused .graph-node__shape {
   stroke: rgba(39, 79, 152, 0.44);
   filter: drop-shadow(0 14px 26px rgba(29, 52, 97, 0.1));
 }
 
 .graph-node.is-hovered .graph-node__glow,
-.graph-node:hover .graph-node__glow {
+.graph-node:hover .graph-node__glow,
+.graph-node.is-focused .graph-node__glow {
   opacity: 1;
+}
+
+.graph-node.is-hovered .graph-node__affordance,
+.graph-node:hover .graph-node__affordance,
+.graph-node.is-focused .graph-node__affordance {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .graph-node.is-dimmed {
@@ -470,17 +518,25 @@ body::before {
 
   .topbar-actions {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .graph-summary {
     text-align: left;
   }
 
-  .control-card {
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    width: auto;
+  .control-dock {
+    width: 100%;
+  }
+
+  .settings-toggle-btn {
+    width: 100%;
+  }
+
+  .settings-panel {
+    left: 0;
+    right: auto;
+    width: 100%;
+    transform-origin: top left;
   }
 }

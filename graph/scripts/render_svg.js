@@ -10,9 +10,9 @@ const GRAPH_THEME = {
     stagePaddingY: 88,
     columnGap: 116,
     rowGap: 32,
-    nodeHeight: 76,
-    minNodeWidth: 164,
-    maxNodeWidth: 252,
+    nodeHeight: 94,
+    minNodeWidth: 188,
+    maxNodeWidth: 280,
 };
 
 window.LoadDagData = function LoadDagData(input) {
@@ -216,9 +216,8 @@ function BuildStageData(dag, reachable, root) {
             layer,
             order,
             title: visual.title,
-            eyebrow: visual.eyebrow,
+            detail: visual.detail,
             meta: visual.meta,
-            note: visual.note,
             width: visual.width,
             height: GRAPH_THEME.nodeHeight,
             isRoot: nodeKey === root,
@@ -368,43 +367,98 @@ function GetNodeVisual(nodeKey, node, root) {
     if (node.synthetic && nodeKey === "__graph_root__") {
         return {
             title: "All roots",
-            eyebrow: "Synthetic entry",
+            detail: "Combined entry point for every detected root branch.",
             meta: `${CountKids(node)} root branches`,
-            note: "Drill into an origin branch",
-            width: 196,
+            width: 232,
         };
     }
 
     const title = SanitizeNodeLabel(node.label || node.title || node.name || nodeKey);
-    const parentCount = Array.isArray(node.parents) ? node.parents.length : 0;
+    const parentCount = CountParents(node);
     const kidCount = CountKids(node);
-
-    const eyebrowParts = [];
-    if (node.time) {
-        eyebrowParts.push(Array.isArray(node.time) ? node.time[0] : String(node.time));
-    }
-    if (node.space) {
-        eyebrowParts.push(Array.isArray(node.space) ? node.space[0] : String(node.space));
-    }
-
-    const eyebrow = eyebrowParts.length ? eyebrowParts.join(" / ") : "Relation node";
-    const meta = `${parentCount} upstream / ${kidCount} downstream`;
-    const note = nodeKey === root ? "Current focus" : "Click to refocus";
-    const longestLine = Math.max(title.length, eyebrow.length, meta.length);
-    const width = Clamp(120 + longestLine * 5.9, GRAPH_THEME.minNodeWidth, GRAPH_THEME.maxNodeWidth);
+    const relationLabel = GetPrimaryRelationLabel(node);
+    const detail = GetNodeDetail(node, title);
+    const meta = BuildNodeMeta(parentCount, kidCount, relationLabel);
+    const longestLine = Math.max(title.length, detail.length * 0.72, meta.length * 0.82);
+    const width = Clamp(132 + longestLine * 6.1, GRAPH_THEME.minNodeWidth, GRAPH_THEME.maxNodeWidth);
 
     return {
         title: title || nodeKey,
-        eyebrow,
+        detail,
         meta,
-        note,
         width,
     };
+}
+
+function CountParents(node) {
+    const parents = node.parents || [];
+    return Array.isArray(parents) ? parents.length : Object.keys(parents).length;
 }
 
 function CountKids(node) {
     const kids = node.kids || [];
     return Array.isArray(kids) ? kids.length : Object.keys(kids).length;
+}
+
+function GetPrimaryRelationLabel(node) {
+    const relations = [
+        ...ExtractRelationValues(node.parents),
+        ...ExtractRelationValues(node.kids),
+    ];
+    const relation = relations.find(Boolean);
+
+    return relation ? relation.replace(/\s+/g, " ").trim() : "";
+}
+
+function ExtractRelationValues(relations) {
+    if (!relations || Array.isArray(relations)) {
+        return [];
+    }
+
+    return Object.values(relations)
+        .map(value => String(value || "").trim())
+        .filter(Boolean);
+}
+
+function BuildNodeMeta(parentCount, kidCount, relationLabel) {
+    const parentLabel = parentCount === 1 ? "parent" : "parents";
+    const kidLabel = kidCount === 1 ? "child" : "children";
+    const relationPart = relationLabel || "linked";
+    return relationPart + " / " + parentCount + " " + parentLabel + " / " + kidCount + " " + kidLabel;
+}
+
+function GetNodeDetail(node, fallbackTitle) {
+    const defineText = StripRichText(node.define || "");
+    const propertyText = Array.isArray(node.properties) ? StripRichText(node.properties.find(Boolean) || "") : "";
+    const detail = FirstMeaningfulSegment(defineText) || FirstMeaningfulSegment(propertyText) || fallbackTitle;
+    return Truncate(detail, 52);
+}
+
+function StripRichText(text) {
+    return String(text || "")
+        .replace(/```[\s\S]*?```/g, " ")
+        .replace(/\$\$[\s\S]*?\$\$/g, " ")
+        .replace(/\$[^$\n]+\$/g, " ")
+        .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+        .replace(/<img[^>]*>/gi, " ")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/[`*_>#|-]/g, " ")
+        .replace(/\bhttps?:\/\/\S+/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function FirstMeaningfulSegment(text) {
+    if (!text) {
+        return "";
+    }
+
+    const segments = text
+        .split(/[.?!:;]\s+|\s{2,}/)
+        .map(segment => segment.trim())
+        .filter(Boolean);
+
+    return segments.find(segment => /[A-Za-z\u4e00-\u9fff]/.test(segment)) || "";
 }
 
 function GetEdgeLabel(weight) {
@@ -596,6 +650,10 @@ function BuildNode(nodeData) {
     group.setAttribute("class", `graph-node${nodeData.isRoot ? " is-root is-active" : ""}`);
     group.setAttribute("data-node-key", nodeData.key);
     group.setAttribute("transform", `translate(${nodeData.x - nodeData.width / 2}, ${nodeData.y - nodeData.height / 2})`);
+    group.setAttribute("tabindex", "0");
+    group.setAttribute("focusable", "true");
+    group.setAttribute("role", "button");
+    group.setAttribute("aria-label", `${nodeData.title}. ${nodeData.detail}. ${nodeData.isRoot ? "Current focus." : "Activate to focus this branch."}`);
 
     const glow = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
     glow.setAttribute("class", "graph-node__glow");
@@ -623,42 +681,77 @@ function BuildNode(nodeData) {
     pinCore.setAttribute("cy", String(nodeData.height / 2));
     pinCore.setAttribute("r", "4");
 
-    const eyebrow = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    eyebrow.setAttribute("class", "graph-node__eyebrow");
-    eyebrow.setAttribute("x", "48");
-    eyebrow.setAttribute("y", "22");
-    eyebrow.textContent = Truncate(nodeData.eyebrow, 24);
-
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.setAttribute("class", "graph-node__title");
     title.setAttribute("x", "48");
-    title.setAttribute("y", "42");
+    title.setAttribute("y", "34");
     title.textContent = Truncate(nodeData.title, 24);
+
+    const detail = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    detail.setAttribute("class", "graph-node__detail");
+    detail.setAttribute("x", "48");
+    detail.setAttribute("y", "54");
+    detail.textContent = Truncate(nodeData.detail, 34);
 
     const meta = document.createElementNS("http://www.w3.org/2000/svg", "text");
     meta.setAttribute("class", "graph-node__meta");
     meta.setAttribute("x", "48");
-    meta.setAttribute("y", "59");
-    meta.textContent = Truncate(nodeData.meta, 28);
+    meta.setAttribute("y", "72");
+    meta.textContent = Truncate(nodeData.meta, 36);
 
-    const note = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    note.setAttribute("class", "graph-node__note");
-    note.setAttribute("x", String(nodeData.width - 16));
-    note.setAttribute("y", "22");
-    note.setAttribute("text-anchor", "end");
-    note.textContent = nodeData.isRoot ? "Focus" : "Refocus";
+    const affordance = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    affordance.setAttribute("class", "graph-node__affordance");
+
+    const affordanceBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    affordanceBg.setAttribute("class", "graph-node__affordance-bg");
+    affordanceBg.setAttribute("x", String(nodeData.width - 104));
+    affordanceBg.setAttribute("y", String(nodeData.height - 28));
+    affordanceBg.setAttribute("width", "88");
+    affordanceBg.setAttribute("height", "18");
+    affordanceBg.setAttribute("rx", "9");
+    affordanceBg.setAttribute("ry", "9");
+
+    const affordanceText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    affordanceText.setAttribute("class", "graph-node__affordance-text");
+    affordanceText.setAttribute("x", String(nodeData.width - 60));
+    affordanceText.setAttribute("y", String(nodeData.height - 15));
+    affordanceText.setAttribute("text-anchor", "middle");
+    affordanceText.textContent = nodeData.isRoot ? "Focused" : "Refocus";
+
+    affordance.appendChild(affordanceBg);
+    affordance.appendChild(affordanceText);
 
     group.appendChild(glow);
     group.appendChild(shape);
     group.appendChild(pin);
     group.appendChild(pinCore);
-    group.appendChild(eyebrow);
     group.appendChild(title);
+    group.appendChild(detail);
     group.appendChild(meta);
-    group.appendChild(note);
+    group.appendChild(affordance);
 
     group.addEventListener("mouseenter", () => ApplyHoverState(nodeData.key));
-    group.addEventListener("mouseleave", () => ApplyHoverState(null));
+    group.addEventListener("mouseleave", () => {
+        if (!group.classList.contains("is-focused")) {
+            ApplyHoverState(null);
+        }
+    });
+    group.addEventListener("focus", () => {
+        group.classList.add("is-focused");
+        ApplyHoverState(nodeData.key);
+    });
+    group.addEventListener("blur", () => {
+        group.classList.remove("is-focused");
+        ApplyHoverState(null);
+    });
+    group.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            if (GRAPH_STATE.currentRoot !== nodeData.key) {
+                RenderSvgFromDag(nodeData.key, true);
+            }
+        }
+    });
     group.addEventListener("click", () => {
         if (GRAPH_STATE.currentRoot !== nodeData.key) {
             RenderSvgFromDag(nodeData.key, true);
