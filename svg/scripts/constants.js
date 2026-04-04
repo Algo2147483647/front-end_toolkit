@@ -117,6 +117,25 @@ export const COMMON_FONT_OPTIONS = [
   { label: "SimSun", value: "SimSun, Songti SC, serif" }
 ];
 
+export const COMMON_FONT_SIZE_OPTIONS = [
+  { label: "Document default", value: "" },
+  { label: "10 px", value: "10" },
+  { label: "12 px", value: "12" },
+  { label: "14 px", value: "14" },
+  { label: "16 px", value: "16" },
+  { label: "18 px", value: "18" },
+  { label: "20 px", value: "20" },
+  { label: "24 px", value: "24" },
+  { label: "28 px", value: "28" },
+  { label: "32 px", value: "32" },
+  { label: "36 px", value: "36" },
+  { label: "42 px", value: "42" },
+  { label: "48 px", value: "48" },
+  { label: "56 px", value: "56" },
+  { label: "64 px", value: "64" },
+  { label: "72 px", value: "72" }
+];
+
 export const COMMON_FONT_WEIGHT_OPTIONS = [
   { label: "Document default", value: "" },
   { label: "Normal 400", value: "400" },

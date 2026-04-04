@@ -1299,6 +1299,16 @@ textarea {
   gap: 8px;
 }
 
+.inspector-typography-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inspector-typography .field-font {
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+}
+
 .inspector-geometry-control {
   display: grid;
   gap: 8px;
@@ -1617,6 +1627,14 @@ textarea.field-input,
   .field-combo,
   .field-font {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector-typography-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector-typography .field-font {
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
   }
 
   .tool-label {

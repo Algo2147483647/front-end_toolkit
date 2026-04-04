@@ -1,6 +1,7 @@
 import {
   COLOR_FIELDS,
   COMMON_FONT_OPTIONS,
+  COMMON_FONT_SIZE_OPTIONS,
   COMMON_FONT_WEIGHT_OPTIONS,
   FIELD_MAP,
   FONT_STYLE_OPTIONS,
@@ -207,6 +208,51 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     select.value = normalized;
   }
 
+  function normalizeFontSizeValue(value) {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    const match = trimmed.match(/^([+-]?(?:\d+\.?\d*|\.\d+))(?:px)?$/i);
+    if (!match) {
+      return trimmed;
+    }
+
+    const numeric = Number.parseFloat(match[1]);
+    if (!Number.isFinite(numeric)) {
+      return trimmed;
+    }
+
+    return `${numeric}`;
+  }
+
+  function syncFontSizePreset(select, value) {
+    const normalized = normalizeFontSizeValue(value);
+    const customOption = select.querySelector("option[data-font-size-custom='true']");
+    if (customOption) {
+      customOption.remove();
+    }
+
+    if (!normalized) {
+      select.value = "";
+      return;
+    }
+
+    const presetMatch = [...select.options].find((option) => option.value === normalized);
+    if (presetMatch) {
+      select.value = normalized;
+      return;
+    }
+
+    const option = document.createElement("option");
+    option.value = normalized;
+    option.textContent = `Current (${normalized}${/px$/i.test(String(value || "").trim()) ? "px" : ""})`;
+    option.dataset.fontSizeCustom = "true";
+    select.append(option);
+    select.value = normalized;
+  }
+
   function getResolvedComputedStyle(node) {
     try {
       return globalThis.getComputedStyle?.(node) || null;
@@ -236,6 +282,14 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
     if (attrName === "text-decoration") {
       return computed.textDecorationLine || computed.textDecoration || "";
+    }
+
+    if (attrName === "font-size") {
+      return computed.fontSize || "";
+    }
+
+    if (attrName === "font-family") {
+      return computed.fontFamily || "";
     }
 
     return "";
@@ -287,6 +341,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
   function createTypographyControls(node, field, label, originalInput, locked) {
     const wrapper = document.createElement("div");
+    const controlRow = document.createElement("div");
     const buttonGroup = document.createElement("div");
     const buttons = [
       {
@@ -337,6 +392,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     ];
 
     wrapper.className = "inspector-typography";
+    controlRow.className = "inspector-typography-pair";
     buttonGroup.className = "inspector-toggle-group";
     label.textContent = field.label;
     originalInput.replaceWith(wrapper);
@@ -362,7 +418,115 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       buttonGroup.append(button);
     });
 
-    wrapper.append(buttonGroup);
+    controlRow.append(
+      createFontSizeControl(node, FIELD_MAP.get("font-size"), locked),
+      createFontWeightControl(node, FIELD_MAP.get("font-weight"), locked)
+    );
+    wrapper.append(controlRow, buttonGroup);
+    return wrapper;
+  }
+
+  function createFontSizeControl(node, field, locked, valueOverride = null) {
+    const wrapper = document.createElement("div");
+    const presetInput = document.createElement("select");
+    const textInput = document.createElement("input");
+    const hasValueOverride = valueOverride !== null && valueOverride !== undefined;
+    const resolvedValue = hasValueOverride
+      ? valueOverride
+      : (field.key === "font-size"
+        ? (getFieldValue(node, field) || normalizeFontSizeValue(getResolvedTextStyle(node, "font-size")))
+        : normalizeFontSizeValue(getResolvedTextStyle(node, "font-size")));
+
+    wrapper.className = "field-font inspector-typography-size-row";
+    presetInput.className = "field-input field-font-select";
+    textInput.className = "field-input field-input-text";
+    textInput.type = "text";
+    textInput.inputMode = "decimal";
+    textInput.value = resolvedValue;
+    textInput.placeholder = "16 or 16px";
+    presetInput.disabled = locked;
+    textInput.disabled = locked;
+
+    COMMON_FONT_SIZE_OPTIONS.forEach((optionConfig) => {
+      const option = document.createElement("option");
+      option.value = optionConfig.value;
+      option.textContent = optionConfig.label;
+      presetInput.append(option);
+    });
+    syncFontSizePreset(presetInput, resolvedValue);
+
+    if (!locked) {
+      presetInput.addEventListener("change", () => {
+        textInput.value = presetInput.value;
+        syncFontSizePreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+      textInput.addEventListener("input", () => {
+        syncFontSizePreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, false);
+      });
+      textInput.addEventListener("change", () => {
+        syncFontSizePreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+      textInput.addEventListener("blur", () => {
+        syncFontSizePreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+    }
+
+    wrapper.append(presetInput, textInput);
+    return wrapper;
+  }
+
+  function createFontWeightControl(node, field, locked, valueOverride = null) {
+    const wrapper = document.createElement("div");
+    const presetInput = document.createElement("select");
+    const textInput = document.createElement("input");
+    const hasValueOverride = valueOverride !== null && valueOverride !== undefined;
+    const resolvedValue = hasValueOverride
+      ? String(valueOverride)
+      : (getFieldValue(node, field) || getResolvedTextStyle(node, "font-weight") || "");
+
+    wrapper.className = "field-font inspector-typography-weight-row";
+    presetInput.className = "field-input field-font-select";
+    textInput.className = "field-input field-input-text";
+    textInput.type = "text";
+    textInput.inputMode = "numeric";
+    textInput.value = resolvedValue;
+    textInput.placeholder = "400, 700, bold";
+    presetInput.disabled = locked;
+    textInput.disabled = locked;
+
+    COMMON_FONT_WEIGHT_OPTIONS.forEach((optionConfig) => {
+      const option = document.createElement("option");
+      option.value = optionConfig.value;
+      option.textContent = optionConfig.label;
+      presetInput.append(option);
+    });
+    syncOptionPreset(presetInput, resolvedValue);
+
+    if (!locked) {
+      presetInput.addEventListener("change", () => {
+        textInput.value = presetInput.value;
+        syncOptionPreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+      textInput.addEventListener("input", () => {
+        syncOptionPreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, false);
+      });
+      textInput.addEventListener("change", () => {
+        syncOptionPreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+      textInput.addEventListener("blur", () => {
+        syncOptionPreset(presetInput, textInput.value);
+        actions.updateField(node.dataset.editorId, field, textInput.value, true);
+      });
+    }
+
+    wrapper.append(presetInput, textInput);
     return wrapper;
   }
 
@@ -709,6 +873,18 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
       originalInput.replaceWith(wrapper);
       wrapper.append(presetInput, textInput);
+      return row;
+    }
+
+    if (field.key === "font-size" && field.kind === "attr") {
+      row.classList.add("field-row-font");
+      originalInput.replaceWith(createFontSizeControl(node, field, locked, value || normalizeFontSizeValue(getResolvedTextStyle(node, "font-size"))));
+      return row;
+    }
+
+    if (field.key === "font-weight" && field.kind === "attr") {
+      row.classList.add("field-row-font");
+      originalInput.replaceWith(createFontWeightControl(node, field, locked, value || getResolvedTextStyle(node, "font-weight")));
       return row;
     }
 
