@@ -9,8 +9,8 @@ const GRAPH_THEME = {
     stagePaddingX: 108,
     stagePaddingY: 88,
     columnGap: 116,
-    rowGap: 32,
-    nodeHeight: 94,
+    rowGap: 26,
+    nodeHeight: 84,
     minNodeWidth: 188,
     maxNodeWidth: 280,
 };
@@ -666,8 +666,8 @@ function BuildNode(nodeData) {
     shape.setAttribute("class", "graph-node__shape");
     shape.setAttribute("width", String(nodeData.width));
     shape.setAttribute("height", String(nodeData.height));
-    shape.setAttribute("rx", "32");
-    shape.setAttribute("ry", "32");
+    shape.setAttribute("rx", "28");
+    shape.setAttribute("ry", "28");
 
     const pin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     pin.setAttribute("class", "graph-node__pin");
@@ -684,19 +684,19 @@ function BuildNode(nodeData) {
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.setAttribute("class", "graph-node__title");
     title.setAttribute("x", "48");
-    title.setAttribute("y", "34");
+    title.setAttribute("y", "31");
     title.textContent = Truncate(nodeData.title, 24);
 
     const detail = document.createElementNS("http://www.w3.org/2000/svg", "text");
     detail.setAttribute("class", "graph-node__detail");
     detail.setAttribute("x", "48");
-    detail.setAttribute("y", "54");
+    detail.setAttribute("y", "47");
     detail.textContent = Truncate(nodeData.detail, 34);
 
     const meta = document.createElementNS("http://www.w3.org/2000/svg", "text");
     meta.setAttribute("class", "graph-node__meta");
     meta.setAttribute("x", "48");
-    meta.setAttribute("y", "72");
+    meta.setAttribute("y", "61");
     meta.textContent = Truncate(nodeData.meta, 36);
 
     const affordance = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -704,17 +704,17 @@ function BuildNode(nodeData) {
 
     const affordanceBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     affordanceBg.setAttribute("class", "graph-node__affordance-bg");
-    affordanceBg.setAttribute("x", String(nodeData.width - 104));
-    affordanceBg.setAttribute("y", String(nodeData.height - 28));
-    affordanceBg.setAttribute("width", "88");
-    affordanceBg.setAttribute("height", "18");
-    affordanceBg.setAttribute("rx", "9");
-    affordanceBg.setAttribute("ry", "9");
+    affordanceBg.setAttribute("x", String(nodeData.width - 96));
+    affordanceBg.setAttribute("y", String(nodeData.height - 24));
+    affordanceBg.setAttribute("width", "80");
+    affordanceBg.setAttribute("height", "16");
+    affordanceBg.setAttribute("rx", "8");
+    affordanceBg.setAttribute("ry", "8");
 
     const affordanceText = document.createElementNS("http://www.w3.org/2000/svg", "text");
     affordanceText.setAttribute("class", "graph-node__affordance-text");
-    affordanceText.setAttribute("x", String(nodeData.width - 60));
-    affordanceText.setAttribute("y", String(nodeData.height - 15));
+    affordanceText.setAttribute("x", String(nodeData.width - 56));
+    affordanceText.setAttribute("y", String(nodeData.height - 12));
     affordanceText.setAttribute("text-anchor", "middle");
     affordanceText.textContent = nodeData.isRoot ? "Focused" : "Refocus";
 
