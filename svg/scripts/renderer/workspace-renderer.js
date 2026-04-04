@@ -1,4 +1,51 @@
 export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, updateGridSurface }) {
+  const PPT_OVERLAY = {
+    accent: "#4f81bd",
+    control: "#7a7a7a",
+    controlSoft: "#b5b5b5",
+    fill: "#ffffff",
+    guide: "#8a8a8a",
+    marqueeFill: "#4f81bd",
+    selection: "#6f6f73"
+  };
+
+  function getOverlayLengthForPixels(pixels) {
+    const viewBox = model.getViewBoxRect?.();
+    const hostWidth = ui.svgHost?.offsetWidth || ui.svgHost?.clientWidth || 0;
+    const hostHeight = ui.svgHost?.offsetHeight || ui.svgHost?.clientHeight || 0;
+    const zoom = Math.max(state.zoom || 1, 0.01);
+    const screenUnitX = viewBox?.width && hostWidth ? (hostWidth / viewBox.width) * zoom : 0;
+    const screenUnitY = viewBox?.height && hostHeight ? (hostHeight / viewBox.height) * zoom : 0;
+    const screenUnits = [screenUnitX, screenUnitY].filter((value) => Number.isFinite(value) && value > 0);
+
+    if (!screenUnits.length) {
+      return pixels;
+    }
+
+    return pixels / Math.min(...screenUnits);
+  }
+
+  function getHandleMetrics(kind = "resize") {
+    if (kind === "point") {
+      return {
+        radius: getOverlayLengthForPixels(4.5),
+        strokeWidth: getOverlayLengthForPixels(1.25)
+      };
+    }
+
+    if (kind === "bezier-control") {
+      return {
+        radius: getOverlayLengthForPixels(4),
+        strokeWidth: getOverlayLengthForPixels(1.25)
+      };
+    }
+
+    return {
+      radius: getOverlayLengthForPixels(4.75),
+      strokeWidth: getOverlayLengthForPixels(1.25)
+    };
+  }
+
   function drawOverlayHandle(config) {
     const {
       x,
@@ -9,9 +56,9 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
       editorId,
       handle,
       onPointerDown,
-      fill = "#fffaf0",
-      stroke = "#0f766e",
-      strokeWidth = "2"
+      fill = PPT_OVERLAY.fill,
+      stroke = PPT_OVERLAY.control,
+      strokeWidth = getOverlayLengthForPixels(1.25)
     } = config;
     const element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     element.setAttribute("cx", String(x));
@@ -21,6 +68,7 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
     element.setAttribute("stroke", stroke);
     element.setAttribute("stroke-width", strokeWidth);
     element.setAttribute("class", className);
+    element.setAttribute("vector-effect", "non-scaling-stroke");
     if (cursor) {
       element.style.cursor = cursor;
     }
@@ -31,13 +79,15 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
   }
 
   function drawResizeHandle(x, y, position, editorId, radius, cursor) {
+    const metrics = getHandleMetrics("resize");
     drawOverlayHandle({
-      className: `overlay-handle overlay-handle--${position}`,
+      className: `overlay-handle overlay-handle--resize overlay-handle--${position}`,
       cursor,
       editorId,
       handle: position,
       onPointerDown: actions.onResizeHandlePointerDown,
-      radius,
+      radius: radius || metrics.radius,
+      strokeWidth: metrics.strokeWidth,
       x,
       y
     });
@@ -50,6 +100,10 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
     line.setAttribute("x2", String(x2));
     line.setAttribute("y2", String(y2));
     line.setAttribute("class", "overlay-guide overlay-guide--bezier");
+    line.setAttribute("stroke", PPT_OVERLAY.guide);
+    line.setAttribute("stroke-width", String(getOverlayLengthForPixels(1)));
+    line.setAttribute("stroke-dasharray", `${getOverlayLengthForPixels(3)} ${getOverlayLengthForPixels(3)}`);
+    line.setAttribute("vector-effect", "non-scaling-stroke");
     ui.overlay.append(line);
   }
 
@@ -63,16 +117,18 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
     drawBezierGuideLine(handles[2].x, handles[2].y, handles[3].x, handles[3].y);
 
     handles.forEach((handleConfig) => {
+      const isControl = handleConfig.kind === "control";
+      const metrics = getHandleMetrics(isControl ? "bezier-control" : "resize");
       drawOverlayHandle({
         className: `overlay-handle overlay-handle--bezier overlay-handle--bezier-${handleConfig.kind}`,
         cursor: "move",
         editorId: node.dataset.editorId,
-        fill: handleConfig.kind === "control" ? "#fff" : "#fffaf0",
+        fill: PPT_OVERLAY.fill,
         handle: handleConfig.key,
         onPointerDown: actions.onPathBezierHandlePointerDown,
-        radius: handleConfig.kind === "control" ? Math.max(6, radius - 2) : radius,
-        stroke: handleConfig.kind === "control" ? "#b5461d" : "#0f766e",
-        strokeWidth: handleConfig.kind === "control" ? "2.5" : "2",
+        radius: isControl ? metrics.radius : (radius || metrics.radius),
+        stroke: isControl ? PPT_OVERLAY.controlSoft : PPT_OVERLAY.control,
+        strokeWidth: metrics.strokeWidth,
         x: handleConfig.x,
         y: handleConfig.y
       });
@@ -80,17 +136,18 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
   }
 
   function drawPointHandles(node, radius) {
+    const metrics = getHandleMetrics("point");
     model.getPointHandles(node).forEach((handleConfig) => {
       drawOverlayHandle({
         className: "overlay-handle overlay-handle--point",
         cursor: handleConfig.cursor,
         editorId: node.dataset.editorId,
-        fill: "#fff",
+        fill: PPT_OVERLAY.fill,
         handle: handleConfig.key,
         onPointerDown: actions.onPointHandlePointerDown,
-        radius: Math.max(6, radius - 1),
-        stroke: "#0f766e",
-        strokeWidth: "2",
+        radius: radius || metrics.radius,
+        stroke: PPT_OVERLAY.control,
+        strokeWidth: metrics.strokeWidth,
         x: handleConfig.x,
         y: handleConfig.y
       });
@@ -99,23 +156,24 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
 
   function drawSelectionRect(box, options = {}) {
     const {
+      className = "overlay-selection",
       dasharray = null,
       fill = "none",
       opacity = "1",
-      stroke = "#0f766e",
-      strokeWidth = "2"
+      stroke = PPT_OVERLAY.selection,
+      strokeWidth = getOverlayLengthForPixels(1.25)
     } = options;
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute("x", String(box.x));
     rect.setAttribute("y", String(box.y));
     rect.setAttribute("width", String(box.width));
     rect.setAttribute("height", String(box.height));
-    rect.setAttribute("rx", "8");
+    rect.setAttribute("class", className);
     rect.setAttribute("fill", fill);
     rect.setAttribute("fill-opacity", opacity);
     rect.setAttribute("stroke", stroke);
     rect.setAttribute("stroke-width", strokeWidth);
-    rect.setAttribute("stroke-linejoin", "round");
+    rect.setAttribute("vector-effect", "non-scaling-stroke");
     if (dasharray) {
       rect.setAttribute("stroke-dasharray", dasharray);
     }
@@ -154,15 +212,16 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
         }
         drawSelectionRect(box);
         if (selectedNodes.length === 1 && model.canResizeNode(node)) {
-          const radius = Math.max(8, Math.min(14, Math.max(box.width, box.height, 32) * 0.03));
+          const resizeMetrics = getHandleMetrics("resize");
+          const pointMetrics = getHandleMetrics("point");
           if (["polyline", "polygon"].includes(node.tagName.toLowerCase())) {
-            drawPointHandles(node, radius);
+            drawPointHandles(node, pointMetrics.radius);
           }
           if (node.tagName.toLowerCase() === "path" && model.getPathBezier(node)) {
-            drawBezierHandles(node, radius);
+            drawBezierHandles(node, resizeMetrics.radius);
           }
           model.getResizeHandles(node).forEach((handle) => {
-            drawResizeHandle(handle.x, handle.y, handle.key, node.dataset.editorId, radius, handle.cursor);
+            drawResizeHandle(handle.x, handle.y, handle.key, node.dataset.editorId, resizeMetrics.radius, handle.cursor);
           });
         }
       } catch (error) {
@@ -172,10 +231,12 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
 
     if (state.selectionBox && (state.selectionBox.width > 0 || state.selectionBox.height > 0)) {
       drawSelectionRect(state.selectionBox, {
-        dasharray: "6 6",
-        fill: "#0f766e",
+        className: "overlay-selection overlay-selection--marquee",
+        dasharray: `${getOverlayLengthForPixels(4)} ${getOverlayLengthForPixels(3)}`,
+        fill: PPT_OVERLAY.marqueeFill,
         opacity: "0.08",
-        strokeWidth: "1.5"
+        stroke: PPT_OVERLAY.accent,
+        strokeWidth: getOverlayLengthForPixels(1)
       });
     }
   }

@@ -895,10 +895,28 @@ textarea {
   overflow: visible;
 }
 
+.overlay-selection {
+  shape-rendering: geometricPrecision;
+}
+
 .overlay-handle {
   pointer-events: all;
   cursor: nwse-resize;
-  filter: drop-shadow(0 4px 10px rgba(15, 118, 110, 0.18));
+  transition: stroke 120ms ease, fill 120ms ease;
+}
+
+.overlay-handle:hover {
+  stroke: #4f81bd;
+}
+
+.overlay-handle--resize,
+.overlay-handle--point,
+.overlay-handle--bezier {
+  fill: #fff;
+}
+
+.overlay-selection--marquee {
+  shape-rendering: crispEdges;
 }
 
 .overlay-guide {
@@ -907,9 +925,7 @@ textarea {
 }
 
 .overlay-guide--bezier {
-  stroke: rgba(181, 70, 29, 0.45);
-  stroke-width: 1.5;
-  stroke-dasharray: 5 5;
+  stroke-linecap: square;
 }
 
 .overlay-handle--ne,
@@ -922,8 +938,8 @@ textarea {
   cursor: move;
 }
 
-.overlay-handle--bezier {
-  filter: drop-shadow(0 4px 10px rgba(181, 70, 29, 0.18));
+.overlay-handle--bezier-control {
+  stroke: #b5b5b5;
 }
 
 .drop-overlay {
