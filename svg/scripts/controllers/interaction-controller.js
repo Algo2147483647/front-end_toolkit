@@ -335,6 +335,7 @@ export function createInteractionController({
       descriptor,
       editorId,
       moved: false,
+      referenceNode: descriptor.referenceNode || state.svgRoot,
       type: "resize"
     };
     ui.statusPill.textContent = `Resizing: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
@@ -412,7 +413,7 @@ export function createInteractionController({
         return;
       }
 
-      const currentPoint = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
+      const currentPoint = model.toLocalPoint(state.drag.referenceNode || state.svgRoot, event.clientX, event.clientY);
       const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
       const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {

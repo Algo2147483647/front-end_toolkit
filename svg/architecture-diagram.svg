@@ -1,0 +1,457 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1420" viewBox="0 0 2000 1420" role="img" aria-labelledby="title desc" class="workspace-svg">
+  <rect x="0" y="0" width="2000" height="1420" fill="url(#grid)" opacity="0.32"/><title id="title">SVG Studio 项目架构图</title>
+  <desc id="desc">展示 SVG Studio 的启动流程、状态上下文、控制器层、模型层、渲染层、界面结构以及浏览器能力依赖。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7efe6"/>
+      <stop offset="45%" stop-color="#fdfaf6"/>
+      <stop offset="100%" stop-color="#eef6f6"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9a3412"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fffdfa"/>
+      <stop offset="100%" stop-color="#fff8f1"/>
+    </linearGradient>
+    <linearGradient id="panelCool" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f7fdfc"/>
+      <stop offset="100%" stop-color="#eef9f7"/>
+    </linearGradient>
+    <linearGradient id="panelBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eef5ff"/>
+    </linearGradient>
+    <linearGradient id="panelLavender" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbf8ff"/>
+      <stop offset="100%" stop-color="#f2efff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#3a2414" flood-opacity="0.12"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#113833" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrowWarm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#a4491a"/>
+    </marker>
+    <marker id="arrowCool" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#0f766e"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#1d4ed8"/>
+    </marker>
+    <marker id="arrowViolet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#6d28d9"/>
+    </marker>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#eadfd4" stroke-width="1"/>
+    </pattern>
+    <style>
+      .title {
+        fill: #fffaf4;
+        letter-spacing: 0.5px;
+      }
+      .subtitle {
+        fill: rgba(255, 248, 239, 0.84);
+      }
+      .section-title {
+        fill: #2a170d;
+      }
+      .section-note {
+        fill: #7a6558;
+        letter-spacing: 0.3px;
+      }
+      .card-title {
+        fill: #23140e;
+      }
+      .card-subtitle {
+        fill: #9a4f23;
+        letter-spacing: 1.1px;
+        text-transform: uppercase;
+      }
+      .card-body {
+        fill: #564338;
+      }
+      .small {
+        fill: #5f6b68;
+      }
+      .label {
+        fill: #70412a;
+      }
+      .pill {
+        fill: #7c2d12;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .arrow-label {
+        fill: #694b3e;
+      }
+      .legend-label {
+        fill: #5b4537;
+      }
+      .mono {
+        fill: #214040;
+      }
+    </style>
+  </defs>
+
+  <rect width="2000" height="1420" fill="url(#bg)" x="0" y="-5"/>
+  
+
+  <g filter="url(#shadow)">
+    <rect x="46" y="34" width="1908" height="118" rx="30" fill="url(#hero)"/>
+    <text x="90" y="106" class="title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="38">SVG Studio 架构图</text>
+    
+    
+    
+    
+  </g>
+
+  <g transform="translate(62,190)">
+    <rect x="0" y="0" width="1876" height="176" rx="28" fill="url(#panel)" stroke="#e8d7ca" filter="url(#softShadow)"/>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">1. 启动与装配层</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">应用入口负责初始化状态、组装模型与渲染器、注入控制器动作并加载示例 SVG</text>
+
+    <g transform="translate(28,84)">
+      <rect x="0" y="0" width="250" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Static Shell</text>
+      <text x="15" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">index.html + styles.css</text>
+      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">三栏布局、工具栏、画布、源码面板、属性面板</text>
+    </g>
+
+    <g transform="translate(318,84)">
+      <rect x="0" y="0" width="216" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Global Config</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">constants.js</text>
+      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">示例文档、空文档、字段定义、网格参数</text>
+    </g>
+
+    <g transform="translate(574,84)">
+      <rect x="0" y="0" width="222" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Runtime Context</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">context.js</text>
+      <text x="18" y="61" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">`ui` DOM 引用 + `state` 全局状态容器</text>
+    </g>
+
+    <g transform="translate(836,70)">
+      <rect x="0" y="0" width="292" height="92" rx="22" fill="#fff8f1" stroke="#dbb79e" stroke-width="2"/>
+      <text x="20" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Bootstrap Core</text>
+      <text x="20" y="48" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">app.js</text>
+      <text x="20" y="67" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">createSvgModel→ createRenderer→ createEditor</text>
+      <text x="20" y="80" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">注入 actions、绑定事件、同步 chrome、加载 SAMPLE_SVG</text>
+    </g>
+
+    <g transform="translate(1168,84)">
+      <rect x="0" y="0" width="216" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Domain Model</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">svg-model.js</text>
+      <text x="18" y="61" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">文档工具 + 元数据工具 + 几何工具聚合层</text>
+    </g>
+
+    <g transform="translate(1424,84)">
+      <rect x="0" y="0" width="216" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">View Adapter</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">renderer.js</text>
+      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">统一刷新入口,缩放同步,树/画布/检查器渲染</text>
+    </g>
+
+    <g transform="translate(1680,84)">
+      <rect x="0" y="0" width="168" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Orchestration</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">editor.js</text>
+      <text x="18" y="61" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">控制器装配与能力暴露</text>
+    </g>
+
+    <path d="M278 116H318" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+    <path d="M534 116H574" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+    <path d="M796 116H836" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+    <path d="M1128 116H1168" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+    <path d="M1384 116H1424" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+    <path d="M1640 116H1680" fill="none" stroke="#c56732" stroke-width="3" marker-end="url(#arrowWarm)"/>
+  </g>
+
+  <g transform="translate(62,396)">
+    <rect x="0" y="0" width="430" height="452" rx="28" fill="url(#panel)" stroke="#e7d6c7" filter="url(#softShadow)"/>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">2. 全局状态与 UI 上下文</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">context.js 是所有模块的共享依赖，既持有运行时状态，也缓存 DOM 句柄</text>
+
+    <g transform="translate(28,84)">
+      <rect x="0" y="0" width="374" height="146" rx="22" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">UI References</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">ui</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">顶栏按钮、左右面板、树面板等 DOM 引用</text>
+      <text x="18" y="106" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">作用：事件绑定、DOM 更新、状态映射到视觉层</text>
+      <text x="18" y="128" class="mono" font-family="IBM Plex Mono, Consolas, monospace" font-weight="600" font-size="11">#appShell  #workspaceSurface  #selectionOverlay  #treePanel</text>
+    </g>
+
+    <g transform="translate(28,250)">
+      <rect x="0" y="0" width="374" height="174" rx="22" fill="#fff" stroke="#e8d7ca"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Global Editor State</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">state</text>
+      <text x="18" y="72" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">文档域：svgRoot、nodeMap、currentFileHandle、currentFileName</text>
+      <text x="20" y="95" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">选择域：selectedId,selectedNodeKey,collapsedNodeKeys,lockedNodeKeys</text>
+      <text x="18" y="120" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">视口域：zoom、panX/Y、gridSnapEnabled、gridSnapSize</text>
+      <text x="18" y="144" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">交互域：drag、selectionBox、contextMenu、dropDepth</text>
+      <text x="18" y="168" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">历史域：history、historyIndex、restoring</text>
+    </g>
+  </g>
+
+  <g transform="translate(524,396)">
+    
+    <rect x="0" y="0" width="640" height="452" rx="28" fill="url(#panelCool)" stroke="#cee8df" filter="url(#softShadow)"/><text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">3. Editor 协调层 / 控制器层</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">`editor.js` 负责组合四类控制器，并向 `app.js` 暴露统一 API</text>
+
+    <g transform="translate(216,84)">
+      <rect x="0" y="0" width="215" height="75" rx="18" fill="#f4fcfa" stroke="#85c3b5" stroke-width="2"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Controller Facade</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">createEditor(...)</text>
+      <text x="18" y="62" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">统一转发 bind/load/select等行为</text>
+    </g>
+
+    <g transform="translate(28,184)">
+      <rect x="0" y="0" width="270" height="112" rx="20" fill="#fff" stroke="#cde8df"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Selection Controller</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">selection-controller.js</text>
+      <text x="15" y="65" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="15" y="65">管理单选 / 多选、元数据 key 映射、折叠状态、锁定状态、</tspan><tspan xml:space="preserve" x="15" y="77.5">结构变更后的 live selection 恢复</tspan></text>
+      <text x="15" y="95" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">输出：刷新 tree / inspector / overlay / actions</text>
+    </g>
+
+    <g transform="translate(330,184)">
+      <rect x="0" y="0" width="282" height="112" rx="20" fill="#fff" stroke="#cde8df"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Document Controller</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">document-controller.js</text>
+      <text x="20" y="65" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="20" y="65">导入 / 导出 / 保存、插入节点、字段更新、可见性切换、</tspan><tspan xml:space="preserve" x="20" y="77.5">复制删除、重排、几何高级操作、加载文档</tspan></text>
+      <text x="20" y="95" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">负责结构性修改后重建 nodeMap 并记录历史</text>
+    </g>
+
+    <g transform="translate(28,322)">
+      <rect x="0" y="0" width="372" height="100" rx="20" fill="#fff" stroke="#cde8df"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Interaction Controller</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">interaction-controller.js</text>
+      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="15" y="60">绑定按钮、键盘、指针、拖放、右键菜单、缩放与源码面板；实现拖拽、框选、</tspan><tspan xml:space="preserve" x="15" y="72.5">路径控制点与画布平移</tspan></text>
+      <text x="18" y="91" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">连接 UI 事件与 document / selection / history</text>
+    </g>
+
+    <g transform="translate(424,322)">
+      <rect x="0" y="0" width="188" height="100" rx="20" fill="#fff" stroke="#cde8df"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">History Controller</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">history-controller.js</text>
+      <text x="18" y="68" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="18" y="68">序列化快照、去重、截断、回退/前进、</tspan><tspan xml:space="preserve" x="18" y="80.5">通过 `loadDocument` 恢复状态</tspan></text>
+    </g>
+
+    
+    
+    
+    
+    
+  </g>
+
+  <g transform="translate(1196,396)">
+    <rect x="0" y="0" width="742" height="452" rx="28" fill="url(#panelBlue)" stroke="#d0def5" filter="url(#softShadow)"/>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">4. Renderer 视图层</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">`renderer.js` 是视图更新中枢，根据不同粒度刷新工作区、树、检查器、源码与动作状态</text>
+
+    <g transform="translate(246,84)">
+      <rect x="0" y="0" width="248" height="72" rx="18" fill="#f7fbff" stroke="#8db2ec" stroke-width="2"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Render Orchestrator</text>
+      <text x="18" y="47" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">renderer.js</text>
+      <text x="18" y="66" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12"/>
+    </g>
+
+    <g transform="translate(28,196)">
+      <rect x="0" y="0" width="220" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Workspace Renderer</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">workspace-renderer.js</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">挂载 `svgRoot` 到 `svgHost`</text>
+      <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">维护独立 overlay</text>
+      <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">绘制选框,resize handle,Bezier 控制柄,多选框</text>
+      <text x="18" y="138" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="18" y="138">同步 viewBox /preserveAspectRatio /</tspan><tspan xml:space="preserve" x="18" y="150.5"> zoom / grid</tspan></text>
+    </g>
+
+    <g transform="translate(272,196)">
+      <rect x="0" y="0" width="210" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Tree Renderer</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">tree-renderer.js</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">递归渲染图层树</text>
+      <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">节点折叠、选中、锁定、显示/隐藏状态</text>
+      <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">以 `actions` 回调驱动选择和状态切换</text>
+      <text x="18" y="138" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">输出 node count badge</text>
+    </g>
+
+    <g transform="translate(506,196)">
+      <rect x="0" y="0" width="208" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Inspector Renderer</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">inspector-renderer.js</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">根据 tag 动态生成字段区段</text>
+      <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">支持颜色,字体,计数器,Bezier,动作控件</text>
+      <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">维护 section open state</text>
+      <text x="18" y="138" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">字段修改回流 document-controller</text>
+    </g>
+
+    <g transform="translate(246,382)">
+      <rect x="-85" y="5" width="448" height="44" rx="14" fill="#ffffff" stroke="#d9e7fb"/>
+      <text x="-40" y="30" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">辅助职责：updateSource / syncChrome / applyZoom / updateActions</text>
+    </g>
+
+    
+    
+    
+    
+  </g>
+
+  <g transform="translate(62,882)">
+    <rect x="0" y="0" width="1074" height="476" rx="28" fill="url(#panelLavender)" stroke="#ddd6fb" filter="url(#softShadow)"/>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">5. 模型层与 SVG 领域能力</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">`svg-model.js` 汇聚文档、元数据和几何三大能力域，是控制器与渲染器的核心依赖</text>
+
+    <g transform="translate(350,84)">
+      <rect x="0" y="0" width="374" height="72" rx="18" fill="#faf8ff" stroke="#a78bfa" stroke-width="2"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Model Aggregator</text>
+      <text x="18" y="47" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">createSvgModel(state)</text>
+      <text x="18" y="66" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">documentTools + metadataTools + geometryTools</text>
+    </g>
+
+    <g transform="translate(28,194)">
+      <rect x="0" y="0" width="298" height="214" rx="20" fill="#fff" stroke="#e7e0ff"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Document Tools</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">model/svg-document.js</text>
+      <text x="18" y="71" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">解析：`parseSvg` 使用 DOMParser，校验根节点</text>
+      <text x="18" y="97" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="11">安全：剔除危险标签、清洗 href/style、限制可疑引用</text>
+      <text x="18" y="123" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">ID 策略：唯一化、重命名、子树 remap、引用回写</text>
+      <text x="18" y="149" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">导出：`cleanForExport` + XMLSerializer</text>
+      <text x="18" y="175" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">目标：尽量保持原始 SVG 结构可编辑</text>
+    </g>
+
+    <g transform="translate(352,194)">
+      <rect x="0" y="0" width="320" height="214" rx="20" fill="#fff" stroke="#e7e0ff"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Metadata Tools</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">model/svg-metadata.js</text>
+      <text x="18" y="71" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">分配 editorId、构建 nodeKey、重建 `nodeMap`</text>
+      <text x="18" y="97" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">同步选择 / 锁定 / 折叠等编辑态元数据</text>
+      <text x="18" y="123" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">节点可见性与层级顺序：isNodeHidden / getZOrder / setZOrder</text>
+      <text x="18" y="149" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">界面标签：`labelFor`、字段可见性：`visibleField`</text>
+      <text x="18" y="175" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">作为树面板和选择恢复的关键索引层</text>
+    </g>
+
+    <g transform="translate(698,194)">
+      <rect x="0" y="0" width="348" height="214" rx="20" fill="#fff" stroke="#e7e0ff"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Geometry Tools</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">model/svg-geometry.js</text>
+      <text x="18" y="71" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">组合 viewport / snap / path / shape-factory / drag-resize 五类工具</text>
+      <text x="18" y="97" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">负责坐标转换、插入节点、拖拽变换、路径编辑、点编辑、网格吸附</text>
+      <text x="18" y="123" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">为 overlay 绘制和交互控制提供几何计算基底</text>
+      <text x="18" y="149" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">被 document / interaction / renderer 同时依赖</text>
+    </g>
+
+    <g transform="translate(698,424)">
+      <rect x="0" y="0" width="348" height="28" rx="10" fill="#f7f3ff" stroke="#d6ccfb"/>
+      <text x="18" y="19" class="label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">geometry 子模块</text>
+    </g>
+    <g transform="translate(698,462)">
+      
+      
+      
+    </g>
+    <g transform="translate(882,462)">
+      
+      
+      
+    </g>
+    <g transform="translate(698,528)">
+      
+      
+      
+    </g>
+    <g transform="translate(882,528)">
+      
+      
+      
+    </g>
+    <g transform="translate(790,594)">
+      
+      
+      
+    </g>
+
+    
+    
+    
+    
+  </g>
+
+  <g transform="translate(1168,882)">
+    <rect x="0" y="0" width="770" height="476" rx="28" fill="url(#panelCool)" stroke="#c9eadf" filter="url(#softShadow)"/>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">6. 页面信息架构与外部依赖</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">界面区域与浏览器原生能力共同支撑编辑体验，渲染层和控制器层在这里落地</text>
+
+    <g transform="translate(28,88)">
+      <rect x="0" y="0" width="712" height="204" rx="20" fill="#fff" stroke="#d7eee6"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">UI Shell Mapping</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">index.html 的主要区域</text>
+
+      <rect x="18" y="62" width="676" height="36" rx="12" fill="#fff7ef" stroke="#ecd6c8"/>
+      <text x="34" y="85" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">Topbar: 新建 / 导入 / 保存 / 导出 / Undo / Redo / Snap / Source / Zoom / Fit / Collapse</text>
+
+      <rect x="18" y="112" width="154" height="72" rx="14" fill="#f8fbff" stroke="#d9e7fb"/>
+      <text x="32" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Left Panel</text>
+      <text x="32" y="160" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">Insert + Layers</text>
+
+      <rect x="188" y="112" width="318" height="72" rx="14" fill="#f9fdfa" stroke="#d9eee5"/>
+      <text x="204" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Workspace</text>
+      <text x="204" y="160" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">surface-grid / svgHost / overlay / drop-overlay</text>
+
+      <rect x="522" y="112" width="172" height="72" rx="14" fill="#fbf8ff" stroke="#e7e0ff"/>
+      <text x="538" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Right Panel</text>
+      <text x="538" y="160" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">Inspector / propertyForm</text>
+
+      <rect x="284" y="188" width="144" height="0" fill="none"/>
+      <text x="18" y="196" class="small" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="11">附属面板：sourcePane（源码双向同步） / contextMenu（图层前后置） / floatingDock（折叠后入口）</text>
+    </g>
+
+    <g transform="translate(28,320)">
+      <rect x="0" y="0" width="712" height="128" rx="20" fill="#fff" stroke="#d7eee6"/>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Browser Capabilities</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">项目直接依赖的原生能力</text>
+      <text x="18" y="74" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">DOMParser / XMLSerializer / SVG DOM (`getBBox`, `createSVGPoint`, `getScreenCTM`) / Pointer Events / Drag and Drop</text>
+      <text x="18" y="100" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">File System Access API (`showOpenFilePicker`, `createWritable`) / FileReader / localStorage / requestAnimationFrame</text>
+    </g>
+  </g>
+
+  <g>
+    <path d="M492 620C520 620 520 622 524 622" fill="none" stroke="#9a3412" stroke-width="3.5" marker-end="url(#arrowWarm)"/>
+    <text x="460" y="600" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">共享 state / ui</text>
+
+    <path d="M1164 622H1196" fill="none" stroke="#0f766e" stroke-width="3.5" marker-end="url(#arrowCool)"/>
+    <text x="1160" y="600" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">触发刷新</text>
+
+    <path d="M844 848V882" fill="none" stroke="#6d28d9" stroke-width="3.5" marker-end="url(#arrowViolet)"/>
+    
+
+    <path d="M1580 848V882" fill="none" stroke="#1d4ed8" stroke-width="3.5" marker-end="url(#arrowBlue)"/>
+    
+
+    
+    <text x="910" y="365" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 装配 createEditor</text>
+
+    
+    <text x="1490" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 装配 createRenderer</text>
+
+    
+    <text x="1245" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 注入 model</text>
+  </g>
+
+  <g transform="translate(62,1372)">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  </g>
+</svg>

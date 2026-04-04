@@ -478,6 +478,8 @@ export function createDocumentController({
       state.panY = 0;
     }
     model.rebuildNodeMap();
+    model.normalizeManagedTextNodes(root);
+    model.rebuildNodeMap();
     if (preservedEditorState) {
       selectionController.restoreEditorState(preservedEditorState);
     } else {

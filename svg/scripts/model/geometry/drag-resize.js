@@ -1,6 +1,7 @@
 export function createSvgDragResizeTools({
   state,
   isNodeLocked,
+  getNodeVisualBounds,
   normalizeRect,
   getNumericAttr,
   roundCoordinate,
@@ -66,6 +67,29 @@ export function createSvgDragResizeTools({
 
   function getNodeGeometryBounds(node) {
     return normalizeRect(node?.getBBox?.()) || getPointBounds(parsePointList(node?.getAttribute?.("points")));
+  }
+
+  function getTextVisualBounds(node) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return null;
+    }
+
+    return getNodeVisualBounds?.(node) || getNodeGeometryBounds(node);
+  }
+
+  function projectPointToRoot(node, point) {
+    const svgPoint = state.svgRoot?.createSVGPoint?.();
+    const matrix = node?.getCTM?.();
+    if (!svgPoint || !matrix) {
+      return {
+        x: point.x,
+        y: point.y
+      };
+    }
+
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
+    return svgPoint.matrixTransform(matrix);
   }
 
   function createRegularPolygonPoints(box, sides) {
@@ -272,6 +296,16 @@ export function createSvgDragResizeTools({
     }
 
     return tspans.every((tspan) => tspan.hasAttribute("x") || tspan.hasAttribute("y") || tspan.hasAttribute("dy"));
+  }
+
+  function hasTranslatedTspans(node) {
+    if (node?.tagName?.toLowerCase?.() !== "text") {
+      return false;
+    }
+
+    return [...node.children]
+      .filter((child) => child.tagName?.toLowerCase?.() === "tspan")
+      .some((child) => child.hasAttribute("transform"));
   }
 
   function tokenizeWrapContent(text) {
@@ -500,11 +534,34 @@ export function createSvgDragResizeTools({
   }
 
   function refreshTextLayout(node) {
-    if (!hasManagedTextLayout(node)) {
+    if (!hasManagedTextLayout(node) && !hasTranslatedTspans(node)) {
       return false;
     }
 
+    if (!node.hasAttribute("data-editor-wrap-width")) {
+      const inferredBox = getNodeGeometryBounds(node);
+      if (inferredBox?.width > 0 && [...node.children].some((child) => child.tagName?.toLowerCase?.() === "tspan")) {
+        node.setAttribute("data-editor-wrap-width", String(roundCoordinate(inferredBox.width)));
+      }
+    }
+    if (!node.hasAttribute("data-editor-text")) {
+      node.setAttribute("data-editor-text", getManagedTextSource(node));
+    }
     return applyManagedTextLayout(node);
+  }
+
+  function normalizeManagedTextNodes(root = state.svgRoot) {
+    if (!root?.querySelectorAll) {
+      return false;
+    }
+
+    let changed = false;
+    [...root.querySelectorAll("text")].forEach((node) => {
+      if (refreshTextLayout(node)) {
+        changed = true;
+      }
+    });
+    return changed;
   }
 
   function canDragNode(node) {
@@ -531,23 +588,32 @@ export function createSvgDragResizeTools({
 
     const tag = node.tagName.toLowerCase();
     if (tag === "line") {
+      const start = projectPointToRoot(node, {
+        x: getNumericAttr(node, "x1"),
+        y: getNumericAttr(node, "y1")
+      });
+      const end = projectPointToRoot(node, {
+        x: getNumericAttr(node, "x2"),
+        y: getNumericAttr(node, "y2")
+      });
       return [
         {
           key: "start",
           cursor: "move",
-          x: getNumericAttr(node, "x1"),
-          y: getNumericAttr(node, "y1")
+          x: start.x,
+          y: start.y
         },
         {
           key: "end",
           cursor: "move",
-          x: getNumericAttr(node, "x2"),
-          y: getNumericAttr(node, "y2")
+          x: end.x,
+          y: end.y
         }
       ];
     }
 
-    const box = normalizeRect(node.getBBox());
+    const box = getNodeVisualBounds?.(node)
+      || (tag === "text" ? getTextVisualBounds(node) : getNodeGeometryBounds(node));
     if (!box || (!box.width && !box.height)) {
       return [];
     }
@@ -566,12 +632,15 @@ export function createSvgDragResizeTools({
       return [];
     }
 
-    return parsePointList(node.getAttribute("points")).map((point, index) => ({
-      key: `point-${index}`,
-      cursor: "move",
-      x: point.x,
-      y: point.y
-    }));
+    return parsePointList(node.getAttribute("points")).map((point, index) => {
+      const projectedPoint = projectPointToRoot(node, point);
+      return {
+        key: `point-${index}`,
+        cursor: "move",
+        x: projectedPoint.x,
+        y: projectedPoint.y
+      };
+    });
   }
 
   function getDragDescriptor(node) {
@@ -659,6 +728,7 @@ export function createSvgDragResizeTools({
       return {
         handle,
         mode: "line-endpoint",
+        referenceNode: node.parentElement || state.svgRoot,
         startHandle,
         x1: getNumericAttr(node, "x1"),
         y1: getNumericAttr(node, "y1"),
@@ -668,7 +738,9 @@ export function createSvgDragResizeTools({
     }
 
     const tag = node.tagName.toLowerCase();
-    const box = normalizeRect(node.getBBox());
+    const box = tag === "text"
+      ? getTextVisualBounds(node)
+      : normalizeRect(node.getBBox());
     if (!box || box.width < 1 || box.height < 1) {
       return null;
     }
@@ -696,6 +768,7 @@ export function createSvgDragResizeTools({
         box,
         handle,
         mode: "rect",
+        referenceNode: node.parentElement || state.svgRoot,
         rx: getNumericAttr(node, "rx"),
         ry: getNumericAttr(node, "ry"),
         startHandle: corners[handle]
@@ -709,6 +782,7 @@ export function createSvgDragResizeTools({
         box,
         handle,
         mode: "text-box",
+        referenceNode: state.svgRoot,
         startHandle: corners[handle]
       };
     }
@@ -719,6 +793,7 @@ export function createSvgDragResizeTools({
         box,
         handle,
         mode: "circle",
+        referenceNode: node.parentElement || state.svgRoot,
         startHandle: corners[handle]
       };
     }
@@ -729,6 +804,7 @@ export function createSvgDragResizeTools({
         box,
         handle,
         mode: "ellipse",
+        referenceNode: node.parentElement || state.svgRoot,
         startHandle: corners[handle]
       };
     }
@@ -741,6 +817,7 @@ export function createSvgDragResizeTools({
         handle,
         mode: tag,
         points,
+        referenceNode: node.parentElement || state.svgRoot,
         startHandle: corners[handle]
       };
     }
@@ -757,6 +834,7 @@ export function createSvgDragResizeTools({
         box,
         handle,
         mode: "path-bezier-resize",
+        referenceNode: node.parentElement || state.svgRoot,
         startHandle: corners[handle]
       };
     }
@@ -765,6 +843,7 @@ export function createSvgDragResizeTools({
       anchor: corners[anchorHandle],
       box,
       handle,
+      referenceNode: node.parentElement || state.svgRoot,
       startHandle: corners[handle]
     };
   }
@@ -968,7 +1047,7 @@ export function createSvgDragResizeTools({
         return;
       }
 
-      const actualBox = getNodeGeometryBounds(node);
+      const actualBox = getTextVisualBounds(node);
       const actualAnchor = getBoxCorner(actualBox, descriptor.anchorHandle);
       if (!actualAnchor) {
         return;
@@ -1086,6 +1165,7 @@ export function createSvgDragResizeTools({
     getResizeDescriptor,
     getResizeHandles,
     getTextBoxDimension,
+    normalizeManagedTextNodes,
     refreshTextLayout,
     updatePolygonSideCount,
     updatePolylinePointCount,

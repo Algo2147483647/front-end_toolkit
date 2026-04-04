@@ -23,6 +23,7 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
   const dragResizeTools = createSvgDragResizeTools({
     state,
     isNodeLocked,
+    getNodeVisualBounds: viewportTools.getNodeVisualBounds,
     normalizeRect: viewportTools.normalizeRect,
     getNumericAttr: viewportTools.getNumericAttr,
     roundCoordinate: viewportTools.roundCoordinate,
