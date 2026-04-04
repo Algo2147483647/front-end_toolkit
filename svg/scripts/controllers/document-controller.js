@@ -310,6 +310,13 @@ export function createDocumentController({
     });
   }
 
+  function regularizePolygon(editorId, record = true) {
+    applyGeometryControl(editorId, "polygon-regularize", (node) => model.regularizePolygon(node), {
+      record,
+      renderInspector: true
+    });
+  }
+
   function updatePolylinePointCount(editorId, value, record = true) {
     applyGeometryControl(editorId, "polyline-points", (node) => model.updatePolylinePointCount(node, value), {
       record,
@@ -479,6 +486,7 @@ export function createDocumentController({
     toggleNodeVisibility,
     updateField,
     updatePathBezier,
+    regularizePolygon,
     updatePolygonSides,
     updatePolylinePointCount,
     duplicateSelection

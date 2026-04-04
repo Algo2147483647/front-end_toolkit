@@ -15,6 +15,7 @@ Object.assign(actions, {
   onResizeHandlePointerDown: editor.onResizeHandlePointerDown,
   onSvgClick: editor.onSvgClick,
   onSvgPointerDown: editor.onSvgPointerDown,
+  regularizePolygon: editor.regularizePolygon,
   selectNode: editor.selectNode,
   toggleNodeCollapse: editor.toggleNodeCollapse,
   toggleNodeLock: editor.toggleNodeLock,

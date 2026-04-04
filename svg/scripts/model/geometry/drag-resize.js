@@ -619,6 +619,22 @@ export function createSvgDragResizeTools({
     return true;
   }
 
+  function regularizePolygon(node) {
+    const currentPoints = parsePointList(node?.getAttribute?.("points"));
+    const count = clampInteger(currentPoints.length, 3, 16, 5);
+    if (!count) {
+      return false;
+    }
+
+    const box = getNodeGeometryBounds(node) || getPointBounds(currentPoints);
+    if (!box) {
+      return false;
+    }
+
+    node.setAttribute("points", serializePointList(createRegularPolygonPoints(box, count)));
+    return true;
+  }
+
   function getPolylinePointCount(node) {
     return Math.max(0, parsePointList(node?.getAttribute?.("points")).length);
   }
@@ -646,6 +662,7 @@ export function createSvgDragResizeTools({
     getPointHandles,
     getPolygonSideCount,
     getPolylinePointCount,
+    regularizePolygon,
     getResizeDescriptor,
     getResizeHandles,
     updatePolygonSideCount,

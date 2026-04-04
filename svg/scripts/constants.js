@@ -81,6 +81,7 @@ export const FIELDS = [
     { key: "rx", label: "rx", kind: "attr" },
     { key: "ry", label: "ry", kind: "attr" },
     { key: "polygon-sides", label: "polygon sides", kind: "polygon-sides" },
+    { key: "polygon-regularize", label: "regular polygon", kind: "polygon-regularize" },
     { key: "polyline-points", label: "polyline points", kind: "polyline-points" },
     { key: "path-bezier", label: "Bezier curve", kind: "path-bezier" }
   ]],

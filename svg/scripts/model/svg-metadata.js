@@ -142,6 +142,7 @@ export function createSvgMetadataTools(state) {
     if (field.kind === "z-order") return node !== state.svgRoot && Boolean(node.parentElement);
     if (field.kind === "typography-controls") return ["text", "tspan"].includes(tag);
     if (field.kind === "polygon-sides") return tag === "polygon";
+    if (field.kind === "polygon-regularize") return tag === "polygon";
     if (field.kind === "polyline-points") return tag === "polyline";
     if (field.kind === "path-bezier") return tag === "path";
     if (field.key === "d") return tag === "path";

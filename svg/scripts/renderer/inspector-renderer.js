@@ -95,7 +95,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
     if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity"];
     if (tag === "polyline") return ["polyline-points", "stroke", "stroke-width", "opacity", "points"];
-    if (tag === "polygon") return ["polygon-sides", "fill", "stroke", "stroke-width", "opacity", "points"];
+    if (tag === "polygon") return ["polygon-sides", "polygon-regularize", "fill", "stroke", "stroke-width", "opacity", "points"];
     if (tag === "path") return ["path-bezier", "fill", "stroke", "stroke-width", "opacity", "d"];
     return ["fill", "stroke", "stroke-width", "opacity", "x", "y", "width", "height"];
   }
@@ -492,6 +492,29 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     return wrapper;
   }
 
+  function createActionControl(node, field, label, originalInput, locked, config) {
+    const wrapper = document.createElement("div");
+    const button = document.createElement("button");
+    const hint = document.createElement("p");
+
+    wrapper.className = "inspector-geometry-control";
+    button.type = "button";
+    button.className = "inspector-action-button inspector-inline-action-button";
+    button.textContent = config.buttonLabel;
+    button.disabled = locked;
+    hint.className = "inspector-geometry-note";
+    hint.textContent = config.hint;
+    label.textContent = field.label;
+
+    if (!locked) {
+      button.addEventListener("click", config.onClick);
+    }
+
+    originalInput.replaceWith(wrapper);
+    wrapper.append(button, hint);
+    return wrapper;
+  }
+
   function createInspectorField(node, field, locked, options = {}) {
     const { quickEdit = false } = options;
     const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
@@ -516,6 +539,15 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
         min: 3,
         onCommit: (value) => actions.updatePolygonSides(node.dataset.editorId, value, true),
         value: model.getPolygonSideCount(node) || 5
+      });
+      return row;
+    }
+
+    if (field.kind === "polygon-regularize") {
+      createActionControl(node, field, label, originalInput, locked, {
+        buttonLabel: "Restore Regular",
+        hint: "Rebuild the current polygon as a regular polygon inside its current bounds.",
+        onClick: () => actions.regularizePolygon(node.dataset.editorId)
       });
       return row;
     }
