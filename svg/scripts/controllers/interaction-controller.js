@@ -203,11 +203,11 @@ export function createInteractionController({
     };
   }
 
-  function rectsIntersect(a, b) {
-    return a.x <= b.x + b.width
-      && a.x + a.width >= b.x
-      && a.y <= b.y + b.height
-      && a.y + a.height >= b.y;
+  function rectContainsRect(container, target) {
+    return target.x >= container.x
+      && target.y >= container.y
+      && target.x + target.width <= container.x + container.width
+      && target.y + target.height <= container.y + container.height;
   }
 
   function isSelectableGeometryNode(node) {
@@ -246,7 +246,7 @@ export function createInteractionController({
         continue;
       }
 
-      if (rectsIntersect(box, bounds)) {
+      if (rectContainsRect(box, bounds)) {
         const resolvedTarget = resolveSelectionTarget(node) || node;
         if (resolvedTarget?.dataset?.editorId) {
           matches.add(resolvedTarget.dataset.editorId);
