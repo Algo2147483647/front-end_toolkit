@@ -269,7 +269,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   }
 
   function getQuickFieldVariant(field) {
-    if (["typography-controls", "textContent", "d", "points", "font-family", "polygon-sides", "polyline-points", "path-bezier"].includes(field.key) || field.multiline) {
+    if (["typography-controls", "textContent", "d", "points", "font-family", "polygon-sides", "polygon-regularize", "polyline-points", "path-bezier"].includes(field.key) || field.multiline) {
       return "full";
     }
 
@@ -494,24 +494,32 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
   function createActionControl(node, field, label, originalInput, locked, config) {
     const wrapper = document.createElement("div");
-    const button = document.createElement("button");
+    const buttonGroup = document.createElement("div");
     const hint = document.createElement("p");
+    const buttons = Array.isArray(config.buttons) && config.buttons.length
+      ? config.buttons
+      : [{ label: config.buttonLabel, onClick: config.onClick }];
 
     wrapper.className = "inspector-geometry-control";
-    button.type = "button";
-    button.className = "inspector-action-button inspector-inline-action-button";
-    button.textContent = config.buttonLabel;
-    button.disabled = locked;
+    buttonGroup.className = "inspector-action-group";
     hint.className = "inspector-geometry-note";
     hint.textContent = config.hint;
     label.textContent = field.label;
 
-    if (!locked) {
-      button.addEventListener("click", config.onClick);
-    }
+    buttons.forEach((buttonConfig) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "inspector-action-button inspector-inline-action-button";
+      button.textContent = buttonConfig.label;
+      button.disabled = locked;
+      if (!locked) {
+        button.addEventListener("click", buttonConfig.onClick);
+      }
+      buttonGroup.append(button);
+    });
 
     originalInput.replaceWith(wrapper);
-    wrapper.append(button, hint);
+    wrapper.append(buttonGroup, hint);
     return wrapper;
   }
 
@@ -545,9 +553,17 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
     if (field.kind === "polygon-regularize") {
       createActionControl(node, field, label, originalInput, locked, {
-        buttonLabel: "Restore Regular",
-        hint: "Rebuild the current polygon as a regular polygon inside its current bounds.",
-        onClick: () => actions.regularizePolygon(node.dataset.editorId)
+        buttons: [
+          {
+            label: "Fit Bounds",
+            onClick: () => actions.regularizePolygon(node.dataset.editorId)
+          },
+          {
+            label: "Equal Sides",
+            onClick: () => actions.regularizePolygonEqualSides(node.dataset.editorId)
+          }
+        ],
+        hint: "Fit Bounds keeps the current rectangle; Equal Sides rebuilds a true regular polygon centered in it."
       });
       return row;
     }

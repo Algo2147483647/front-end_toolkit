@@ -317,6 +317,13 @@ export function createDocumentController({
     });
   }
 
+  function regularizePolygonEqualSides(editorId, record = true) {
+    applyGeometryControl(editorId, "polygon-regularize-equal-sides", (node) => model.regularizePolygonEqualSides(node), {
+      record,
+      renderInspector: true
+    });
+  }
+
   function updatePolylinePointCount(editorId, value, record = true) {
     applyGeometryControl(editorId, "polyline-points", (node) => model.updatePolylinePointCount(node, value), {
       record,
@@ -483,6 +490,7 @@ export function createDocumentController({
     loadDocument,
     saveToSourceFile,
     sendSelectionToBack,
+    regularizePolygonEqualSides,
     toggleNodeVisibility,
     updateField,
     updatePathBezier,

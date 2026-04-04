@@ -47,6 +47,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     setTopbarCollapsed: interactionController.setTopbarCollapsed,
     setZoom: interactionController.setZoom,
     regularizePolygon: documentController.regularizePolygon,
+    regularizePolygonEqualSides: documentController.regularizePolygonEqualSides,
     toggleNodeCollapse: selectionController.toggleNodeCollapse,
     toggleNodeLock: selectionController.toggleNodeLock,
     toggleNodeVisibility: documentController.toggleNodeVisibility,

@@ -87,6 +87,20 @@ export function createSvgDragResizeTools({
     return scalePointsToBox(rawPoints, rawBounds, box);
   }
 
+  function createEquilateralPolygonPoints(box, sides) {
+    const centerX = box.x + (box.width / 2);
+    const centerY = box.y + (box.height / 2);
+    const radius = Math.max(Math.min(box.width, box.height) / 2, 1);
+
+    return Array.from({ length: sides }, (_, index) => {
+      const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / sides);
+      return {
+        x: centerX + (Math.cos(angle) * radius),
+        y: centerY + (Math.sin(angle) * radius)
+      };
+    });
+  }
+
   function resamplePolylinePoints(points, count) {
     if (points.length < 2 || count < 2) {
       return points;
@@ -641,6 +655,22 @@ export function createSvgDragResizeTools({
     return true;
   }
 
+  function regularizePolygonEqualSides(node) {
+    const currentPoints = parsePointList(node?.getAttribute?.("points"));
+    const count = clampInteger(currentPoints.length, 3, 16, 5);
+    if (!count) {
+      return false;
+    }
+
+    const box = getNodeGeometryBounds(node) || getPointBounds(currentPoints);
+    if (!box) {
+      return false;
+    }
+
+    node.setAttribute("points", serializePointList(createEquilateralPolygonPoints(box, count)));
+    return true;
+  }
+
   function getPolylinePointCount(node) {
     return Math.max(0, parsePointList(node?.getAttribute?.("points")).length);
   }
@@ -669,6 +699,7 @@ export function createSvgDragResizeTools({
     getPolygonSideCount,
     getPolylinePointCount,
     regularizePolygon,
+    regularizePolygonEqualSides,
     getResizeDescriptor,
     getResizeHandles,
     updatePolygonSideCount,
