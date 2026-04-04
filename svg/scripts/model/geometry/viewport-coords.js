@@ -15,6 +15,22 @@ export function createSvgViewportCoordsTools({ state }) {
     return { x, y, width, height };
   }
 
+  function normalizeVisualRect(rect) {
+    if (!rect) {
+      return null;
+    }
+
+    const x = Number(rect.x);
+    const y = Number(rect.y);
+    const width = Number(rect.width);
+    const height = Number(rect.height);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
+      return null;
+    }
+
+    return { x, y, width, height };
+  }
+
   function parseSvgLength(value) {
     if (!value) {
       return null;
@@ -140,7 +156,7 @@ export function createSvgViewportCoordsTools({ state }) {
     const rect = node.getBoundingClientRect?.();
     if (!point || !rootMatrix || !rect || (!rect.width && !rect.height)) {
       try {
-        return normalizeRect(node.getBBox?.());
+        return normalizeVisualRect(node.getBBox?.());
       } catch (error) {
         return null;
       }
@@ -160,7 +176,7 @@ export function createSvgViewportCoordsTools({ state }) {
 
     const xs = corners.map((corner) => corner.x);
     const ys = corners.map((corner) => corner.y);
-    return normalizeRect({
+    return normalizeVisualRect({
       x: Math.min(...xs),
       y: Math.min(...ys),
       width: Math.max(...xs) - Math.min(...xs),
