@@ -223,15 +223,7 @@ export function createInteractionController({
   }
 
   function getNodeBounds(node) {
-    try {
-      const box = node.getBBox();
-      if (!Number.isFinite(box.x) || !Number.isFinite(box.y) || !Number.isFinite(box.width) || !Number.isFinite(box.height)) {
-        return null;
-      }
-      return box;
-    } catch (error) {
-      return null;
-    }
+    return model.getNodeVisualBounds(node);
   }
 
   function collectSelectionBoxMatches(box) {

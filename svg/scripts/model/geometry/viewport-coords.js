@@ -129,6 +129,45 @@ export function createSvgViewportCoordsTools({ state }) {
     return point.matrixTransform(matrix.inverse());
   }
 
+  function getNodeVisualBounds(node) {
+    if (!node) {
+      return null;
+    }
+
+    const root = state.svgRoot;
+    const point = root?.createSVGPoint?.();
+    const rootMatrix = root?.getScreenCTM?.();
+    const rect = node.getBoundingClientRect?.();
+    if (!point || !rootMatrix || !rect || (!rect.width && !rect.height)) {
+      try {
+        return normalizeRect(node.getBBox?.());
+      } catch (error) {
+        return null;
+      }
+    }
+
+    const inverse = rootMatrix.inverse();
+    const corners = [
+      { x: rect.left, y: rect.top },
+      { x: rect.right, y: rect.top },
+      { x: rect.right, y: rect.bottom },
+      { x: rect.left, y: rect.bottom }
+    ].map((corner) => {
+      point.x = corner.x;
+      point.y = corner.y;
+      return point.matrixTransform(inverse);
+    });
+
+    const xs = corners.map((corner) => corner.x);
+    const ys = corners.map((corner) => corner.y);
+    return normalizeRect({
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys)
+    });
+  }
+
   function viewBoxFor(root) {
     const box = resolveRootViewportRect(root);
     return `${box.x} ${box.y} ${box.width} ${box.height}`;
@@ -136,6 +175,7 @@ export function createSvgViewportCoordsTools({ state }) {
 
   return {
     getNumericAttr,
+    getNodeVisualBounds,
     getViewBoxRect,
     normalizeRect,
     roundCoordinate,

@@ -130,8 +130,8 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
       }
 
       try {
-        const box = node.getBBox();
-        if (!box.width && !box.height) {
+        const box = model.getNodeVisualBounds(node);
+        if (!box || (!box.width && !box.height)) {
           return;
         }
         drawSelectionRect(box);
