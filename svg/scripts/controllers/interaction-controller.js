@@ -29,6 +29,33 @@ export function createInteractionController({
     "marker"
   ]);
 
+  async function openSvgDocumentPicker() {
+    if (typeof window.showOpenFilePicker !== "function") {
+      return null;
+    }
+
+    const [handle] = await window.showOpenFilePicker({
+      excludeAcceptAllOption: false,
+      multiple: false,
+      types: [{
+        accept: {
+          "image/svg+xml": [".svg"]
+        },
+        description: "SVG documents"
+      }]
+    });
+
+    if (!handle) {
+      return null;
+    }
+
+    const file = await handle.getFile();
+    return {
+      file,
+      handle
+    };
+  }
+
   function clampZoom(value) {
     return Math.max(0.01, Math.min(2.5, value));
   }
@@ -620,7 +647,31 @@ export function createInteractionController({
   }
 
   function bindEvents() {
-    ui.importButton.addEventListener("click", () => ui.fileInput.click());
+    ui.importButton.addEventListener("click", async () => {
+      if (typeof window.showOpenFilePicker !== "function") {
+        ui.fileInput.click();
+        return;
+      }
+
+      try {
+        const pickedFile = await openSvgDocumentPicker();
+        if (!pickedFile?.file) {
+          return;
+        }
+
+        documentController.loadDocument(await pickedFile.file.text(), {
+          fileHandle: pickedFile.handle,
+          fileName: pickedFile.file.name,
+          fitScale: 0.7,
+          preserveEditorState: false
+        });
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+        alert(error.message);
+      }
+    });
     ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!state.gridSnapEnabled));
 
     ui.gridSnapSizeInput.addEventListener("input", (event) => {
@@ -657,10 +708,21 @@ export function createInteractionController({
     ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.leftPanelHidden));
     ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!state.rightPanelHidden));
     ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
-    ui.newDocumentButton.addEventListener("click", () => documentController.loadDocument(emptySvg, { preserveEditorState: false }));
+    ui.newDocumentButton.addEventListener("click", () => documentController.loadDocument(emptySvg, {
+      fileHandle: null,
+      fileName: "",
+      preserveEditorState: false
+    }));
     ui.applySourceButton.addEventListener("click", () => {
       try {
         documentController.loadDocument(ui.sourceEditor.value, { preserveEditorState: true });
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+    ui.saveButton.addEventListener("click", async () => {
+      try {
+        await documentController.saveToSourceFile();
       } catch (error) {
         alert(error.message);
       }
@@ -673,6 +735,8 @@ export function createInteractionController({
       }
       try {
         documentController.loadDocument(await file.text(), {
+          fileHandle: null,
+          fileName: file.name,
           fitScale: 0.7,
           preserveEditorState: false
         });
@@ -800,6 +864,14 @@ export function createInteractionController({
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         historyController.restoreHistory(event.shiftKey ? state.historyIndex + 1 : state.historyIndex - 1);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        documentController.saveToSourceFile().catch((error) => {
+          alert(error.message);
+        });
+        return;
       }
       const editable = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
       if ((event.key === "Delete" || event.key === "Backspace") && !editable) {

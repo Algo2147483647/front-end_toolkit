@@ -7,6 +7,32 @@ export function createDocumentController({
   selectionController,
   historyController
 }) {
+  function setCurrentFileBinding(fileHandle = null, fileName = "") {
+    state.currentFileHandle = fileHandle || null;
+    state.currentFileName = fileName || fileHandle?.name || "";
+    renderer.syncChrome();
+  }
+
+  async function ensureWritableFilePermission(fileHandle) {
+    if (!fileHandle) {
+      return false;
+    }
+
+    if (typeof fileHandle.queryPermission === "function") {
+      const permission = await fileHandle.queryPermission({ mode: "readwrite" });
+      if (permission === "granted") {
+        return true;
+      }
+    }
+
+    if (typeof fileHandle.requestPermission === "function") {
+      const permission = await fileHandle.requestPermission({ mode: "readwrite" });
+      return permission === "granted";
+    }
+
+    return true;
+  }
+
   function ensureDocument() {
     if (!state.svgRoot) {
       loadDocument(emptySvg);
@@ -355,12 +381,39 @@ export function createDocumentController({
     URL.revokeObjectURL(url);
   }
 
+  async function saveToSourceFile() {
+    const fileHandle = state.currentFileHandle;
+    if (!fileHandle || typeof fileHandle.createWritable !== "function") {
+      throw new Error("Overwrite save is unavailable for this document. Re-import the SVG with file access first.");
+    }
+
+    const targetName = state.currentFileName || fileHandle.name || "current SVG";
+    const shouldOverwrite = globalThis.confirm?.(`Overwrite "${targetName}"?`) ?? false;
+    if (!shouldOverwrite) {
+      return false;
+    }
+
+    const granted = await ensureWritableFilePermission(fileHandle);
+    if (!granted) {
+      throw new Error("Write permission was not granted for the source SVG file.");
+    }
+
+    const writable = await fileHandle.createWritable();
+    await writable.write(model.serialize());
+    await writable.close();
+    ui.statusPill.textContent = `Saved: ${targetName}`;
+    renderer.syncChrome();
+    return true;
+  }
+
   function loadDocument(source, options = {}) {
     const {
       fitScale = null,
       pushHistory = true,
       preserveEditorState = false
     } = options;
+    const hasFileBindingOverride = Object.prototype.hasOwnProperty.call(options, "fileHandle")
+      || Object.prototype.hasOwnProperty.call(options, "fileName");
 
     const preservedEditorState = preserveEditorState ? selectionController.snapshotEditorState() : null;
     const root = model.parseSvg(source);
@@ -378,6 +431,9 @@ export function createDocumentController({
       selectionController.restoreEditorState(preservedEditorState);
     } else {
       selectionController.resetEditorState();
+    }
+    if (hasFileBindingOverride) {
+      setCurrentFileBinding(options.fileHandle ?? null, options.fileName ?? "");
     }
     model.syncEditorMetadata();
     selectionController.resolveLiveSelection(root.dataset.editorId);
@@ -410,6 +466,7 @@ export function createDocumentController({
     insertElement,
     insertImageFile,
     loadDocument,
+    saveToSourceFile,
     sendSelectionToBack,
     toggleNodeVisibility,
     updateField,

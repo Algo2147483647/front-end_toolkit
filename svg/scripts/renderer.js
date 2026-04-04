@@ -82,6 +82,16 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.gridSnapButton.setAttribute("aria-pressed", String(state.gridSnapEnabled));
     ui.gridSnapButton.title = state.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
 
+    const canOverwriteSave = Boolean(
+      state.currentFileHandle && typeof state.currentFileHandle.createWritable === "function"
+    );
+    ui.saveButton.disabled = !canOverwriteSave;
+    ui.saveButton.title = canOverwriteSave
+      ? `Save and overwrite ${state.currentFileName || "current SVG"}`
+      : state.currentFileName
+        ? `Overwrite save unavailable for ${state.currentFileName}. Re-import with file access.`
+        : "Import an SVG file with file access to enable overwrite save.";
+
     ui.gridSnapSizeInput.value = String(state.gridSnapSize);
     ui.gridSnapSizeSelect.value = "";
     ui.gridSnapSizeGroup.title = `Grid size: ${state.gridSnapSize}px`;
