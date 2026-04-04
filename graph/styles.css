@@ -123,15 +123,83 @@ body::before {
   justify-content: flex-end;
   gap: 12px;
   min-height: 36px;
+  flex-wrap: wrap;
 }
 
 .graph-summary {
   margin: 0;
-  max-width: 520px;
+  max-width: 460px;
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.55;
   text-align: right;
+}
+
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.zoom-btn {
+  min-width: 34px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.zoom-fit-btn {
+  min-width: 48px;
+}
+
+.zoom-pill {
+  margin: 0;
+  min-width: 58px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(243, 246, 250, 0.62);
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.06);
+}
+
+.zoom-input-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.zoom-value-input {
+  width: 38px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--text-strong);
+  font: inherit;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.zoom-value-input::-webkit-outer-spin-button,
+.zoom-value-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.zoom-value-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.zoom-unit {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .workspace {
@@ -159,8 +227,8 @@ body::before {
 
 #main-content svg {
   display: block;
-  min-width: 100%;
-  min-height: 100%;
+  width: auto;
+  height: auto;
 }
 
 .empty-state {
@@ -513,6 +581,17 @@ body::before {
 
   .graph-summary {
     text-align: left;
+  }
+
+  .zoom-controls {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .zoom-btn,
+  .zoom-fit-btn,
+  .zoom-pill {
+    flex: 1 1 0;
   }
 
   .control-dock {

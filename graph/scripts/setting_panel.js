@@ -1,10 +1,31 @@
 const ExportSvg = window.ExportSvg;
+const ZoomGraphIn = window.ZoomGraphIn;
+const ZoomGraphOut = window.ZoomGraphOut;
+const FitGraphToViewport = window.FitGraphToViewport;
+const SetGraphZoomPercent = window.SetGraphZoomPercent;
 const controls = document.getElementById("floating-controls");
 const settingsButton = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
+const zoomValueInput = document.getElementById("zoom-value-input");
 
 document.getElementById("fileInput").addEventListener("change", handleFile);
 settingsButton.addEventListener("click", toggleSettingsPanel);
+document.getElementById("zoom-in-btn").addEventListener("click", ZoomGraphIn);
+document.getElementById("zoom-out-btn").addEventListener("click", ZoomGraphOut);
+document.getElementById("zoom-fit-btn").addEventListener("click", FitGraphToViewport);
+zoomValueInput.addEventListener("change", commitZoomValueInput);
+zoomValueInput.addEventListener("blur", commitZoomValueInput);
+zoomValueInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    commitZoomValueInput();
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    zoomValueInput.blur();
+  }
+});
 document.getElementById("export-btn").addEventListener("click", () => {
   const svgElement = document.querySelector("#main-content svg");
   if (svgElement) {
@@ -34,4 +55,8 @@ function toggleSettingsPanel() {
 function setSettingsPanelVisibility(isVisible) {
   settingsPanel.classList.toggle("settings-panel-visible", isVisible);
   settingsButton.setAttribute("aria-expanded", String(isVisible));
+}
+
+function commitZoomValueInput() {
+  SetGraphZoomPercent(zoomValueInput.value, true);
 }

@@ -3,7 +3,13 @@ const GRAPH_STATE = {
     normalizedDag: null,
     currentRoot: null,
     history: [],
+    stageData: null,
+    zoomScale: 1,
+    minZoomScale: 1,
+    maxZoomScale: 2,
 };
+
+const GRAPH_ZOOM_STEP = 0.1;
 
 const GRAPH_THEME = {
     stagePaddingX: 108,
@@ -51,6 +57,33 @@ window.ExportSvg = function ExportSvg(svg) {
     URL.revokeObjectURL(url);
 };
 
+window.ZoomGraphIn = function ZoomGraphIn() {
+    SetGraphZoom(GRAPH_STATE.zoomScale + GRAPH_ZOOM_STEP, true);
+};
+
+window.ZoomGraphOut = function ZoomGraphOut() {
+    SetGraphZoom(GRAPH_STATE.zoomScale - GRAPH_ZOOM_STEP, true);
+};
+
+window.FitGraphToViewport = function FitGraphToViewport() {
+    SetGraphZoom(GRAPH_STATE.minZoomScale, false);
+};
+
+window.SetGraphZoomPercent = function SetGraphZoomPercent(percent, preserveCenter = true) {
+    const parsedPercent = Number(percent);
+    if (!Number.isFinite(parsedPercent) || parsedPercent <= 0) {
+        UpdateZoomControls();
+        return false;
+    }
+
+    SetGraphZoom(parsedPercent / 100, preserveCenter);
+    return true;
+};
+
+window.addEventListener("resize", () => {
+    RefreshGraphZoom(true);
+});
+
 function RenderSvgFromDag(rootKey, pushHistory = true) {
     if (!GRAPH_STATE.normalizedDag) {
         return;
@@ -64,6 +97,7 @@ function RenderSvgFromDag(rootKey, pushHistory = true) {
     GRAPH_STATE.currentRoot = root;
 
     const stageData = BuildStageData(dag, reachable, root);
+    GRAPH_STATE.stageData = stageData;
     MountGraph(stageData);
     UpdateChrome(stageData);
 }
@@ -466,8 +500,7 @@ function MountGraph(stageData) {
     svg.appendChild(nodeLayer);
     container.appendChild(svg);
 
-    container.scrollLeft = 0;
-    container.scrollTop = Math.max((stageData.stageHeight - container.clientHeight) / 2, 0);
+    RefreshGraphZoom(false);
 }
 
 function BuildDefs() {
@@ -768,6 +801,128 @@ function UpdateChrome(stageData) {
     summary.textContent = `Focused on ${focusLabel}. ${nodeCount} nodes and ${edgeCount} links are visible in this branch map.`;
     backButton.disabled = GRAPH_STATE.history.length === 0;
     emptyMessage.textContent = "Import a JSON file to render a focused DAG view with drill-down navigation.";
+    UpdateZoomControls();
+}
+
+function RefreshGraphZoom(preserveCenter = false) {
+    const container = document.getElementById("main-content");
+    const svg = container ? container.querySelector("svg") : null;
+    const stageData = GRAPH_STATE.stageData;
+
+    if (!container || !svg || !stageData) {
+        UpdateZoomControls();
+        return;
+    }
+
+    const previousMinZoomScale = GRAPH_STATE.minZoomScale;
+    const fitScale = GetFitZoomScale(container, stageData);
+    GRAPH_STATE.minZoomScale = fitScale;
+    if (Math.abs(GRAPH_STATE.zoomScale - previousMinZoomScale) < 0.001) {
+        GRAPH_STATE.zoomScale = fitScale;
+    } else {
+        GRAPH_STATE.zoomScale = Clamp(GRAPH_STATE.zoomScale, GRAPH_STATE.minZoomScale, GRAPH_STATE.maxZoomScale);
+    }
+
+    ApplyGraphZoom(container, svg, stageData, GRAPH_STATE.zoomScale, preserveCenter);
+    UpdateZoomControls();
+}
+
+function SetGraphZoom(nextScale, preserveCenter) {
+    const container = document.getElementById("main-content");
+    const svg = container ? container.querySelector("svg") : null;
+    const stageData = GRAPH_STATE.stageData;
+
+    if (!container || !svg || !stageData) {
+        return;
+    }
+
+    GRAPH_STATE.zoomScale = Clamp(nextScale, GRAPH_STATE.minZoomScale, GRAPH_STATE.maxZoomScale);
+    ApplyGraphZoom(container, svg, stageData, GRAPH_STATE.zoomScale, preserveCenter);
+    UpdateZoomControls();
+}
+
+function GetFitZoomScale(container, stageData) {
+    const viewportMetrics = GetViewportMetrics(container);
+    const availableWidth = Math.max(viewportMetrics.availableWidth, 1);
+    const availableHeight = Math.max(viewportMetrics.availableHeight, 1);
+    const fitScale = Math.min(availableWidth / stageData.stageWidth, availableHeight / stageData.stageHeight, 1);
+
+    return Math.max(fitScale, 0.05);
+}
+
+function ApplyGraphZoom(container, svg, stageData, scale, preserveCenter) {
+    const previousScale = Number(svg.dataset.zoomScale || 1);
+    const previousMarginLeft = Number(svg.dataset.marginLeft || 0);
+    const previousMarginTop = Number(svg.dataset.marginTop || 0);
+    const viewportMetrics = GetViewportMetrics(container);
+    const scaledWidth = stageData.stageWidth * scale;
+    const scaledHeight = stageData.stageHeight * scale;
+    const marginLeft = Math.max((viewportMetrics.availableWidth - scaledWidth) / 2, 0);
+    const marginTop = viewportMetrics.safeTop + Math.max((viewportMetrics.availableHeight - scaledHeight) / 2, 0);
+    const centerX = preserveCenter
+        ? (container.scrollLeft + container.clientWidth / 2 - previousMarginLeft) / previousScale
+        : stageData.stageWidth / 2;
+    const centerY = preserveCenter
+        ? (container.scrollTop + container.clientHeight / 2 - previousMarginTop) / previousScale
+        : stageData.stageHeight / 2;
+
+    svg.style.width = `${scaledWidth}px`;
+    svg.style.height = `${scaledHeight}px`;
+    svg.style.marginLeft = `${marginLeft}px`;
+    svg.style.marginTop = `${marginTop}px`;
+    svg.dataset.zoomScale = String(scale);
+    svg.dataset.marginLeft = String(marginLeft);
+    svg.dataset.marginTop = String(marginTop);
+
+    if (preserveCenter) {
+        container.scrollLeft = Math.max(centerX * scale + marginLeft - container.clientWidth / 2, 0);
+        container.scrollTop = Math.max(centerY * scale + marginTop - container.clientHeight / 2, 0);
+        return;
+    }
+
+    container.scrollLeft = Math.max(centerX * scale + marginLeft - container.clientWidth / 2, 0);
+    container.scrollTop = Math.max(centerY * scale + marginTop - container.clientHeight / 2, 0);
+}
+
+function GetViewportMetrics(container) {
+    const containerRect = container.getBoundingClientRect();
+    const topbar = document.querySelector(".topbar");
+    const topbarRect = topbar ? topbar.getBoundingClientRect() : null;
+    const safeTop = topbarRect ? Math.max(topbarRect.bottom - containerRect.top + 12, 0) : 0;
+    const horizontalInset = 24;
+    const bottomInset = 16;
+
+    return {
+        safeTop,
+        availableWidth: container.clientWidth - horizontalInset * 2,
+        availableHeight: container.clientHeight - safeTop - bottomInset,
+    };
+}
+
+function UpdateZoomControls() {
+    const zoomValueInput = document.getElementById("zoom-value-input");
+    const zoomInButton = document.getElementById("zoom-in-btn");
+    const zoomOutButton = document.getElementById("zoom-out-btn");
+    const zoomFitButton = document.getElementById("zoom-fit-btn");
+    const hasGraph = Boolean(GRAPH_STATE.stageData);
+    const roundedPercent = Math.round(GRAPH_STATE.zoomScale * 100);
+
+    if (zoomValueInput) {
+        zoomValueInput.value = String(roundedPercent);
+        zoomValueInput.disabled = !hasGraph;
+    }
+
+    if (zoomInButton) {
+        zoomInButton.disabled = !hasGraph || GRAPH_STATE.zoomScale >= GRAPH_STATE.maxZoomScale - 0.001;
+    }
+
+    if (zoomOutButton) {
+        zoomOutButton.disabled = !hasGraph || GRAPH_STATE.zoomScale <= GRAPH_STATE.minZoomScale + 0.001;
+    }
+
+    if (zoomFitButton) {
+        zoomFitButton.disabled = !hasGraph || Math.abs(GRAPH_STATE.zoomScale - GRAPH_STATE.minZoomScale) < 0.001;
+    }
 }
 
 function GetDisplayLabel(nodeKey, node) {

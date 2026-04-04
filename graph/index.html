@@ -17,6 +17,15 @@
       </div>
       <div class="topbar-actions">
         <button id="back-btn" class="ghost-btn" type="button" disabled>Back</button>
+        <div class="zoom-controls" aria-label="Graph zoom controls">
+          <button id="zoom-out-btn" class="ghost-btn zoom-btn" type="button" disabled aria-label="Zoom out">-</button>
+          <button id="zoom-fit-btn" class="ghost-btn zoom-fit-btn" type="button" disabled>Fit</button>
+          <label class="zoom-pill zoom-input-pill" for="zoom-value-input">
+            <input id="zoom-value-input" class="zoom-value-input" type="number" min="5" max="200" step="1" value="100" disabled aria-label="Zoom percentage">
+            <span class="zoom-unit">%</span>
+          </label>
+          <button id="zoom-in-btn" class="ghost-btn zoom-btn" type="button" disabled aria-label="Zoom in">+</button>
+        </div>
         <p id="graph-summary" class="graph-summary">Load a DAG JSON file to begin.</p>
         <div id="floating-controls" class="control-dock">
           <button id="settings-btn" class="settings-toggle-btn" type="button" aria-expanded="false" aria-controls="settings-panel">
