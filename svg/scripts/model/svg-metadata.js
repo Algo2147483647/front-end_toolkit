@@ -96,10 +96,50 @@ export function createSvgMetadataTools(state) {
     return node?.getAttribute("display") === "none";
   }
 
+  function getZOrder(node) {
+    if (!node || node === state.svgRoot || !node.parentElement) {
+      return "";
+    }
+
+    const siblings = getRenderableChildren(node.parentElement);
+    const index = siblings.indexOf(node);
+    return index >= 0 ? String(index) : "";
+  }
+
+  function setZOrder(node, requestedOrder) {
+    if (!node || node === state.svgRoot || !node.parentElement) {
+      return false;
+    }
+
+    const parent = node.parentElement;
+    const siblings = getRenderableChildren(parent);
+    const currentIndex = siblings.indexOf(node);
+    if (currentIndex < 0) {
+      return false;
+    }
+
+    const parsed = Number.parseInt(String(requestedOrder).trim(), 10);
+    if (!Number.isFinite(parsed)) {
+      return false;
+    }
+
+    const targetIndex = Math.max(0, Math.min(siblings.length - 1, parsed));
+    if (targetIndex === currentIndex) {
+      return false;
+    }
+
+    const reordered = siblings.filter((sibling) => sibling !== node);
+    reordered.splice(targetIndex, 0, node);
+    const anchor = reordered[targetIndex + 1] || null;
+    parent.insertBefore(node, anchor);
+    return true;
+  }
+
   function visibleField(node, field) {
     const tag = node.tagName.toLowerCase();
     if (field.kind === "readonly") return true;
     if (field.kind === "text") return ["text", "tspan"].includes(tag);
+    if (field.kind === "z-order") return node !== state.svgRoot && Boolean(node.parentElement);
     if (field.kind === "typography-controls") return ["text", "tspan"].includes(tag);
     if (field.kind === "polygon-sides") return tag === "polygon";
     if (field.kind === "polyline-points") return tag === "polyline";
@@ -122,10 +162,12 @@ export function createSvgMetadataTools(state) {
     getNodeKey,
     getNodeKeyByEditorId,
     getRenderableChildren,
+    getZOrder,
     isNodeHidden,
     isNodeLocked,
     labelFor,
     rebuildNodeMap,
+    setZOrder,
     syncEditorMetadata,
     visibleField
   };

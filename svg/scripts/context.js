@@ -87,6 +87,9 @@ export const ui = {
   workspaceSurface: $("#workspaceSurface"),
   workspaceContent: $("#workspaceContent"),
   dropOverlay: $("#dropOverlay"),
+  contextMenu: $("#contextMenu"),
+  bringToFrontButton: $("#bringToFrontButton"),
+  sendToBackButton: $("#sendToBackButton"),
   sourcePane: $("#sourcePane"),
   sourceEditor: $("#sourceEditor"),
   propertyForm: $("#propertyForm"),
@@ -117,6 +120,12 @@ export const state = {
   restoring: false,
   drag: null,
   selectionBox: null,
+  contextMenu: {
+    editorId: null,
+    visible: false,
+    x: 0,
+    y: 0
+  },
   suppressNextSvgClick: false,
   dropDepth: 0,
   warnings: [],

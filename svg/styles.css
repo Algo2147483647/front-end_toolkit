@@ -954,6 +954,47 @@ textarea {
   display: none;
 }
 
+.context-menu {
+  position: absolute;
+  z-index: 60;
+  min-width: 180px;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(86, 67, 48, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 36px rgba(36, 24, 15, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.context-menu.hidden {
+  display: none;
+}
+
+.context-menu-item {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.context-menu-item:hover,
+.context-menu-item:focus-visible {
+  background: rgba(208, 90, 47, 0.1);
+  outline: none;
+}
+
+.context-menu-item:disabled {
+  color: rgba(36, 24, 15, 0.45);
+  cursor: default;
+}
+
 .property-form {
   display: grid;
   gap: 10px;

@@ -53,6 +53,28 @@ export function createSelectionController({ state, model, renderer }) {
     }
   }
 
+  function remapMetadataKeys(keyMap) {
+    if (!(keyMap instanceof Map) || !keyMap.size) {
+      return;
+    }
+
+    const remapSet = (currentSet) => {
+      const nextSet = new Set();
+      currentSet.forEach((key) => {
+        nextSet.add(keyMap.get(key) || key);
+      });
+      return nextSet;
+    };
+
+    if (state.selectedNodeKey) {
+      state.selectedNodeKey = keyMap.get(state.selectedNodeKey) || state.selectedNodeKey;
+    }
+
+    state.selectedNodeKeys = remapSet(state.selectedNodeKeys);
+    state.collapsedNodeKeys = remapSet(state.collapsedNodeKeys);
+    state.lockedNodeKeys = remapSet(state.lockedNodeKeys);
+  }
+
   function setSelection(editorIds, options = {}) {
     const { primaryId = null, render = true } = options;
     const validIds = [...new Set(editorIds.filter((editorId) => state.nodeMap.has(editorId)))];
@@ -168,6 +190,7 @@ export function createSelectionController({ state, model, renderer }) {
     getSelectionTargets,
     refreshSelectionState,
     remapMetadataKey,
+    remapMetadataKeys,
     resetEditorState,
     resolveLiveSelection,
     restoreEditorState,

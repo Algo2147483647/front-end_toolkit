@@ -114,6 +114,39 @@ export function createInteractionController({
     ui.dropOverlay.classList.add("hidden");
   }
 
+  function hideContextMenu() {
+    state.contextMenu.visible = false;
+    state.contextMenu.editorId = null;
+    ui.contextMenu.classList.add("hidden");
+  }
+
+  function showContextMenu(editorId, clientX, clientY) {
+    const menuHost = ui.contextMenu.offsetParent || ui.contextMenu.parentElement || document.body;
+    const hostRect = menuHost.getBoundingClientRect();
+    const menuWidth = ui.contextMenu.offsetWidth || 180;
+    const menuHeight = ui.contextMenu.offsetHeight || 100;
+    const padding = 12;
+    const maxLeft = Math.max(padding, hostRect.width - menuWidth - padding);
+    const maxTop = Math.max(padding, hostRect.height - menuHeight - padding);
+    const left = Math.max(padding, Math.min(clientX - hostRect.left, maxLeft));
+    const top = Math.max(padding, Math.min(clientY - hostRect.top, maxTop));
+
+    state.contextMenu = {
+      editorId,
+      visible: true,
+      x: left,
+      y: top
+    };
+
+    ui.contextMenu.style.left = `${left}px`;
+    ui.contextMenu.style.top = `${top}px`;
+    ui.contextMenu.classList.remove("hidden");
+
+    const hasTargets = selectionController.getSelectionTargets().some((node) => !model.isNodeLocked(node));
+    ui.bringToFrontButton.disabled = !hasTargets;
+    ui.sendToBackButton.disabled = !hasTargets;
+  }
+
   function normalizeBox(startPoint, endPoint) {
     const x = Math.min(startPoint.x, endPoint.x);
     const y = Math.min(startPoint.y, endPoint.y);
@@ -266,6 +299,7 @@ export function createInteractionController({
   }
 
   function beginSelectionBox(event, source = "surface") {
+    hideContextMenu();
     const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
     state.drag = {
       currentPoint: point,
@@ -476,6 +510,7 @@ export function createInteractionController({
   }
 
   function onSvgClick(event) {
+    hideContextMenu();
     if (state.suppressNextSvgClick) {
       state.suppressNextSvgClick = false;
       return;
@@ -498,6 +533,7 @@ export function createInteractionController({
   }
 
   function onSvgPointerDown(event) {
+    hideContextMenu();
     const target = event.target.closest("[data-editor-id]");
     if (!target) {
       return;
@@ -549,6 +585,22 @@ export function createInteractionController({
       selectionController.selectNode(editorId);
     }
     beginPathBezierDrag(editorId, handle, event);
+  }
+
+  function onWorkspaceContextMenu(event) {
+    const target = event.target.closest("[data-editor-id]");
+    if (!target || target === state.svgRoot) {
+      hideContextMenu();
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (!state.selectedIds.has(target.dataset.editorId)) {
+      selectionController.selectNode(target.dataset.editorId);
+    }
+    showContextMenu(target.dataset.editorId, event.clientX, event.clientY);
   }
 
   function bindEvents() {
@@ -636,11 +688,16 @@ export function createInteractionController({
     ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
     ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
     ui.zoomResetButton.addEventListener("click", fitToView);
-    ui.workspaceSurface.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-    });
+    ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu);
     ui.workspaceSurface.addEventListener("pointerdown", (event) => {
+      const editorTarget = event.target.closest("[data-editor-id]");
+      if (event.button !== 2) {
+        hideContextMenu();
+      }
       if (event.button === 2) {
+        if (editorTarget && editorTarget !== state.svgRoot) {
+          return;
+        }
         event.preventDefault();
         beginCanvasDrag(event, "surface");
         return;
@@ -650,7 +707,7 @@ export function createInteractionController({
         return;
       }
 
-      if (event.target.closest("[data-editor-id]")) {
+      if (editorTarget) {
         return;
       }
 
@@ -682,6 +739,17 @@ export function createInteractionController({
         alert(error.message);
       }
     });
+    ui.contextMenu.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    ui.bringToFrontButton.addEventListener("click", () => {
+      documentController.bringSelectionToFront();
+      hideContextMenu();
+    });
+    ui.sendToBackButton.addEventListener("click", () => {
+      documentController.sendSelectionToBack();
+      hideContextMenu();
+    });
     window.addEventListener("pointermove", (event) => {
       moveDrag(event);
     });
@@ -692,10 +760,20 @@ export function createInteractionController({
       endDrag();
     });
     window.addEventListener("resize", () => {
+      hideContextMenu();
       renderer.applyZoom();
       renderer.refresh({ overlay: true });
     });
+    window.addEventListener("pointerdown", (event) => {
+      if (event.button === 0 && !event.target.closest("#contextMenu")) {
+        hideContextMenu();
+      }
+    });
     window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.contextMenu.visible) {
+        hideContextMenu();
+        return;
+      }
       if (event.key === "Escape" && state.sourceVisible) {
         setSourcePaneVisible(false);
         return;

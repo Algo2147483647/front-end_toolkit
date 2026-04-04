@@ -20,6 +20,8 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   function getFieldValue(node, field) {
     return field.kind === "readonly"
       ? field.value(node)
+      : field.kind === "z-order"
+        ? model.getZOrder(node)
       : field.kind === "text"
         ? (node.textContent ?? "")
         : (node.getAttribute(field.key) ?? "");
@@ -82,7 +84,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
     return [
       { title: "Quick Edit", open: true, fields: quick },
-      { title: "Geometry", open: false, fields: collect(["x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry"]) },
+      { title: "Geometry", open: false, fields: collect(["z-order", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry"]) },
       { title: "Typography", open: false, fields: collect(["font-family", "font-size", "font-weight", "font-style", "text-decoration", "letter-spacing", "text-anchor"]) },
       { title: "Appearance", open: false, fields: collect(["fill", "stroke", "stroke-width", "opacity"]) },
       { title: "Transform", open: false, fields: collect(["transform"]) },

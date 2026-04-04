@@ -96,6 +96,38 @@ export function createDocumentController({
       return;
     }
 
+    if (field.kind === "z-order") {
+      const previousKeys = new Map(
+        [...state.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
+      );
+      const changed = model.setZOrder(node, value);
+      if (!changed) {
+        return;
+      }
+
+      model.rebuildNodeMap();
+      const keyMap = new Map();
+      previousKeys.forEach((oldKey, currentNode) => {
+        const nextKey = model.getNodeKey(currentNode);
+        if (oldKey && nextKey && oldKey !== nextKey) {
+          keyMap.set(oldKey, nextKey);
+        }
+      });
+      selectionController.remapMetadataKeys(keyMap);
+      selectionController.selectNode(node.dataset.editorId, { render: false });
+      renderer.refresh({
+        workspace: true,
+        tree: true,
+        inspector: true,
+        source: true,
+        actions: true
+      });
+      if (record) {
+        historyController.recordHistory("field:z-order");
+      }
+      return;
+    }
+
     const nextValue = record && field.kind === "attr"
       ? model.snapFieldValue(field.key, value)
       : value;
@@ -118,6 +150,75 @@ export function createDocumentController({
     if (record) {
       historyController.recordHistory(`field:${field.key}`);
     }
+  }
+
+  function rebuildAfterStructureChange(reason, options = {}) {
+    const previousKeys = new Map(
+      [...state.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
+    );
+    model.rebuildNodeMap();
+    const keyMap = new Map();
+    previousKeys.forEach((oldKey, currentNode) => {
+      const nextKey = model.getNodeKey(currentNode);
+      if (oldKey && nextKey && oldKey !== nextKey) {
+        keyMap.set(oldKey, nextKey);
+      }
+    });
+    selectionController.remapMetadataKeys(keyMap);
+    selectionController.resolveLiveSelection();
+    renderer.refresh({
+      workspace: true,
+      tree: true,
+      inspector: true,
+      source: true,
+      actions: true
+    });
+    if (options.record !== false) {
+      historyController.recordHistory(reason);
+    }
+  }
+
+  function bringSelectionToFront() {
+    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    if (!nodes.length) {
+      return;
+    }
+
+    nodes.forEach((node) => {
+      node.parentElement?.append(node);
+    });
+    rebuildAfterStructureChange("z-order:front");
+  }
+
+  function sendSelectionToBack() {
+    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    if (!nodes.length) {
+      return;
+    }
+
+    const nodesByParent = new Map();
+    nodes.forEach((node) => {
+      const parent = node.parentElement;
+      if (!parent) {
+        return;
+      }
+      if (!nodesByParent.has(parent)) {
+        nodesByParent.set(parent, []);
+      }
+      nodesByParent.get(parent).push(node);
+    });
+
+    nodesByParent.forEach((siblings) => {
+      [...siblings].reverse().forEach((node) => {
+        const parent = node.parentElement;
+        if (!parent) {
+          return;
+        }
+        const anchor = [...parent.children].find((child) => child !== node && !siblings.includes(child)) || parent.firstElementChild;
+        parent.insertBefore(node, anchor);
+      });
+    });
+    rebuildAfterStructureChange("z-order:back");
   }
 
   function applyGeometryControl(editorId, reason, applyChange, options = {}) {
@@ -276,9 +377,11 @@ export function createDocumentController({
   return {
     deleteSelection,
     downloadSvg,
+    bringSelectionToFront,
     insertElement,
     insertImageFile,
     loadDocument,
+    sendSelectionToBack,
     toggleNodeVisibility,
     updateField,
     updatePathBezier,

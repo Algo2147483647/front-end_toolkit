@@ -66,6 +66,7 @@ export const FIELDS = [
     { key: "text-anchor", label: "text-anchor", kind: "attr", options: "text-anchor" }
   ]],
   ["Geometry", [
+    { key: "z-order", label: "z priority", kind: "z-order" },
     { key: "x", label: "x", kind: "attr" },
     { key: "y", label: "y", kind: "attr" },
     { key: "width", label: "width", kind: "attr" },
@@ -91,7 +92,7 @@ export const FIELDS = [
 ];
 
 export const FIELD_MAP = new Map(FIELDS.flatMap(([, fields]) => fields.map((field) => [field.key, field])));
-export const NUMERIC_FIELDS = new Set(["opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size", "letter-spacing"]);
+export const NUMERIC_FIELDS = new Set(["z-order", "opacity", "stroke-width", "x", "y", "width", "height", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "font-size", "letter-spacing"]);
 export const COLOR_FIELDS = new Set(["fill", "stroke"]);
 export const GRID_SCREEN_SIZE = 28;
 export const GRID_SNAP_SIZE_OPTIONS = [1, 2, 3, 4, 5, 7, 10, 12, 15, 16, 20, 24, 28, 40, 56];
