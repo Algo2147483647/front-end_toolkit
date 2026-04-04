@@ -73,15 +73,15 @@ body::before {
 
 .topbar {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 5;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 20px;
-  padding: 18px 22px;
+  padding: 12px 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.34));
   border: 1px solid var(--panel-border);
   border-radius: 20px;
@@ -122,7 +122,7 @@ body::before {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  min-height: 44px;
+  min-height: 36px;
 }
 
 .graph-summary {
@@ -422,20 +422,16 @@ body::before {
 
 .graph-node__title {
   fill: var(--text-strong);
-  font-family: "Cormorant Garamond", "Georgia", serif;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: "Georgia", serif;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .graph-node__detail {
   fill: rgba(67, 79, 100, 0.88);
-  font-size: 10.8px;
-}
-
-.graph-node__meta {
-  fill: var(--text-muted);
-  font-size: 9.8px;
+  font-size: 10px;
 }
 
 .graph-node__affordance {
@@ -453,7 +449,7 @@ body::before {
 
 .graph-node__affordance-text {
   fill: rgba(46, 82, 152, 0.76);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
 }
 
@@ -503,9 +499,9 @@ body::before {
 
 @media (max-width: 900px) {
   .topbar {
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
     flex-direction: column;
     align-items: stretch;
   }

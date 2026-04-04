@@ -9,8 +9,8 @@ const GRAPH_THEME = {
     stagePaddingX: 108,
     stagePaddingY: 88,
     columnGap: 116,
-    rowGap: 26,
-    nodeHeight: 84,
+    rowGap: 22,
+    nodeHeight: 74,
     minNodeWidth: 188,
     maxNodeWidth: 280,
 };
@@ -217,7 +217,6 @@ function BuildStageData(dag, reachable, root) {
             order,
             title: visual.title,
             detail: visual.detail,
-            meta: visual.meta,
             width: visual.width,
             height: GRAPH_THEME.nodeHeight,
             isRoot: nodeKey === root,
@@ -368,63 +367,25 @@ function GetNodeVisual(nodeKey, node, root) {
         return {
             title: "All roots",
             detail: "Combined entry point for every detected root branch.",
-            meta: `${CountKids(node)} root branches`,
             width: 232,
         };
     }
 
     const title = SanitizeNodeLabel(node.label || node.title || node.name || nodeKey);
-    const parentCount = CountParents(node);
-    const kidCount = CountKids(node);
-    const relationLabel = GetPrimaryRelationLabel(node);
     const detail = GetNodeDetail(node, title);
-    const meta = BuildNodeMeta(parentCount, kidCount, relationLabel);
-    const longestLine = Math.max(title.length, detail.length * 0.72, meta.length * 0.82);
+    const longestLine = Math.max(title.length, detail.length * 0.76);
     const width = Clamp(132 + longestLine * 6.1, GRAPH_THEME.minNodeWidth, GRAPH_THEME.maxNodeWidth);
 
     return {
         title: title || nodeKey,
         detail,
-        meta,
         width,
     };
-}
-
-function CountParents(node) {
-    const parents = node.parents || [];
-    return Array.isArray(parents) ? parents.length : Object.keys(parents).length;
 }
 
 function CountKids(node) {
     const kids = node.kids || [];
     return Array.isArray(kids) ? kids.length : Object.keys(kids).length;
-}
-
-function GetPrimaryRelationLabel(node) {
-    const relations = [
-        ...ExtractRelationValues(node.parents),
-        ...ExtractRelationValues(node.kids),
-    ];
-    const relation = relations.find(Boolean);
-
-    return relation ? relation.replace(/\s+/g, " ").trim() : "";
-}
-
-function ExtractRelationValues(relations) {
-    if (!relations || Array.isArray(relations)) {
-        return [];
-    }
-
-    return Object.values(relations)
-        .map(value => String(value || "").trim())
-        .filter(Boolean);
-}
-
-function BuildNodeMeta(parentCount, kidCount, relationLabel) {
-    const parentLabel = parentCount === 1 ? "parent" : "parents";
-    const kidLabel = kidCount === 1 ? "child" : "children";
-    const relationPart = relationLabel || "linked";
-    return relationPart + " / " + parentCount + " " + parentLabel + " / " + kidCount + " " + kidLabel;
 }
 
 function GetNodeDetail(node, fallbackTitle) {
@@ -666,8 +627,8 @@ function BuildNode(nodeData) {
     shape.setAttribute("class", "graph-node__shape");
     shape.setAttribute("width", String(nodeData.width));
     shape.setAttribute("height", String(nodeData.height));
-    shape.setAttribute("rx", "28");
-    shape.setAttribute("ry", "28");
+    shape.setAttribute("rx", "24");
+    shape.setAttribute("ry", "24");
 
     const pin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     pin.setAttribute("class", "graph-node__pin");
@@ -684,37 +645,31 @@ function BuildNode(nodeData) {
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.setAttribute("class", "graph-node__title");
     title.setAttribute("x", "48");
-    title.setAttribute("y", "31");
+    title.setAttribute("y", "29");
     title.textContent = Truncate(nodeData.title, 24);
 
     const detail = document.createElementNS("http://www.w3.org/2000/svg", "text");
     detail.setAttribute("class", "graph-node__detail");
     detail.setAttribute("x", "48");
-    detail.setAttribute("y", "47");
+    detail.setAttribute("y", "43");
     detail.textContent = Truncate(nodeData.detail, 34);
-
-    const meta = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    meta.setAttribute("class", "graph-node__meta");
-    meta.setAttribute("x", "48");
-    meta.setAttribute("y", "61");
-    meta.textContent = Truncate(nodeData.meta, 36);
 
     const affordance = document.createElementNS("http://www.w3.org/2000/svg", "g");
     affordance.setAttribute("class", "graph-node__affordance");
 
     const affordanceBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     affordanceBg.setAttribute("class", "graph-node__affordance-bg");
-    affordanceBg.setAttribute("x", String(nodeData.width - 96));
-    affordanceBg.setAttribute("y", String(nodeData.height - 24));
-    affordanceBg.setAttribute("width", "80");
-    affordanceBg.setAttribute("height", "16");
-    affordanceBg.setAttribute("rx", "8");
-    affordanceBg.setAttribute("ry", "8");
+    affordanceBg.setAttribute("x", String(nodeData.width - 90));
+    affordanceBg.setAttribute("y", String(nodeData.height - 21));
+    affordanceBg.setAttribute("width", "74");
+    affordanceBg.setAttribute("height", "14");
+    affordanceBg.setAttribute("rx", "7");
+    affordanceBg.setAttribute("ry", "7");
 
     const affordanceText = document.createElementNS("http://www.w3.org/2000/svg", "text");
     affordanceText.setAttribute("class", "graph-node__affordance-text");
-    affordanceText.setAttribute("x", String(nodeData.width - 56));
-    affordanceText.setAttribute("y", String(nodeData.height - 12));
+    affordanceText.setAttribute("x", String(nodeData.width - 53));
+    affordanceText.setAttribute("y", String(nodeData.height - 10));
     affordanceText.setAttribute("text-anchor", "middle");
     affordanceText.textContent = nodeData.isRoot ? "Focused" : "Refocus";
 
@@ -727,7 +682,6 @@ function BuildNode(nodeData) {
     group.appendChild(pinCore);
     group.appendChild(title);
     group.appendChild(detail);
-    group.appendChild(meta);
     group.appendChild(affordance);
 
     group.addEventListener("mouseenter", () => ApplyHoverState(nodeData.key));
