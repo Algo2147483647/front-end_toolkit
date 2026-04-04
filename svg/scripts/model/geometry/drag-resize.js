@@ -71,14 +71,20 @@ export function createSvgDragResizeTools({
     const centerY = box.y + (box.height / 2);
     const radiusX = Math.max(box.width / 2, 1);
     const radiusY = Math.max(box.height / 2, 1);
-
-    return Array.from({ length: sides }, (_, index) => {
+    const rawPoints = Array.from({ length: sides }, (_, index) => {
       const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / sides);
       return {
         x: centerX + (Math.cos(angle) * radiusX),
         y: centerY + (Math.sin(angle) * radiusY)
       };
     });
+    const rawBounds = getPointBounds(rawPoints);
+
+    if (!rawBounds) {
+      return rawPoints;
+    }
+
+    return scalePointsToBox(rawPoints, rawBounds, box);
   }
 
   function resamplePolylinePoints(points, count) {
