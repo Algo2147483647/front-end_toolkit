@@ -297,6 +297,80 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     return `M ${roundCoordinate(bezier.start.x)} ${roundCoordinate(bezier.start.y)} C ${roundCoordinate(bezier.control1.x)} ${roundCoordinate(bezier.control1.y)}, ${roundCoordinate(bezier.control2.x)} ${roundCoordinate(bezier.control2.y)}, ${roundCoordinate(bezier.end.x)} ${roundCoordinate(bezier.end.y)}`;
   }
 
+  function projectPointToRoot(node, point) {
+    const svgPoint = state.svgRoot?.createSVGPoint?.();
+    const matrix = node?.getCTM?.();
+    if (!svgPoint || !matrix) {
+      return {
+        x: point.x,
+        y: point.y
+      };
+    }
+
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
+    return svgPoint.matrixTransform(matrix);
+  }
+
+  function createResizeBox(anchor, point) {
+    return {
+      x: Math.min(anchor.x, point.x),
+      y: Math.min(anchor.y, point.y),
+      width: Math.max(Math.abs(point.x - anchor.x), 1),
+      height: Math.max(Math.abs(point.y - anchor.y), 1)
+    };
+  }
+
+  function createUniformResizeBox(anchor, point) {
+    const dx = point.x - anchor.x;
+    const dy = point.y - anchor.y;
+    const size = Math.max(1, Math.min(Math.abs(dx), Math.abs(dy)));
+    const signX = dx >= 0 ? 1 : -1;
+    const signY = dy >= 0 ? 1 : -1;
+
+    return {
+      x: signX < 0 ? anchor.x - size : anchor.x,
+      y: signY < 0 ? anchor.y - size : anchor.y,
+      width: size,
+      height: size
+    };
+  }
+
+  function mapValueBetweenBoxes(value, sourceStart, sourceSize, targetStart, targetSize) {
+    const safeSourceSize = Math.abs(sourceSize) > 0.001 ? sourceSize : 1;
+    const ratio = (value - sourceStart) / safeSourceSize;
+    return targetStart + (ratio * targetSize);
+  }
+
+  function scalePointsToBox(points, sourceBox, targetBox) {
+    return points.map((point) => ({
+      x: mapValueBetweenBoxes(point.x, sourceBox.x, sourceBox.width, targetBox.x, targetBox.width),
+      y: mapValueBetweenBoxes(point.y, sourceBox.y, sourceBox.height, targetBox.y, targetBox.height)
+    }));
+  }
+
+  function bezierToPoints(bezier) {
+    return [
+      { x: bezier.start.x, y: bezier.start.y },
+      { x: bezier.control1.x, y: bezier.control1.y },
+      { x: bezier.control2.x, y: bezier.control2.y },
+      { x: bezier.end.x, y: bezier.end.y }
+    ];
+  }
+
+  function pointsToBezier(points) {
+    if (points.length !== 4) {
+      return null;
+    }
+
+    return {
+      start: { x: points[0].x, y: points[0].y },
+      control1: { x: points[1].x, y: points[1].y },
+      control2: { x: points[2].x, y: points[2].y },
+      end: { x: points[3].x, y: points[3].y }
+    };
+  }
+
   function createElementNode(kind) {
     const box = getViewBoxRect();
     const centerX = box.x + box.width / 2;
@@ -663,6 +737,7 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       };
     }
 
+    const tag = node.tagName.toLowerCase();
     const box = normalizeRect(node.getBBox());
     if (!box || box.width < 1 || box.height < 1) {
       return null;
@@ -685,9 +760,68 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       return null;
     }
 
+    if (tag === "rect") {
+      return {
+        anchor: corners[anchorHandle],
+        box,
+        handle,
+        mode: "rect",
+        rx: getNumericAttr(node, "rx"),
+        ry: getNumericAttr(node, "ry"),
+        startHandle: corners[handle]
+      };
+    }
+
+    if (tag === "circle") {
+      return {
+        anchor: corners[anchorHandle],
+        box,
+        handle,
+        mode: "circle",
+        startHandle: corners[handle]
+      };
+    }
+
+    if (tag === "ellipse") {
+      return {
+        anchor: corners[anchorHandle],
+        box,
+        handle,
+        mode: "ellipse",
+        startHandle: corners[handle]
+      };
+    }
+
+    if (tag === "polyline" || tag === "polygon") {
+      const points = parsePointList(node.getAttribute("points"));
+      return {
+        anchor: corners[anchorHandle],
+        box,
+        handle,
+        mode: tag,
+        points,
+        startHandle: corners[handle]
+      };
+    }
+
+    if (tag === "path") {
+      const bezier = parseSimpleCubicBezier(node);
+      if (!bezier) {
+        return null;
+      }
+
+      return {
+        anchor: corners[anchorHandle],
+        bezier,
+        box,
+        handle,
+        mode: "path-bezier-resize",
+        startHandle: corners[handle]
+      };
+    }
+
     return {
       anchor: corners[anchorHandle],
-      baseMatrix: normalizeMatrix(node.transform?.baseVal?.consolidate()?.matrix),
       box,
       handle,
       startHandle: corners[handle]
@@ -754,33 +888,55 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       return;
     }
 
-    const startVectorX = descriptor.startHandle.x - descriptor.anchor.x;
-    const startVectorY = descriptor.startHandle.y - descriptor.anchor.y;
-    const currentVectorX = snappedPoint.x - descriptor.anchor.x;
-    const currentVectorY = snappedPoint.y - descriptor.anchor.y;
-
-    let scaleX = Math.abs(startVectorX) > 0.001 ? currentVectorX / startVectorX : 1;
-    let scaleY = Math.abs(startVectorY) > 0.001 ? currentVectorY / startVectorY : 1;
-
-    if (!Number.isFinite(scaleX) || scaleX <= 0) {
-      scaleX = 0.05;
+    if (descriptor.mode === "rect") {
+      const nextBox = createResizeBox(descriptor.anchor, snappedPoint);
+      node.setAttribute("x", String(roundCoordinate(nextBox.x)));
+      node.setAttribute("y", String(roundCoordinate(nextBox.y)));
+      node.setAttribute("width", String(roundCoordinate(nextBox.width)));
+      node.setAttribute("height", String(roundCoordinate(nextBox.height)));
+      if (descriptor.rx > 0) {
+        node.setAttribute("rx", String(roundCoordinate(Math.min(descriptor.rx, nextBox.width / 2))));
+      }
+      if (descriptor.ry > 0) {
+        node.setAttribute("ry", String(roundCoordinate(Math.min(descriptor.ry, nextBox.height / 2))));
+      }
+      return;
     }
-    if (!Number.isFinite(scaleY) || scaleY <= 0) {
-      scaleY = 0.05;
+
+    if (descriptor.mode === "circle") {
+      const nextBox = createUniformResizeBox(descriptor.anchor, snappedPoint);
+      const radius = Math.max(0.5, Math.min(nextBox.width, nextBox.height) / 2);
+      node.setAttribute("cx", String(roundCoordinate(nextBox.x + (nextBox.width / 2))));
+      node.setAttribute("cy", String(roundCoordinate(nextBox.y + (nextBox.height / 2))));
+      node.setAttribute("r", String(roundCoordinate(radius)));
+      return;
     }
 
-    const nextMatrix = multiplyMatrix(
-      multiplyMatrix(
-        multiplyMatrix(
-          translateMatrix(descriptor.anchor.x, descriptor.anchor.y),
-          scaleMatrix(scaleX, scaleY)
-        ),
-        translateMatrix(-descriptor.anchor.x, -descriptor.anchor.y)
-      ),
-      descriptor.baseMatrix
-    );
+    if (descriptor.mode === "ellipse") {
+      const nextBox = createResizeBox(descriptor.anchor, snappedPoint);
+      node.setAttribute("cx", String(roundCoordinate(nextBox.x + (nextBox.width / 2))));
+      node.setAttribute("cy", String(roundCoordinate(nextBox.y + (nextBox.height / 2))));
+      node.setAttribute("rx", String(roundCoordinate(nextBox.width / 2)));
+      node.setAttribute("ry", String(roundCoordinate(nextBox.height / 2)));
+      return;
+    }
 
-    node.setAttribute("transform", matrixToTransform(nextMatrix));
+    if (descriptor.mode === "polyline" || descriptor.mode === "polygon") {
+      const nextBox = createResizeBox(descriptor.anchor, snappedPoint);
+      const nextPoints = scalePointsToBox(descriptor.points, descriptor.box, nextBox);
+      node.setAttribute("points", serializePointList(nextPoints));
+      return;
+    }
+
+    if (descriptor.mode === "path-bezier-resize") {
+      const nextBox = createResizeBox(descriptor.anchor, snappedPoint);
+      const nextBezierPoints = scalePointsToBox(bezierToPoints(descriptor.bezier), descriptor.box, nextBox);
+      const nextBezier = pointsToBezier(nextBezierPoints);
+      if (!nextBezier) {
+        return;
+      }
+      node.setAttribute("d", serializeSimpleCubicBezier(nextBezier));
+    }
   }
 
   function getPolygonSideCount(node) {
@@ -862,8 +1018,54 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     return true;
   }
 
+  function getPathBezierHandles(node) {
+    const bezier = parseSimpleCubicBezier(node);
+    if (!bezier) {
+      return [];
+    }
+
+    return [
+      { key: "start", kind: "anchor", ...projectPointToRoot(node, bezier.start) },
+      { key: "control1", kind: "control", ...projectPointToRoot(node, bezier.control1) },
+      { key: "control2", kind: "control", ...projectPointToRoot(node, bezier.control2) },
+      { key: "end", kind: "anchor", ...projectPointToRoot(node, bezier.end) }
+    ];
+  }
+
+  function getPathBezierHandleDescriptor(node, handle) {
+    const bezier = parseSimpleCubicBezier(node);
+    const pointKey = ["start", "control1", "control2", "end"].includes(handle) ? handle : null;
+    const startHandle = pointKey ? bezier?.[pointKey] : null;
+    if (!startHandle) {
+      return null;
+    }
+
+    return {
+      handle: pointKey,
+      startHandle: {
+        x: startHandle.x,
+        y: startHandle.y
+      }
+    };
+  }
+
+  function applyPathBezierHandle(node, descriptor, point) {
+    const bezier = parseSimpleCubicBezier(node);
+    if (!bezier || !descriptor?.handle || !bezier[descriptor.handle]) {
+      return false;
+    }
+
+    bezier[descriptor.handle] = {
+      x: point.x,
+      y: point.y
+    };
+    node.setAttribute("d", serializeSimpleCubicBezier(bezier));
+    return true;
+  }
+
   return {
     applyDrag,
+    applyPathBezierHandle,
     applyResize,
     canDragNode,
     canResizeNode,
@@ -873,6 +1075,8 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     getInsertParent,
     getNumericAttr,
     getPathBezier,
+    getPathBezierHandleDescriptor,
+    getPathBezierHandles,
     getPolygonSideCount,
     getPolylinePointCount,
     getResizeHandles,

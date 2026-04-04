@@ -332,6 +332,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     const wrapper = document.createElement("div");
     const input = document.createElement("input");
     const hint = document.createElement("p");
+    let lastCommittedValue = String(config.value);
 
     wrapper.className = "inspector-geometry-control";
     input.type = "number";
@@ -346,8 +347,15 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     label.textContent = field.label;
 
     if (!locked) {
-      input.addEventListener("change", () => config.onCommit(input.value));
-      input.addEventListener("blur", () => config.onCommit(input.value));
+      const commit = () => {
+        if (input.value === lastCommittedValue) {
+          return;
+        }
+        lastCommittedValue = input.value;
+        config.onCommit(input.value);
+      };
+      input.addEventListener("change", commit);
+      input.addEventListener("blur", commit);
     }
 
     originalInput.replaceWith(wrapper);
@@ -380,6 +388,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     ];
 
     const inputs = {};
+    let lastCommittedState = JSON.stringify(bezier);
     const readBezierFromInputs = () => ({
       start: {
         x: inputs.start.x.value,
@@ -424,7 +433,14 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       inputs[key] = { x: inputX, y: inputY };
       if (!locked) {
         const liveUpdate = () => actions.updatePathBezier(node.dataset.editorId, readBezierFromInputs(), false);
-        const commitUpdate = () => actions.updatePathBezier(node.dataset.editorId, readBezierFromInputs(), true);
+        const commitUpdate = () => {
+          const currentState = JSON.stringify(readBezierFromInputs());
+          if (currentState === lastCommittedState) {
+            return;
+          }
+          lastCommittedState = currentState;
+          actions.updatePathBezier(node.dataset.editorId, readBezierFromInputs(), true);
+        };
         inputX.addEventListener("input", liveUpdate);
         inputY.addEventListener("input", liveUpdate);
         inputX.addEventListener("change", commitUpdate);

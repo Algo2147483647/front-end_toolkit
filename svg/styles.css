@@ -913,6 +913,17 @@ textarea {
   filter: drop-shadow(0 4px 10px rgba(15, 118, 110, 0.18));
 }
 
+.overlay-guide {
+  pointer-events: none;
+  fill: none;
+}
+
+.overlay-guide--bezier {
+  stroke: rgba(181, 70, 29, 0.45);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
 .overlay-handle--ne,
 .overlay-handle--sw {
   cursor: nesw-resize;
@@ -921,6 +932,10 @@ textarea {
 .overlay-handle--start,
 .overlay-handle--end {
   cursor: move;
+}
+
+.overlay-handle--bezier {
+  filter: drop-shadow(0 4px 10px rgba(181, 70, 29, 0.18));
 }
 
 .drop-overlay {

@@ -425,6 +425,26 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.statusPill.textContent = `Resizing: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
+  function beginPathBezierDrag(editorId, handle, event) {
+    const node = state.nodeMap.get(editorId);
+    if (!node || node.tagName.toLowerCase() !== "path" || model.isNodeLocked(node)) {
+      return;
+    }
+
+    const descriptor = model.getPathBezierHandleDescriptor(node, handle);
+    if (!descriptor) {
+      return;
+    }
+
+    state.drag = {
+      descriptor,
+      editorId,
+      moved: false,
+      type: "path-bezier"
+    };
+    ui.statusPill.textContent = `Editing curve: ${model.labelFor(node)}`;
+  }
+
   function beginSelectionBox(event, source = "surface") {
     const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
     state.drag = {
@@ -463,6 +483,25 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
         state.drag.moved = true;
       }
       model.applyResize(node, state.drag.descriptor, currentPoint);
+      renderer.renderOverlay();
+      return;
+    }
+
+    if (state.drag.type === "path-bezier") {
+      const node = state.nodeMap.get(state.drag.editorId);
+      if (!node) {
+        return;
+      }
+
+      const currentPoint = model.toLocalPoint(node, event.clientX, event.clientY);
+      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        state.drag.moved = true;
+      }
+      model.applyPathBezierHandle(node, state.drag.descriptor, currentPoint);
+      renderer.updateSource();
+      renderer.renderInspector();
       renderer.renderOverlay();
       return;
     }
@@ -537,6 +576,23 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       state.drag = null;
       setCanvasPanning(false);
       ui.statusPill.textContent = "Canvas moved";
+      return;
+    }
+
+    if (state.drag.type === "path-bezier") {
+      const moved = state.drag.moved;
+      state.drag = null;
+      if (!moved) {
+        renderer.renderOverlay();
+        return;
+      }
+
+      state.suppressNextSvgClick = true;
+      renderer.updateSource();
+      renderer.renderTree();
+      renderer.renderInspector();
+      renderer.renderOverlay();
+      recordHistory("path-bezier");
       return;
     }
 
@@ -648,6 +704,19 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       selectNode(editorId);
     }
     beginResizeDrag(editorId, handle, event);
+  }
+
+  function onPathBezierHandlePointerDown(event, editorId, handle) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (!state.selectedIds.has(editorId)) {
+      selectNode(editorId);
+    }
+    beginPathBezierDrag(editorId, handle, event);
   }
 
   function toggleNodeCollapse(editorId) {
@@ -1053,6 +1122,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   return {
     bindEvents,
     loadDocument,
+    onPathBezierHandlePointerDown,
     onResizeHandlePointerDown,
     onSvgClick,
     onSvgPointerDown,

@@ -1,17 +1,82 @@
 export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, updateGridSurface }) {
-  function drawResizeHandle(x, y, position, editorId, radius) {
-    const handle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    handle.setAttribute("cx", String(x));
-    handle.setAttribute("cy", String(y));
-    handle.setAttribute("r", String(radius));
-    handle.setAttribute("fill", "#fffaf0");
-    handle.setAttribute("stroke", "#0f766e");
-    handle.setAttribute("stroke-width", "2");
-    handle.setAttribute("class", `overlay-handle overlay-handle--${position}`);
-    handle.dataset.editorId = editorId;
-    handle.dataset.handle = position;
-    handle.addEventListener("pointerdown", (event) => actions.onResizeHandlePointerDown?.(event, editorId, position));
-    ui.overlay.append(handle);
+  function drawOverlayHandle(config) {
+    const {
+      x,
+      y,
+      radius,
+      className,
+      cursor,
+      editorId,
+      handle,
+      onPointerDown,
+      fill = "#fffaf0",
+      stroke = "#0f766e",
+      strokeWidth = "2"
+    } = config;
+    const element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    element.setAttribute("cx", String(x));
+    element.setAttribute("cy", String(y));
+    element.setAttribute("r", String(radius));
+    element.setAttribute("fill", fill);
+    element.setAttribute("stroke", stroke);
+    element.setAttribute("stroke-width", strokeWidth);
+    element.setAttribute("class", className);
+    if (cursor) {
+      element.style.cursor = cursor;
+    }
+    element.dataset.editorId = editorId;
+    element.dataset.handle = handle;
+    element.addEventListener("pointerdown", (event) => onPointerDown?.(event, editorId, handle));
+    ui.overlay.append(element);
+  }
+
+  function drawResizeHandle(x, y, position, editorId, radius, cursor) {
+    drawOverlayHandle({
+      className: `overlay-handle overlay-handle--${position}`,
+      cursor,
+      editorId,
+      handle: position,
+      onPointerDown: actions.onResizeHandlePointerDown,
+      radius,
+      x,
+      y
+    });
+  }
+
+  function drawBezierGuideLine(x1, y1, x2, y2) {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", String(x1));
+    line.setAttribute("y1", String(y1));
+    line.setAttribute("x2", String(x2));
+    line.setAttribute("y2", String(y2));
+    line.setAttribute("class", "overlay-guide overlay-guide--bezier");
+    ui.overlay.append(line);
+  }
+
+  function drawBezierHandles(node, radius) {
+    const handles = model.getPathBezierHandles(node);
+    if (handles.length !== 4) {
+      return;
+    }
+
+    drawBezierGuideLine(handles[0].x, handles[0].y, handles[1].x, handles[1].y);
+    drawBezierGuideLine(handles[2].x, handles[2].y, handles[3].x, handles[3].y);
+
+    handles.forEach((handleConfig) => {
+      drawOverlayHandle({
+        className: `overlay-handle overlay-handle--bezier overlay-handle--bezier-${handleConfig.kind}`,
+        cursor: "move",
+        editorId: node.dataset.editorId,
+        fill: handleConfig.kind === "control" ? "#fff" : "#fffaf0",
+        handle: handleConfig.key,
+        onPointerDown: actions.onPathBezierHandlePointerDown,
+        radius: handleConfig.kind === "control" ? Math.max(6, radius - 2) : radius,
+        stroke: handleConfig.kind === "control" ? "#b5461d" : "#0f766e",
+        strokeWidth: handleConfig.kind === "control" ? "2.5" : "2",
+        x: handleConfig.x,
+        y: handleConfig.y
+      });
+    });
   }
 
   function drawSelectionRect(box, options = {}) {
@@ -73,8 +138,11 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
         drawSelectionRect(box);
         if (selectedNodes.length === 1 && model.canResizeNode(node)) {
           const radius = Math.max(8, Math.min(14, Math.max(box.width, box.height, 32) * 0.03));
+          if (node.tagName.toLowerCase() === "path" && model.getPathBezier(node)) {
+            drawBezierHandles(node, radius);
+          }
           model.getResizeHandles(node).forEach((handle) => {
-            drawResizeHandle(handle.x, handle.y, handle.key, node.dataset.editorId, radius);
+            drawResizeHandle(handle.x, handle.y, handle.key, node.dataset.editorId, radius, handle.cursor);
           });
         }
       } catch (error) {
