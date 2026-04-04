@@ -371,6 +371,131 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     };
   }
 
+  function translatePoints(points, dx, dy) {
+    return points.map((point) => ({
+      x: point.x + dx,
+      y: point.y + dy
+    }));
+  }
+
+  function translateSimpleCubicBezier(bezier, dx, dy) {
+    return {
+      start: {
+        x: bezier.start.x + dx,
+        y: bezier.start.y + dy
+      },
+      control1: {
+        x: bezier.control1.x + dx,
+        y: bezier.control1.y + dy
+      },
+      control2: {
+        x: bezier.control2.x + dx,
+        y: bezier.control2.y + dy
+      },
+      end: {
+        x: bezier.end.x + dx,
+        y: bezier.end.y + dy
+      }
+    };
+  }
+
+  function translatePathData(d, dx, dy) {
+    const tokens = tokenizePathData(d);
+    if (!tokens.length) {
+      return String(d || "");
+    }
+
+    const parameterLengths = {
+      A: 7,
+      C: 6,
+      H: 1,
+      L: 2,
+      M: 2,
+      Q: 4,
+      S: 4,
+      T: 2,
+      V: 1,
+      Z: 0
+    };
+    const shiftAbsoluteValues = (command, values) => {
+      const upper = command.toUpperCase();
+      if (upper === "H") {
+        return values.map((value) => roundCoordinate(value + dx));
+      }
+      if (upper === "V") {
+        return values.map((value) => roundCoordinate(value + dy));
+      }
+      if (upper === "A") {
+        return values.map((value, index) => {
+          if (index % 7 === 5) return roundCoordinate(value + dx);
+          if (index % 7 === 6) return roundCoordinate(value + dy);
+          return roundCoordinate(value);
+        });
+      }
+      return values.map((value, index) => roundCoordinate(value + (index % 2 === 0 ? dx : dy)));
+    };
+
+    let index = 0;
+    let currentCommand = null;
+    let hasStarted = false;
+    const output = [];
+
+    while (index < tokens.length) {
+      const token = tokens[index];
+      if (/^[A-Za-z]$/.test(token)) {
+        currentCommand = token;
+        output.push(token);
+        index += 1;
+        if (currentCommand.toUpperCase() === "Z") {
+          continue;
+        }
+      }
+
+      if (!currentCommand) {
+        break;
+      }
+
+      const upper = currentCommand.toUpperCase();
+      const parameterLength = parameterLengths[upper];
+      if (!parameterLength) {
+        continue;
+      }
+
+      while (index + parameterLength - 1 < tokens.length && !/^[A-Za-z]$/.test(tokens[index])) {
+        const rawValues = tokens.slice(index, index + parameterLength);
+        if (rawValues.some((value) => /^[A-Za-z]$/.test(value))) {
+          break;
+        }
+
+        const values = rawValues.map((value) => Number.parseFloat(value));
+        let shiftedValues = values;
+
+        if (currentCommand === currentCommand.toUpperCase()) {
+          shiftedValues = shiftAbsoluteValues(currentCommand, values);
+        } else if (currentCommand === "m" && !hasStarted) {
+          shiftedValues = [
+            roundCoordinate(values[0] + dx),
+            roundCoordinate(values[1] + dy),
+            ...values.slice(2).map((value) => roundCoordinate(value))
+          ];
+        } else {
+          shiftedValues = values.map((value) => roundCoordinate(value));
+        }
+
+        output.push(...shiftedValues.map((value) => String(value)));
+        index += parameterLength;
+        if (upper === "M") {
+          hasStarted = true;
+          currentCommand = currentCommand === "M" ? "L" : "l";
+        } else {
+          hasStarted = true;
+        }
+      }
+    }
+
+    return output.join(" ");
+  }
+
   function createElementNode(kind) {
     const box = getViewBoxRect();
     const centerX = box.x + box.width / 2;
@@ -711,6 +836,27 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       };
     }
 
+    if (tag === "polyline" || tag === "polygon") {
+      const points = parsePointList(node.getAttribute("points"));
+      const box = getPointBounds(points) || normalizeRect(node.getBBox());
+      return {
+        box,
+        mode: tag,
+        points
+      };
+    }
+
+    if (tag === "path") {
+      const bezier = parseSimpleCubicBezier(node);
+      const box = normalizeRect(node.getBBox());
+      return {
+        bezier,
+        box,
+        d: node.getAttribute("d") || "",
+        mode: "path"
+      };
+    }
+
     return {
       mode: "transform",
       baseMatrix: node.transform?.baseVal?.consolidate()?.matrix || { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
@@ -856,6 +1002,40 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       node.setAttribute("y1", String(roundCoordinate(nextY1)));
       node.setAttribute("x2", String(roundCoordinate(descriptor.x2 + snappedDx)));
       node.setAttribute("y2", String(roundCoordinate(descriptor.y2 + snappedDy)));
+      return;
+    }
+
+    if (descriptor.mode === "polyline" || descriptor.mode === "polygon") {
+      const box = descriptor.box || getPointBounds(descriptor.points);
+      if (!box) {
+        return;
+      }
+
+      const nextX = snapCoordinate(box.x + dx, grid.stepX, grid.originX);
+      const nextY = snapCoordinate(box.y + dy, grid.stepY, grid.originY);
+      const snappedDx = nextX - box.x;
+      const snappedDy = nextY - box.y;
+      node.setAttribute("points", serializePointList(translatePoints(descriptor.points, snappedDx, snappedDy)));
+      return;
+    }
+
+    if (descriptor.mode === "path") {
+      const box = descriptor.box;
+      if (!box) {
+        return;
+      }
+
+      const nextX = snapCoordinate(box.x + dx, grid.stepX, grid.originX);
+      const nextY = snapCoordinate(box.y + dy, grid.stepY, grid.originY);
+      const snappedDx = nextX - box.x;
+      const snappedDy = nextY - box.y;
+
+      if (descriptor.bezier) {
+        node.setAttribute("d", serializeSimpleCubicBezier(translateSimpleCubicBezier(descriptor.bezier, snappedDx, snappedDy)));
+        return;
+      }
+
+      node.setAttribute("d", translatePathData(descriptor.d, snappedDx, snappedDy));
       return;
     }
 
