@@ -50,6 +50,9 @@
         let hasLocation = false;
         let isDragging = false;
         let lastPointer = null;
+        let lightingCanvas = null;
+        let lightingCtx = null;
+        let lightingImageData = null;
 
         function resize() {
             const rect = canvas.getBoundingClientRect();
@@ -87,39 +90,43 @@
             canvas.style.height = size + 'px';
         }
 
+        function applyOrientation(x, y, z) {
+            const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+            const y1 = y * cosX - z * sinX;
+            const z1 = y * sinX + z * cosX;
+            const x1 = x;
+
+            const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+            const x2 = x1 * cosY + z1 * sinY;
+            const z2 = -x1 * sinY + z1 * cosY;
+            const y2 = y1;
+
+            const cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
+            const x3 = x2 * cosZ - y2 * sinZ;
+            const y3 = x2 * sinZ + y2 * cosZ;
+            const z3 = z2;
+
+            return { x: x3, y: y3, z: z3 };
+        }
+
         function clear() {
             ctx.clearRect(0, 0, width, height);
         }
 
+        function sphericalToCartesian(phiDeg, lambdaDeg) {
+            const phi = phiDeg * Math.PI / 180;
+            const lambda = lambdaDeg * Math.PI / 180;
+            return {
+                x: Math.cos(phi) * Math.cos(lambda),
+                y: Math.sin(phi),
+                z: Math.cos(phi) * Math.sin(lambda)
+            };
+        }
+
         function project3D(phiDeg, lambdaDeg) {
-            // Convert spherical to Cartesian (unit sphere scaled by R)
-            const phi = phiDeg * Math.PI/180; // lat
-            const lambda = lambdaDeg * Math.PI/180; // lon
-            // base coordinates
-            let x = Math.cos(phi) * Math.cos(lambda);
-            let y = Math.sin(phi);
-            let z = Math.cos(phi) * Math.sin(lambda);
-
-            // Apply current orientation (Euler angles) to the point by constructing
-            // the same rotation order as used elsewhere: rotate X (pitch), then Y (yaw), then Z (roll).
-            // For performance we keep the simple Euler rotations here (they are updated
-            // from the quaternion when auto-rotating).
-            let cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-            let y1 = y * cosX - z * sinX;
-            let z1 = y * sinX + z * cosX;
-            let x1 = x;
-
-            let cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-            let x2 = x1 * cosY + z1 * sinY;
-            let z2 = -x1 * sinY + z1 * cosY;
-            let y2 = y1;
-
-            let cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ);
-            let x3 = x2 * cosZ - y2 * sinZ;
-            let y3 = x2 * sinZ + y2 * cosZ;
-            let z3 = z2;
-
-            return { x: x3 * R, y: y3 * R, z: z3 * R };
+            const base = sphericalToCartesian(phiDeg, lambdaDeg);
+            const oriented = applyOrientation(base.x, base.y, base.z);
+            return { x: oriented.x * R, y: oriented.y * R, z: oriented.z * R };
         }
 
         // --- Quaternion helpers ---
@@ -224,6 +231,105 @@
             return hours * 60;
         }
 
+        function normalizeLongitude(longitude) {
+            let value = longitude;
+            while (value <= -180) value += 360;
+            while (value > 180) value -= 360;
+            return value;
+        }
+
+        function calculateSubsolarLongitude(date) {
+            const totalHours = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+            return normalizeLongitude(180 - totalHours * 15);
+        }
+
+        function getSunDirection(date) {
+            const declinationDeg = calculateSolarDeclination(date) * 180 / Math.PI;
+            const subsolarLongitude = calculateSubsolarLongitude(date);
+            const world = sphericalToCartesian(declinationDeg, subsolarLongitude);
+            const view = applyOrientation(world.x, world.y, world.z);
+            const length = Math.hypot(view.x, view.y, view.z) || 1;
+            return {
+                x: view.x / length,
+                y: view.y / length,
+                z: view.z / length
+            };
+        }
+
+        function drawIlluminationOverlay(cx, cy, sunDirection) {
+            const resolution = Math.max(180, Math.min(320, Math.round(R * 1.1)));
+
+            if (!lightingCanvas || lightingCanvas.width !== resolution || lightingCanvas.height !== resolution) {
+                lightingCanvas = document.createElement('canvas');
+                lightingCanvas.width = resolution;
+                lightingCanvas.height = resolution;
+                lightingCtx = lightingCanvas.getContext('2d');
+                lightingImageData = lightingCtx.createImageData(resolution, resolution);
+            }
+
+            const data = lightingImageData.data;
+
+            for (let py = 0; py < resolution; py++) {
+                const ny = 1 - ((py + 0.5) / resolution) * 2;
+                for (let px = 0; px < resolution; px++) {
+                    const nx = ((px + 0.5) / resolution) * 2 - 1;
+                    const index = (py * resolution + px) * 4;
+                    const radiusSq = nx * nx + ny * ny;
+
+                    if (radiusSq > 1) {
+                        data[index + 3] = 0;
+                        continue;
+                    }
+
+                    const nz = Math.sqrt(1 - radiusSq);
+                    const lightAmount = nx * sunDirection.x + ny * sunDirection.y + nz * sunDirection.z;
+                    const day = Math.max(0, lightAmount);
+                    const night = Math.max(0, -lightAmount);
+                    const twilight = Math.max(0, 1 - Math.abs(lightAmount) / 0.14);
+
+                    let r = 0;
+                    let g = 0;
+                    let b = 0;
+                    let alpha = 0;
+
+                    if (night > 0) {
+                        r += 6;
+                        g += 10;
+                        b += 18;
+                        alpha += 0.12 + Math.pow(night, 0.78) * 0.56;
+                    }
+
+                    if (day > 0) {
+                        r += 255;
+                        g += 252;
+                        b += 248;
+                        alpha += 0.03 + Math.pow(day, 0.92) * 0.16;
+                    }
+
+                    if (twilight > 0) {
+                        r = r * (1 - twilight * 0.35) + 255 * twilight * 0.35;
+                        g = g * (1 - twilight * 0.35) + 188 * twilight * 0.35;
+                        b = b * (1 - twilight * 0.35) + 128 * twilight * 0.35;
+                        alpha += twilight * 0.12;
+                    }
+
+                    data[index] = Math.max(0, Math.min(255, Math.round(r)));
+                    data[index + 1] = Math.max(0, Math.min(255, Math.round(g)));
+                    data[index + 2] = Math.max(0, Math.min(255, Math.round(b)));
+                    data[index + 3] = Math.max(0, Math.min(255, Math.round(alpha * 255)));
+                }
+            }
+
+            lightingCtx.putImageData(lightingImageData, 0, 0);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(lightingCanvas, cx - R, cy - R, R * 2, R * 2);
+            ctx.restore();
+        }
+
         // Calculate the terminator line points
         function calculateTerminatorLine() {
             const points = [];
@@ -269,6 +375,8 @@
         function drawSphere() {
             const cx = width/2;
             const cy = height/2;
+            const now = new Date();
+            const sunDirection = getSunDirection(now);
 
             // Atmosphere glow
             ctx.beginPath();
@@ -289,6 +397,8 @@
             ctx.beginPath();
             ctx.arc(cx, cy, R, 0, Math.PI*2);
             ctx.fill();
+
+            drawIlluminationOverlay(cx, cy, sunDirection);
 
             // Globe shadow
             const shadowGrad = ctx.createRadialGradient(cx + R * 0.2, cy + R * 0.22, R * 0.22, cx, cy, R);
@@ -325,9 +435,12 @@
                         }
                     }
                     
-                    ctx.strokeStyle = 'rgba(255, 133, 110, 0.85)';
-                    ctx.lineWidth = 2.2;
+                    ctx.strokeStyle = 'rgba(255, 188, 134, 0.92)';
+                    ctx.lineWidth = 2.4;
+                    ctx.shadowColor = 'rgba(255, 170, 112, 0.26)';
+                    ctx.shadowBlur = 8;
                     ctx.stroke();
+                    ctx.shadowBlur = 0;
                 }
             }
 
