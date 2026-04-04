@@ -77,9 +77,17 @@ export function createSelectionController({ state, model, renderer }) {
 
   function setSelection(editorIds, options = {}) {
     const { primaryId = null, render = true } = options;
-    const validIds = [...new Set(editorIds.filter((editorId) => state.nodeMap.has(editorId)))];
-    const nextPrimaryId = validIds.includes(primaryId)
-      ? primaryId
+    const validIds = [...new Set(
+      editorIds
+        .filter((editorId) => state.nodeMap.has(editorId))
+        .map((editorId) => model.resolveSelectionEditorId?.(editorId) || editorId)
+        .filter((editorId) => state.nodeMap.has(editorId))
+    )];
+    const resolvedPrimaryId = primaryId && state.nodeMap.has(primaryId)
+      ? (model.resolveSelectionEditorId?.(primaryId) || primaryId)
+      : primaryId;
+    const nextPrimaryId = validIds.includes(resolvedPrimaryId)
+      ? resolvedPrimaryId
       : (validIds[0] || null);
 
     state.selectedIds = new Set(validIds);

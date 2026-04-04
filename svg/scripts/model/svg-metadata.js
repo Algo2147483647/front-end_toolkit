@@ -1,4 +1,122 @@
+const EDITABLE_TAGS = new Set([
+  "circle",
+  "ellipse",
+  "foreignObject",
+  "image",
+  "line",
+  "path",
+  "polygon",
+  "polyline",
+  "rect",
+  "text",
+  "use"
+]);
+
+const WRAPPER_TAGS = new Set([
+  "a",
+  "g",
+  "switch"
+]);
+
 export function createSvgMetadataTools(state) {
+  function getNodeArea(node) {
+    try {
+      const rect = node?.getBoundingClientRect?.();
+      if (rect && (rect.width > 0 || rect.height > 0)) {
+        return Math.max(rect.width * rect.height, rect.width, rect.height);
+      }
+    } catch (error) {
+      // Ignore transient layout failures and fall back to SVG bounds.
+    }
+
+    try {
+      const box = node?.getBBox?.();
+      if (box && (box.width > 0 || box.height > 0)) {
+        return Math.max(box.width * box.height, box.width, box.height);
+      }
+    } catch (error) {
+      return 0;
+    }
+
+    return 0;
+  }
+
+  function getEditableNodeScore(node) {
+    if (!node?.tagName) {
+      return -1;
+    }
+
+    const tag = node.tagName.toLowerCase();
+    const baseScoreByTag = {
+      circle: 500,
+      ellipse: 500,
+      line: 500,
+      path: 500,
+      polygon: 500,
+      polyline: 500,
+      rect: 500,
+      text: 420,
+      foreignObject: 380,
+      image: 340,
+      use: 320
+    };
+
+    return (baseScoreByTag[tag] || 0) + getNodeArea(node);
+  }
+
+  function findEditableAncestor(startNode, stopNode = null) {
+    let current = startNode;
+    while (current) {
+      if (current.nodeType !== 1) {
+        current = current.parentElement;
+        continue;
+      }
+
+      if (current.tagName?.toLowerCase?.() === "tspan") {
+        const parentText = current.closest?.("text[data-editor-id]");
+        if (parentText?.dataset?.editorId) {
+          return parentText;
+        }
+      }
+
+      if (current.dataset?.editorId && EDITABLE_TAGS.has(current.tagName.toLowerCase()) && !isNodeHidden(current)) {
+        return current;
+      }
+
+      if (current === stopNode) {
+        break;
+      }
+
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
+  function getPrimaryEditableDescendant(node, preferredNode = null) {
+    const preferredMatch = findEditableAncestor(preferredNode, node);
+    if (preferredMatch) {
+      return preferredMatch;
+    }
+
+    if (!node?.querySelectorAll) {
+      return null;
+    }
+
+    const candidates = [...node.querySelectorAll("*")]
+      .filter((child) => child.dataset?.editorId)
+      .filter((child) => EDITABLE_TAGS.has(child.tagName.toLowerCase()))
+      .filter((child) => !isNodeHidden(child));
+
+    if (!candidates.length) {
+      return null;
+    }
+
+    return candidates
+      .slice()
+      .sort((left, right) => getEditableNodeScore(right) - getEditableNodeScore(left))[0];
+  }
+
   function getRenderableChildren(node) {
     return [...node.children].filter((child) => child.tagName.toLowerCase() !== "style");
   }
@@ -87,6 +205,38 @@ export function createSvgMetadataTools(state) {
     return "<unnamed>";
   }
 
+  function resolveEditableNode(node, options = {}) {
+    if (!node) {
+      return null;
+    }
+
+    if (node === state.svgRoot) {
+      return node;
+    }
+
+    const preferredNode = options.preferredNode || node;
+    const directMatch = findEditableAncestor(preferredNode, node);
+    if (directMatch) {
+      return directMatch;
+    }
+
+    if (EDITABLE_TAGS.has(node.tagName.toLowerCase())) {
+      return node;
+    }
+
+    if (node.hasAttribute?.("data-cell-id") || WRAPPER_TAGS.has(node.tagName.toLowerCase())) {
+      return getPrimaryEditableDescendant(node, preferredNode) || node;
+    }
+
+    return node;
+  }
+
+  function resolveSelectionEditorId(editorId, options = {}) {
+    const node = state.nodeMap.get(editorId);
+    const resolvedNode = resolveEditableNode(node, options);
+    return resolvedNode?.dataset?.editorId || editorId;
+  }
+
   function isNodeLocked(node) {
     const nodeKey = getNodeKey(node);
     return Boolean(nodeKey && state.lockedNodeKeys.has(nodeKey));
@@ -168,6 +318,8 @@ export function createSvgMetadataTools(state) {
     isNodeLocked,
     labelFor,
     rebuildNodeMap,
+    resolveEditableNode,
+    resolveSelectionEditorId,
     setZOrder,
     syncEditorMetadata,
     visibleField
