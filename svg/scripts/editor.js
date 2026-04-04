@@ -21,7 +21,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
   ]);
 
   function clampZoom(value) {
-    return Math.max(0.3, Math.min(2.5, value));
+    return Math.max(0.01, Math.min(2.5, value));
   }
 
   function ensureDocument() {

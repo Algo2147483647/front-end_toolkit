@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SVG Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d05a2f'/%3E%3Cpath d='M14 42 24 18h7l10 24h-6l-2-5H22l-2 5h-6Zm10-10h7l-3.5-9-3.5 9Z' fill='%23fff7ef'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
 </head>
@@ -11,9 +14,8 @@
   <div class="app-shell" id="appShell">
     <header class="topbar" id="topbar">
       <div class="brand-block">
-        <p class="eyebrow">Front-End Toolkit</p>
         <div class="brand-row">
-          <h1>SVG Studio</h1>
+          <h1 class="brand-title">SVG Studio</h1>
           <span class="status-pill" id="statusPill">No selection</span>
         </div>
       </div>
@@ -96,7 +98,6 @@
     <aside class="panel left-panel" id="leftPanel">
       <div class="floating-panel-header">
         <div>
-          <p class="eyebrow">Workspace</p>
           <h2>Library</h2>
         </div>
         <button class="tool-button compact" id="hideLeftPanelButton" type="button" title="Hide left panel" aria-label="Hide left panel">×</button>
@@ -192,7 +193,6 @@
     <aside class="panel inspector-panel" id="rightPanel">
       <div class="floating-panel-header">
         <div>
-          <p class="eyebrow">Selection</p>
           <h2>Inspector</h2>
         </div>
         <button class="tool-button compact" id="hideRightPanelButton" type="button" title="Hide right panel" aria-label="Hide right panel">×</button>
