@@ -1296,17 +1296,37 @@ textarea {
 
 .inspector-typography {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .inspector-typography-pair {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.inspector-typography-metric {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.inspector-typography-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(86, 67, 48, 0.82);
 }
 
 .inspector-typography .field-font {
   grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .inspector-geometry-control {
@@ -1362,6 +1382,14 @@ textarea {
   flex-wrap: wrap;
 }
 
+.inspector-typography-actions {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .inspector-toggle-button {
   min-width: 38px;
   height: 38px;
@@ -1398,6 +1426,7 @@ textarea {
   border-color: rgba(15, 118, 110, 0.32);
   background: rgba(15, 118, 110, 0.12);
   color: var(--selection);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.08);
 }
 
 .inspector-toggle-button:disabled {
@@ -1631,6 +1660,10 @@ textarea.field-input,
 
   .inspector-typography-pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector-typography-metric {
+    grid-template-columns: 48px minmax(0, 1fr);
   }
 
   .inspector-typography .field-font {

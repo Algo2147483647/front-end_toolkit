@@ -393,7 +393,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
     wrapper.className = "inspector-typography";
     controlRow.className = "inspector-typography-pair";
-    buttonGroup.className = "inspector-toggle-group";
+    buttonGroup.className = "inspector-toggle-group inspector-typography-actions";
     label.textContent = field.label;
     originalInput.replaceWith(wrapper);
 
@@ -423,6 +423,17 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       createFontWeightControl(node, FIELD_MAP.get("font-weight"), locked)
     );
     wrapper.append(controlRow, buttonGroup);
+    return wrapper;
+  }
+
+  function createTypographyMetric(title, control) {
+    const wrapper = document.createElement("div");
+    const label = document.createElement("span");
+
+    wrapper.className = "inspector-typography-metric";
+    label.className = "inspector-typography-metric-label";
+    label.textContent = title;
+    wrapper.append(label, control);
     return wrapper;
   }
 
@@ -476,7 +487,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     }
 
     wrapper.append(presetInput, textInput);
-    return wrapper;
+    return createTypographyMetric("Size", wrapper);
   }
 
   function createFontWeightControl(node, field, locked, valueOverride = null) {
@@ -527,7 +538,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     }
 
     wrapper.append(presetInput, textInput);
-    return wrapper;
+    return createTypographyMetric("Weight", wrapper);
   }
 
   function createCountControl(node, field, label, originalInput, locked, config) {
