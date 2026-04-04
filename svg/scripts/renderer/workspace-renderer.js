@@ -1,7 +1,7 @@
 export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, updateGridSurface }) {
   function drawSelectionRect(box, options = {}) {
     const {
-      dasharray = "10 8",
+      dasharray = null,
       fill = "none",
       opacity = "1",
       stroke = "#0f766e",
@@ -18,7 +18,10 @@ export function createWorkspaceRenderer({ state, ui, model, actions, applyZoom, 
     rect.setAttribute("fill-opacity", opacity);
     rect.setAttribute("stroke", stroke);
     rect.setAttribute("stroke-width", strokeWidth);
-    rect.setAttribute("stroke-dasharray", dasharray);
+    rect.setAttribute("stroke-linejoin", "round");
+    if (dasharray) {
+      rect.setAttribute("stroke-dasharray", dasharray);
+    }
     ui.overlay.append(rect);
   }
 

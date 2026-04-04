@@ -594,7 +594,9 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
-    selectNode(target.dataset.editorId);
+    if (!state.selectedIds.has(target.dataset.editorId)) {
+      selectNode(target.dataset.editorId);
+    }
     beginDrag(target, event);
   }
 
