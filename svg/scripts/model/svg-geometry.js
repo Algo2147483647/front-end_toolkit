@@ -171,6 +171,132 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     return `matrix(${roundCoordinate(a)} ${roundCoordinate(b)} ${roundCoordinate(c)} ${roundCoordinate(d)} ${roundCoordinate(e)} ${roundCoordinate(f)})`;
   }
 
+  function clampInteger(value, min, max, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.max(min, Math.min(max, parsed));
+  }
+
+  function parsePointList(value) {
+    const tokens = String(value || "")
+      .trim()
+      .split(/[\s,]+/)
+      .map((token) => Number.parseFloat(token))
+      .filter((token) => Number.isFinite(token));
+    const points = [];
+
+    for (let index = 0; index < tokens.length - 1; index += 2) {
+      points.push({ x: tokens[index], y: tokens[index + 1] });
+    }
+
+    return points;
+  }
+
+  function serializePointList(points) {
+    return points
+      .map((point) => `${roundCoordinate(point.x)},${roundCoordinate(point.y)}`)
+      .join(" ");
+  }
+
+  function getPointBounds(points) {
+    if (!points.length) {
+      return null;
+    }
+
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(maxX - minX, 1),
+      height: Math.max(maxY - minY, 1)
+    };
+  }
+
+  function getNodeGeometryBounds(node) {
+    return normalizeRect(node?.getBBox?.()) || getPointBounds(parsePointList(node?.getAttribute?.("points")));
+  }
+
+  function createRegularPolygonPoints(box, sides) {
+    const centerX = box.x + (box.width / 2);
+    const centerY = box.y + (box.height / 2);
+    const radiusX = Math.max(box.width / 2, 1);
+    const radiusY = Math.max(box.height / 2, 1);
+
+    return Array.from({ length: sides }, (_, index) => {
+      const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / sides);
+      return {
+        x: centerX + (Math.cos(angle) * radiusX),
+        y: centerY + (Math.sin(angle) * radiusY)
+      };
+    });
+  }
+
+  function resamplePolylinePoints(points, count) {
+    if (points.length < 2 || count < 2) {
+      return points;
+    }
+
+    const lastIndex = points.length - 1;
+    return Array.from({ length: count }, (_, index) => {
+      if (index === 0) {
+        return points[0];
+      }
+      if (index === count - 1) {
+        return points[lastIndex];
+      }
+
+      const position = (index / (count - 1)) * lastIndex;
+      const lowerIndex = Math.floor(position);
+      const upperIndex = Math.ceil(position);
+      const ratio = position - lowerIndex;
+      const lower = points[lowerIndex];
+      const upper = points[upperIndex] || lower;
+
+      return {
+        x: lower.x + ((upper.x - lower.x) * ratio),
+        y: lower.y + ((upper.y - lower.y) * ratio)
+      };
+    });
+  }
+
+  function tokenizePathData(d) {
+    return String(d || "").match(/[A-Za-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) || [];
+  }
+
+  function parseSimpleCubicBezier(node) {
+    const tokens = tokenizePathData(node?.getAttribute?.("d"));
+    if (tokens.length !== 10 || tokens[0].toUpperCase() !== "M" || tokens[3].toUpperCase() !== "C") {
+      return null;
+    }
+
+    const numbers = tokens
+      .filter((token) => !/^[A-Za-z]$/.test(token))
+      .map((token) => Number.parseFloat(token));
+    if (numbers.length !== 8 || numbers.some((value) => !Number.isFinite(value))) {
+      return null;
+    }
+
+    return {
+      start: { x: numbers[0], y: numbers[1] },
+      control1: { x: numbers[2], y: numbers[3] },
+      control2: { x: numbers[4], y: numbers[5] },
+      end: { x: numbers[6], y: numbers[7] }
+    };
+  }
+
+  function serializeSimpleCubicBezier(bezier) {
+    return `M ${roundCoordinate(bezier.start.x)} ${roundCoordinate(bezier.start.y)} C ${roundCoordinate(bezier.control1.x)} ${roundCoordinate(bezier.control1.y)}, ${roundCoordinate(bezier.control2.x)} ${roundCoordinate(bezier.control2.y)}, ${roundCoordinate(bezier.end.x)} ${roundCoordinate(bezier.end.y)}`;
+  }
+
   function createElementNode(kind) {
     const box = getViewBoxRect();
     const centerX = box.x + box.width / 2;
@@ -269,7 +395,7 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       node.setAttribute("id", nextNodeName("path"));
       node.setAttribute(
         "d",
-        `M ${centerX - 148} ${centerY + 44} C ${centerX - 112} ${centerY - 88}, ${centerX - 20} ${centerY - 96}, ${centerX + 12} ${centerY - 12} S ${centerX + 122} ${centerY + 78}, ${centerX + 150} ${centerY - 44}`
+        `M ${centerX - 148} ${centerY + 40} C ${centerX - 82} ${centerY - 102}, ${centerX + 82} ${centerY - 102}, ${centerX + 148} ${centerY + 40}`
       );
       node.setAttribute("fill", "none");
       node.setAttribute("stroke", "#b5461d");
@@ -357,11 +483,13 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
       return [
         {
           key: "start",
+          cursor: "move",
           x: getNumericAttr(node, "x1"),
           y: getNumericAttr(node, "y1")
         },
         {
           key: "end",
+          cursor: "move",
           x: getNumericAttr(node, "x2"),
           y: getNumericAttr(node, "y2")
         }
@@ -374,10 +502,10 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     }
 
     return [
-      { key: "nw", x: box.x, y: box.y },
-      { key: "ne", x: box.x + box.width, y: box.y },
-      { key: "se", x: box.x + box.width, y: box.y + box.height },
-      { key: "sw", x: box.x, y: box.y + box.height }
+      { key: "nw", cursor: "nwse-resize", x: box.x, y: box.y },
+      { key: "ne", cursor: "nesw-resize", x: box.x + box.width, y: box.y },
+      { key: "se", cursor: "nwse-resize", x: box.x + box.width, y: box.y + box.height },
+      { key: "sw", cursor: "nesw-resize", x: box.x, y: box.y + box.height }
     ];
   }
 
@@ -521,9 +649,13 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     }
 
     if (node.tagName.toLowerCase() === "line") {
+      const startHandle = handle === "start"
+        ? { x: getNumericAttr(node, "x1"), y: getNumericAttr(node, "y1") }
+        : { x: getNumericAttr(node, "x2"), y: getNumericAttr(node, "y2") };
       return {
         handle,
         mode: "line-endpoint",
+        startHandle,
         x1: getNumericAttr(node, "x1"),
         y1: getNumericAttr(node, "y1"),
         x2: getNumericAttr(node, "x2"),
@@ -651,6 +783,85 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     node.setAttribute("transform", matrixToTransform(nextMatrix));
   }
 
+  function getPolygonSideCount(node) {
+    return Math.max(0, parsePointList(node?.getAttribute?.("points")).length);
+  }
+
+  function updatePolygonSideCount(node, nextCount) {
+    const currentPoints = parsePointList(node?.getAttribute?.("points"));
+    const currentCount = currentPoints.length;
+    const count = clampInteger(nextCount, 3, 16, currentCount || 5);
+    if (!count || count === currentCount) {
+      return false;
+    }
+
+    const box = getNodeGeometryBounds(node) || getPointBounds(currentPoints);
+    if (!box) {
+      return false;
+    }
+
+    node.setAttribute("points", serializePointList(createRegularPolygonPoints(box, count)));
+    return true;
+  }
+
+  function getPolylinePointCount(node) {
+    return Math.max(0, parsePointList(node?.getAttribute?.("points")).length);
+  }
+
+  function updatePolylinePointCount(node, nextCount) {
+    const currentPoints = parsePointList(node?.getAttribute?.("points"));
+    const currentCount = currentPoints.length;
+    const count = clampInteger(nextCount, 2, 24, currentCount || 4);
+    if (currentPoints.length < 2 || count === currentCount) {
+      return false;
+    }
+
+    node.setAttribute("points", serializePointList(resamplePolylinePoints(currentPoints, count)));
+    return true;
+  }
+
+  function getPathBezier(node) {
+    return parseSimpleCubicBezier(node);
+  }
+
+  function updatePathBezier(node, bezier) {
+    const nextBezier = {
+      start: {
+        x: Number.parseFloat(bezier?.start?.x),
+        y: Number.parseFloat(bezier?.start?.y)
+      },
+      control1: {
+        x: Number.parseFloat(bezier?.control1?.x),
+        y: Number.parseFloat(bezier?.control1?.y)
+      },
+      control2: {
+        x: Number.parseFloat(bezier?.control2?.x),
+        y: Number.parseFloat(bezier?.control2?.y)
+      },
+      end: {
+        x: Number.parseFloat(bezier?.end?.x),
+        y: Number.parseFloat(bezier?.end?.y)
+      }
+    };
+
+    const values = [
+      nextBezier.start.x,
+      nextBezier.start.y,
+      nextBezier.control1.x,
+      nextBezier.control1.y,
+      nextBezier.control2.x,
+      nextBezier.control2.y,
+      nextBezier.end.x,
+      nextBezier.end.y
+    ];
+    if (values.some((value) => !Number.isFinite(value))) {
+      return false;
+    }
+
+    node.setAttribute("d", serializeSimpleCubicBezier(nextBezier));
+    return true;
+  }
+
   return {
     applyDrag,
     applyResize,
@@ -661,6 +872,9 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     getDragDescriptor,
     getInsertParent,
     getNumericAttr,
+    getPathBezier,
+    getPolygonSideCount,
+    getPolylinePointCount,
     getResizeHandles,
     getResizeDescriptor,
     getViewBoxRect,
@@ -669,6 +883,9 @@ export function createSvgGeometryTools({ state, isNodeLocked }) {
     snapFieldValue,
     snapNodeToGrid,
     toLocalPoint,
+    updatePathBezier,
+    updatePolygonSideCount,
+    updatePolylinePointCount,
     viewBoxFor
   };
 }

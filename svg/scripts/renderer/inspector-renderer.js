@@ -61,9 +61,9 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     if (tag === "ellipse") return ["fill", "stroke", "stroke-width", "opacity", "cx", "cy", "rx", "ry"];
     if (tag === "line") return ["stroke", "stroke-width", "opacity", "x1", "y1", "x2", "y2"];
     if (tag === "text" || tag === "tspan") return ["typography-controls", "textContent", "fill", "opacity"];
-    if (tag === "polyline") return ["stroke", "stroke-width", "opacity", "points"];
-    if (tag === "polygon") return ["fill", "stroke", "stroke-width", "opacity", "points"];
-    if (tag === "path") return ["fill", "stroke", "stroke-width", "opacity", "d"];
+    if (tag === "polyline") return ["polyline-points", "stroke", "stroke-width", "opacity", "points"];
+    if (tag === "polygon") return ["polygon-sides", "fill", "stroke", "stroke-width", "opacity", "points"];
+    if (tag === "path") return ["path-bezier", "fill", "stroke", "stroke-width", "opacity", "d"];
     return ["fill", "stroke", "stroke-width", "opacity", "x", "y", "width", "height"];
   }
 
@@ -236,7 +236,7 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   }
 
   function getQuickFieldVariant(field) {
-    if (["typography-controls", "textContent", "d", "points", "font-family"].includes(field.key) || field.multiline) {
+    if (["typography-controls", "textContent", "d", "points", "font-family", "polygon-sides", "polyline-points", "path-bezier"].includes(field.key) || field.multiline) {
       return "full";
     }
 
@@ -328,6 +328,121 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
     return wrapper;
   }
 
+  function createCountControl(node, field, label, originalInput, locked, config) {
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    const hint = document.createElement("p");
+
+    wrapper.className = "inspector-geometry-control";
+    input.type = "number";
+    input.className = "field-input inspector-geometry-input";
+    input.min = String(config.min);
+    input.max = String(config.max);
+    input.step = "1";
+    input.value = String(config.value);
+    input.disabled = locked;
+    hint.className = "inspector-geometry-note";
+    hint.textContent = config.hint;
+    label.textContent = field.label;
+
+    if (!locked) {
+      input.addEventListener("change", () => config.onCommit(input.value));
+      input.addEventListener("blur", () => config.onCommit(input.value));
+    }
+
+    originalInput.replaceWith(wrapper);
+    wrapper.append(input, hint);
+    return wrapper;
+  }
+
+  function createBezierControl(node, field, label, originalInput, locked) {
+    const wrapper = document.createElement("div");
+    const bezier = model.getPathBezier(node);
+    label.textContent = field.label;
+    wrapper.className = "inspector-geometry-control inspector-bezier-control";
+
+    if (!bezier) {
+      const note = document.createElement("p");
+      note.className = "inspector-geometry-note";
+      note.textContent = "Bezier editor currently supports single cubic paths only.";
+      originalInput.replaceWith(wrapper);
+      wrapper.append(note);
+      return wrapper;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "inspector-bezier-grid";
+    const pointConfigs = [
+      ["start", "Start"],
+      ["control1", "Control A"],
+      ["control2", "Control B"],
+      ["end", "End"]
+    ];
+
+    const inputs = {};
+    const readBezierFromInputs = () => ({
+      start: {
+        x: inputs.start.x.value,
+        y: inputs.start.y.value
+      },
+      control1: {
+        x: inputs.control1.x.value,
+        y: inputs.control1.y.value
+      },
+      control2: {
+        x: inputs.control2.x.value,
+        y: inputs.control2.y.value
+      },
+      end: {
+        x: inputs.end.x.value,
+        y: inputs.end.y.value
+      }
+    });
+
+    pointConfigs.forEach(([key, title]) => {
+      const section = document.createElement("div");
+      const sectionLabel = document.createElement("span");
+      const pair = document.createElement("div");
+      const inputX = document.createElement("input");
+      const inputY = document.createElement("input");
+
+      section.className = "inspector-bezier-point";
+      sectionLabel.className = "inspector-bezier-label";
+      sectionLabel.textContent = title;
+      pair.className = "inspector-bezier-pair";
+      inputX.type = "number";
+      inputY.type = "number";
+      inputX.step = "any";
+      inputY.step = "any";
+      inputX.className = "field-input inspector-geometry-input";
+      inputY.className = "field-input inspector-geometry-input";
+      inputX.value = String(bezier[key].x);
+      inputY.value = String(bezier[key].y);
+      inputX.disabled = locked;
+      inputY.disabled = locked;
+
+      inputs[key] = { x: inputX, y: inputY };
+      if (!locked) {
+        const liveUpdate = () => actions.updatePathBezier(node.dataset.editorId, readBezierFromInputs(), false);
+        const commitUpdate = () => actions.updatePathBezier(node.dataset.editorId, readBezierFromInputs(), true);
+        inputX.addEventListener("input", liveUpdate);
+        inputY.addEventListener("input", liveUpdate);
+        inputX.addEventListener("change", commitUpdate);
+        inputY.addEventListener("change", commitUpdate);
+        inputX.addEventListener("blur", commitUpdate);
+        inputY.addEventListener("blur", commitUpdate);
+      }
+
+      pair.append(inputX, inputY);
+      section.append(sectionLabel, pair);
+      grid.append(section);
+    });
+
+    originalInput.replaceWith(wrapper);
+    wrapper.append(grid);
+    return wrapper;
+  }
+
   function createInspectorField(node, field, locked, options = {}) {
     const { quickEdit = false } = options;
     const row = ui.fieldTemplate.content.firstElementChild.cloneNode(true);
@@ -342,6 +457,33 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
 
     if (field.kind === "typography-controls") {
       createTypographyControls(node, field, label, originalInput, locked);
+      return row;
+    }
+
+    if (field.kind === "polygon-sides") {
+      createCountControl(node, field, label, originalInput, locked, {
+        hint: "Regenerate as a regular polygon inside the current bounds.",
+        max: 16,
+        min: 3,
+        onCommit: (value) => actions.updatePolygonSides(node.dataset.editorId, value, true),
+        value: model.getPolygonSideCount(node) || 5
+      });
+      return row;
+    }
+
+    if (field.kind === "polyline-points") {
+      createCountControl(node, field, label, originalInput, locked, {
+        hint: "Resample the current line while keeping its overall shape.",
+        max: 24,
+        min: 2,
+        onCommit: (value) => actions.updatePolylinePointCount(node.dataset.editorId, value, true),
+        value: model.getPolylinePointCount(node) || 4
+      });
+      return row;
+    }
+
+    if (field.kind === "path-bezier") {
+      createBezierControl(node, field, label, originalInput, locked);
       return row;
     }
 

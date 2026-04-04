@@ -16,7 +16,6 @@ export const SAMPLE_SVG = `
       <path d="M50 10 61 37 90 37 66 55 76 84 50 66 24 84 34 55 10 37 39 37Z" fill="#fef3c7" />
     </symbol>
   </defs>
-  <rect id="background" width="960" height="640" fill="#fffaf0" />
   <g id="posterFrame">
     <rect x="56" y="54" width="848" height="532" rx="40" fill="url(#sunriseGradient)" />
     <rect x="76" y="76" width="808" height="488" rx="30" fill="#fff8ee" opacity="0.16" />
@@ -42,7 +41,6 @@ export const SAMPLE_SVG = `
 
 export const EMPTY_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
-  <rect id="canvasBackground" x="0" y="0" width="1200" height="800" fill="#fffdf8" />
 </svg>
 `.trim();
 
@@ -80,7 +78,10 @@ export const FIELDS = [
     { key: "cy", label: "cy", kind: "attr" },
     { key: "r", label: "r", kind: "attr" },
     { key: "rx", label: "rx", kind: "attr" },
-    { key: "ry", label: "ry", kind: "attr" }
+    { key: "ry", label: "ry", kind: "attr" },
+    { key: "polygon-sides", label: "polygon sides", kind: "polygon-sides" },
+    { key: "polyline-points", label: "polyline points", kind: "polyline-points" },
+    { key: "path-bezier", label: "Bezier curve", kind: "path-bezier" }
   ]],
   ["Advanced", [
     { key: "d", label: "path d", kind: "attr", multiline: true },

@@ -101,6 +101,9 @@ export function createSvgMetadataTools(state) {
     if (field.kind === "readonly") return true;
     if (field.kind === "text") return ["text", "tspan"].includes(tag);
     if (field.kind === "typography-controls") return ["text", "tspan"].includes(tag);
+    if (field.kind === "polygon-sides") return tag === "polygon";
+    if (field.kind === "polyline-points") return tag === "polyline";
+    if (field.kind === "path-bezier") return tag === "path";
     if (field.key === "d") return tag === "path";
     if (field.key === "points") return ["polygon", "polyline"].includes(tag);
     if (["font-size", "font-family", "font-weight", "font-style", "text-decoration", "letter-spacing", "text-anchor"].includes(field.key)) {

@@ -17,7 +17,10 @@ Object.assign(actions, {
   toggleNodeCollapse: editor.toggleNodeCollapse,
   toggleNodeLock: editor.toggleNodeLock,
   toggleNodeVisibility: editor.toggleNodeVisibility,
-  updateField: editor.updateField
+  updateField: editor.updateField,
+  updatePathBezier: editor.updatePathBezier,
+  updatePolygonSides: editor.updatePolygonSides,
+  updatePolylinePointCount: editor.updatePolylinePointCount
 });
 
 editor.bindEvents();

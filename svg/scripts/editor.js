@@ -352,28 +352,6 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       });
   }
 
-  function isCanvasBackdropNode(node) {
-    if (!node || node === state.svgRoot || node.parentElement !== state.svgRoot) {
-      return false;
-    }
-
-    if (node.tagName.toLowerCase() !== "rect") {
-      return false;
-    }
-
-    const viewBox = model.getViewBoxRect();
-    const x = Number.parseFloat(node.getAttribute("x") || "0");
-    const y = Number.parseFloat(node.getAttribute("y") || "0");
-    const width = Number.parseFloat(node.getAttribute("width") || "0");
-    const height = Number.parseFloat(node.getAttribute("height") || "0");
-    const epsilon = 0.5;
-
-    return Math.abs(x - viewBox.x) <= epsilon
-      && Math.abs(y - viewBox.y) <= epsilon
-      && Math.abs(width - viewBox.width) <= epsilon
-      && Math.abs(height - viewBox.height) <= epsilon;
-  }
-
   function setCanvasPanning(active) {
     ui.workspaceSurface.classList.toggle("is-panning", active);
   }
@@ -623,7 +601,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+    if (target === state.svgRoot) {
       clearSelection();
       return;
     }
@@ -637,7 +615,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
-    if (event.button === 2 && (target === state.svgRoot || isCanvasBackdropNode(target))) {
+    if (event.button === 2 && target === state.svgRoot) {
       event.preventDefault();
       beginCanvasDrag(event, "svg");
       return;
@@ -647,7 +625,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       return;
     }
 
-    if (target === state.svgRoot || isCanvasBackdropNode(target)) {
+    if (target === state.svgRoot) {
       event.preventDefault();
       beginSelectionBox(event, "svg");
       return;
@@ -771,6 +749,58 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
       renderer.renderInspector();
       recordHistory(`field:${field.key}`);
     }
+  }
+
+  function applyGeometryControl(editorId, reason, applyChange, options = {}) {
+    const {
+      record = true,
+      renderInspector = record,
+      renderWorkspace = true
+    } = options;
+    const node = state.nodeMap.get(editorId);
+    if (!node || model.isNodeLocked(node)) {
+      return;
+    }
+
+    const changed = applyChange(node);
+    if (!changed) {
+      return;
+    }
+
+    model.syncEditorMetadata();
+    renderer.updateSource();
+    if (renderWorkspace) {
+      renderer.renderWorkspace();
+    }
+    renderer.renderTree();
+    if (renderInspector) {
+      renderer.renderInspector();
+    }
+    renderer.renderOverlay();
+    if (record) {
+      recordHistory(reason);
+    }
+  }
+
+  function updatePolygonSides(editorId, value, record = true) {
+    applyGeometryControl(editorId, "polygon-sides", (node) => model.updatePolygonSideCount(node, value), {
+      record,
+      renderInspector: record
+    });
+  }
+
+  function updatePolylinePointCount(editorId, value, record = true) {
+    applyGeometryControl(editorId, "polyline-points", (node) => model.updatePolylinePointCount(node, value), {
+      record,
+      renderInspector: record
+    });
+  }
+
+  function updatePathBezier(editorId, bezier, record = true) {
+    applyGeometryControl(editorId, "path-bezier", (node) => model.updatePathBezier(node, bezier), {
+      record,
+      renderInspector: record
+    });
   }
 
   function duplicateSelection() {
@@ -1039,6 +1069,9 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     toggleNodeCollapse,
     toggleNodeLock,
     toggleNodeVisibility,
-    updateField
+    updateField,
+    updatePathBezier,
+    updatePolygonSides,
+    updatePolylinePointCount
   };
 }
