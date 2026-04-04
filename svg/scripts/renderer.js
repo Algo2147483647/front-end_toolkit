@@ -87,6 +87,14 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.gridSnapSizeSelect.value = "";
     ui.gridSnapSizeGroup.title = `Grid size: ${state.gridSnapSize}px`;
 
+    const isInsertView = state.leftPanelView !== "layers";
+    ui.leftPanelInsertTab.classList.toggle("is-active", isInsertView);
+    ui.leftPanelInsertTab.setAttribute("aria-selected", String(isInsertView));
+    ui.leftPanelLayersTab.classList.toggle("is-active", !isInsertView);
+    ui.leftPanelLayersTab.setAttribute("aria-selected", String(!isInsertView));
+    ui.leftPanelInsertSection.classList.toggle("hidden", !isInsertView);
+    ui.leftPanelLayersSection.classList.toggle("hidden", isInsertView);
+
     ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
     ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
     ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "X";

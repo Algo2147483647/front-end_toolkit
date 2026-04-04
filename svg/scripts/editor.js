@@ -137,6 +137,11 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     renderer.syncChrome();
   }
 
+  function setLeftPanelView(view) {
+    state.leftPanelView = view === "layers" ? "layers" : "insert";
+    renderer.syncChrome();
+  }
+
   function setRightPanelHidden(hidden) {
     state.rightPanelHidden = hidden;
     renderer.syncChrome();
@@ -819,6 +824,8 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!state.sourceVisible));
     ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!state.topbarCollapsed));
     ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));
+    ui.leftPanelInsertTab.addEventListener("click", () => setLeftPanelView("insert"));
+    ui.leftPanelLayersTab.addEventListener("click", () => setLeftPanelView("layers"));
     ui.hideLeftPanelButton.addEventListener("click", () => setLeftPanelHidden(true));
     ui.hideRightPanelButton.addEventListener("click", () => setRightPanelHidden(true));
     ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.leftPanelHidden));
@@ -955,6 +962,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     setGridSnapEnabled,
     setGridSnapSize,
     setLeftPanelHidden,
+    setLeftPanelView,
     setRightPanelHidden,
     setSourcePaneVisible,
     setTopbarCollapsed,

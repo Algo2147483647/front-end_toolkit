@@ -464,6 +464,45 @@ textarea {
   font-family: var(--font-display);
 }
 
+.panel-segment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 4px;
+  border: 1px solid rgba(86, 67, 48, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.44);
+}
+
+.panel-segment-button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.panel-segment-button:hover,
+.panel-segment-button:focus-visible {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.74);
+  outline: none;
+}
+
+.panel-segment-button.is-active {
+  border-color: rgba(208, 90, 47, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--accent-strong);
+  box-shadow: 0 8px 18px rgba(65, 48, 32, 0.08);
+}
+
 .tree-panel,
 .property-form,
 .source-editor {

@@ -99,10 +99,14 @@
       <div class="floating-panel-header">
         <div>
           <h2>Library</h2>
+          <div class="panel-segment-toggle" role="tablist" aria-label="Library sections">
+            <button class="panel-segment-button is-active" id="leftPanelInsertTab" type="button" role="tab" aria-selected="true" aria-controls="leftPanelInsertSection">Insert</button>
+            <button class="panel-segment-button" id="leftPanelLayersTab" type="button" role="tab" aria-selected="false" aria-controls="leftPanelLayersSection">Layers</button>
+          </div>
         </div>
         <button class="tool-button compact" id="hideLeftPanelButton" type="button" title="Hide left panel" aria-label="Hide left panel">×</button>
       </div>
-      <section class="panel-section">
+      <section class="panel-section left-panel-view" id="leftPanelInsertSection">
         <div class="panel-heading">
           <h2>Insert</h2>
           <span class="hint-text">Click to add</span>
@@ -151,7 +155,7 @@
         <input id="imageInput" type="file" accept="image/*,.svg" hidden>
       </section>
 
-      <section class="panel-section">
+      <section class="panel-section left-panel-view hidden" id="leftPanelLayersSection">
         <div class="panel-heading">
           <h2>Layers</h2>
           <span class="count-badge" id="nodeCountBadge">0 nodes</span>
