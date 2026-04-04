@@ -478,6 +478,7 @@ export function createInteractionController({
     }
 
     if (state.drag.type === "canvas") {
+      state.suppressNextContextMenu = state.drag.moved;
       state.suppressNextSvgClick = state.drag.moved && state.drag.source === "svg";
       state.drag = null;
       setCanvasPanning(false);
@@ -585,7 +586,7 @@ export function createInteractionController({
       return;
     }
 
-    if (event.button === 2 && target === state.svgRoot) {
+    if (event.button === 2) {
       event.preventDefault();
       beginCanvasDrag(event, "svg");
       return;
@@ -634,6 +635,13 @@ export function createInteractionController({
   }
 
   function onWorkspaceContextMenu(event) {
+    if (state.suppressNextContextMenu) {
+      state.suppressNextContextMenu = false;
+      hideContextMenu();
+      event.preventDefault();
+      return;
+    }
+
     const target = resolveSelectionTarget(event.target);
     if (!target || target === state.svgRoot) {
       hideContextMenu();
@@ -774,14 +782,10 @@ export function createInteractionController({
     ui.zoomResetButton.addEventListener("click", fitToView);
     ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu);
     ui.workspaceSurface.addEventListener("pointerdown", (event) => {
-      const editorTarget = event.target.closest("[data-editor-id]");
       if (event.button !== 2) {
         hideContextMenu();
       }
       if (event.button === 2) {
-        if (editorTarget && editorTarget !== state.svgRoot) {
-          return;
-        }
         event.preventDefault();
         beginCanvasDrag(event, "surface");
         return;
@@ -791,6 +795,7 @@ export function createInteractionController({
         return;
       }
 
+      const editorTarget = event.target.closest("[data-editor-id]");
       if (editorTarget) {
         return;
       }

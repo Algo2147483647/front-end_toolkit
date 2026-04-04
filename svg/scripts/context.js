@@ -127,6 +127,7 @@ export const state = {
     x: 0,
     y: 0
   },
+  suppressNextContextMenu: false,
   suppressNextSvgClick: false,
   dropDepth: 0,
   warnings: [],
