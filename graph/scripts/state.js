@@ -1,0 +1,108 @@
+(function () {
+    const GraphApp = window.GraphApp || (window.GraphApp = {});
+
+    const data = {
+        rawData: null,
+        normalizedDag: null,
+        currentRoot: null,
+        history: [],
+        stageData: null,
+        zoomScale: 1,
+        minZoomScale: 1,
+        maxZoomScale: 2,
+        isInitialized: false,
+    };
+
+    const theme = {
+        stagePaddingX: 108,
+        stagePaddingY: 88,
+        columnGap: 116,
+        rowGap: 22,
+        nodeHeight: 74,
+        minNodeWidth: 188,
+        maxNodeWidth: 280,
+    };
+
+    const constants = {
+        zoomStep: 0.1,
+        minZoomFloor: 0.05,
+        defaultExportFileName: "dag-graph.svg",
+    };
+
+    let domCache = null;
+
+    function getDom() {
+        if (!domCache) {
+            domCache = {
+                mainContent: document.getElementById("main-content"),
+                emptyState: document.getElementById("empty-state"),
+                emptyStateMessage: document.getElementById("empty-state-message"),
+                graphSummary: document.getElementById("graph-summary"),
+                backButton: document.getElementById("back-btn"),
+                zoomInButton: document.getElementById("zoom-in-btn"),
+                zoomOutButton: document.getElementById("zoom-out-btn"),
+                zoomFitButton: document.getElementById("zoom-fit-btn"),
+                zoomValueInput: document.getElementById("zoom-value-input"),
+                controls: document.getElementById("floating-controls"),
+                settingsButton: document.getElementById("settings-btn"),
+                settingsPanel: document.getElementById("settings-panel"),
+                fileInput: document.getElementById("fileInput"),
+                fileInputText: document.querySelector(".file-input-text"),
+                exportButton: document.getElementById("export-btn"),
+                topbar: document.querySelector(".topbar"),
+            };
+        }
+
+        return domCache;
+    }
+
+    function resetGraphData() {
+        data.currentRoot = null;
+        data.history = [];
+        data.stageData = null;
+        data.zoomScale = 1;
+        data.minZoomScale = 1;
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function structuredCloneValue(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function truncate(text, maxLength) {
+        if (text.length <= maxLength) {
+            return text;
+        }
+
+        return `${text.slice(0, maxLength - 1)}...`;
+    }
+
+    function sanitizeNodeLabel(text) {
+        return String(text)
+            .split("\\")
+            .pop()
+            .split("/")
+            .pop()
+            .replace(/\.[^.]+$/, "")
+            .replace(/[_-]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    GraphApp.state = {
+        data,
+        theme,
+        constants,
+        getDom,
+        resetGraphData,
+        utils: {
+            clamp,
+            sanitizeNodeLabel,
+            structuredCloneValue,
+            truncate,
+        },
+    };
+})();
