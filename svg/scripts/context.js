@@ -130,6 +130,7 @@ export const state = {
   dropDepth: 0,
   warnings: [],
   collapsedNodeKeys: new Set(),
+  inspectorSectionStates: new Map(),
   lockedNodeKeys: new Set(),
   nodeKeyByEditorId: new Map(),
   editorIdByNodeKey: new Map(),

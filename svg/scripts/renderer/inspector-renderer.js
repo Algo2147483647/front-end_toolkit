@@ -17,6 +17,37 @@ const FIELD_OPTION_SETS = new Map([
 ]);
 
 export function createInspectorRenderer({ state, ui, model, actions }) {
+  function getSectionStateKey(node, sectionTitle) {
+    if (!node || !sectionTitle) {
+      return null;
+    }
+
+    const nodeTag = node.tagName?.toLowerCase?.() || "node";
+    return `${nodeTag}:${sectionTitle}`;
+  }
+
+  function isSectionOpen(node, section) {
+    const key = getSectionStateKey(node, section.title);
+    if (!key) {
+      return Boolean(section.open);
+    }
+
+    if (state.inspectorSectionStates.has(key)) {
+      return state.inspectorSectionStates.get(key);
+    }
+
+    return Boolean(section.open);
+  }
+
+  function rememberSectionState(node, sectionTitle, isOpen) {
+    const key = getSectionStateKey(node, sectionTitle);
+    if (!key) {
+      return;
+    }
+
+    state.inspectorSectionStates.set(key, Boolean(isOpen));
+  }
+
   function getFieldValue(node, field) {
     return field.kind === "readonly"
       ? field.value(node)
@@ -790,7 +821,10 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
       const summary = document.createElement("summary");
       const content = document.createElement("div");
       details.className = "inspector-card inspector-section";
-      if (section.open) details.open = true;
+      details.open = isSectionOpen(node, section);
+      details.addEventListener("toggle", () => {
+        rememberSectionState(node, section.title, details.open);
+      });
       summary.className = "inspector-section-summary";
       summary.textContent = section.title;
       content.className = "inspector-section-body";
