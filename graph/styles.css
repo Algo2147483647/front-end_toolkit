@@ -347,6 +347,8 @@ body::before {
 }
 
 .file-input-label {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -366,7 +368,12 @@ body::before {
 }
 
 #settings-panel input[type="file"] {
-  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .file-input-text {
