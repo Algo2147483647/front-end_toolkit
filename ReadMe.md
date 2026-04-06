@@ -5,6 +5,7 @@ Front-End Toolkit is a browser-based collection of front-end utilities for form 
 ## Overview
 
 - Pure front-end implementation built primarily with `HTML + CSS + JavaScript`.
+- `svg/` additionally includes an optional Vite-based React/Vue + TypeScript workspace for modernized development and packaging.
 - Each tool is isolated by directory; there is no single app shell or unified build pipeline.
 - Most pages can be opened directly in a browser, but using a local static server is recommended for better compatibility.
 - This repository is best understood as a toolkit, not a monolithic application.
@@ -22,7 +23,7 @@ Front-End Toolkit is a browser-based collection of front-end utilities for form 
 
 ## Recommended Ways to Run
 
-The repository currently does not include a `package.json` and does not depend on a build step. The simplest and most reliable way to run it is with a local static server.
+Most of the repository still does not depend on a build step, and the simplest way to run the toolkit is still a local static server. The `svg/` module is the exception and now also ships with an optional React/Vue + TypeScript workspace.
 
 ### Option 1: Use Python
 

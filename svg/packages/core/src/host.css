@@ -1,0 +1,18 @@
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.svg-studio-app-host {
+  min-height: 100vh;
+}

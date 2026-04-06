@@ -8,6 +8,11 @@ A browser-based SVG visual editor that runs directly in the browser with no buil
 
 `SVG Studio` is the SVG tool inside the `front-end_toolkit` repository. It is not intended to replace Illustrator, Figma, or Inkscape. The goal is to provide a lighter browser-side editor that fits front-end delivery workflows more naturally.
 
+This directory now supports two execution paths:
+
+- `legacy static`: keep using [index.html](./index.html) with no build step
+- `modern workspace`: run React + TypeScript or Vue + TypeScript hosts through Vite while reusing the existing editor logic
+
 Typical use cases include:
 
 - Inspecting and editing SVG assets used in product interfaces
@@ -103,6 +108,38 @@ There are also shape-specific editing helpers:
 - Use source mode for attributes and structures that are easier to edit as code
 
 ## Quick Start
+
+### Option 0: Run the React / Vue + TypeScript workspace
+
+Install dependencies once:
+
+```powershell
+cd D:\Algo\Projects\front-end_toolkit\svg
+npm install
+```
+
+Start the React host:
+
+```powershell
+npm run dev:react
+```
+
+Start the Vue host:
+
+```powershell
+npm run dev:vue
+```
+
+Build both modern targets:
+
+```powershell
+npm run build
+```
+
+Build outputs:
+
+- `svg/dist/react/`
+- `svg/dist/vue/`
 
 ### Option 1: Open directly
 
@@ -234,8 +271,14 @@ The current version is useful for day-to-day SVG editing and structural adjustme
 
 ```text
 svg/
+|-- apps/
+|   |-- react/                    # React + TypeScript host
+|   `-- vue/                      # Vue + TypeScript host
 |-- architecture-diagram.svg      # Project diagram
 |-- index.html                    # App entry
+|-- package.json                  # Modern workspace scripts
+|-- packages/
+|   `-- core/                     # Shared shell/bootstrap layer
 |-- README.md                     # Current documentation
 |-- styles.css                    # App styles
 `-- scripts/
@@ -265,6 +308,16 @@ svg/
         |-- tree-renderer.js           # Left-side layer tree
         `-- workspace-renderer.js      # Canvas and overlay rendering
 ```
+
+## Refactor Strategy
+
+The current refactor is a migration layer, not a full behavior rewrite:
+
+- `packages/core/src/shell.ts` contains the shared app shell markup
+- `packages/core/src/bootstrap.ts` loads the legacy editor scripts and styles
+- `apps/react/` and `apps/vue/` render the shell in framework code and bootstrap the editor
+
+That moves the project into a React/TS/Vue-compatible structure without rewriting the SVG editing engine in one pass.
 
 ## Who This Is For
 
