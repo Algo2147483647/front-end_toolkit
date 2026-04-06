@@ -2,11 +2,8 @@ import "../../../../styles.css";
 import "../host.css";
 import { EMPTY_SVG, SAMPLE_SVG } from "../../../../scripts/constants.js";
 import { createEditor } from "../../../../scripts/editor.js";
-import { createRenderer } from "../../../../scripts/renderer.js";
 import { createSvgModel } from "../../../../scripts/svg-model.js";
-import { createReactInspectorRenderer } from "./renderers/inspector-renderer";
-import { createReactTreeRenderer } from "./renderers/tree-renderer";
-import { createReactWorkspaceRenderer } from "./renderers/workspace-renderer";
+import { createRenderer } from "../runtime/create-renderer";
 import { createSvgRuntimeStore } from "./state";
 import type { SvgStudioUiRefs } from "./types";
 
@@ -20,12 +17,7 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
     state,
     ui,
     model,
-    actions,
-    rendererFactories: {
-      createInspectorRenderer: createReactInspectorRenderer,
-      createTreeRenderer: createReactTreeRenderer,
-      createWorkspaceRenderer: createReactWorkspaceRenderer
-    }
+    actions
   });
   const editor = createEditor({ store, state, ui, model, renderer, emptySvg: EMPTY_SVG });
 

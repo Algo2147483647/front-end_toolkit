@@ -1,9 +1,18 @@
-import { GRID_SNAP_DEFAULT_SIZE, GRID_SNAP_SIZE_OPTIONS } from "./constants.js";
-import { createInspectorRenderer } from "./renderer/inspector-renderer.js";
-import { createTreeRenderer } from "./renderer/tree-renderer.js";
-import { createWorkspaceRenderer } from "./renderer/workspace-renderer.js";
+import { GRID_SNAP_DEFAULT_SIZE, GRID_SNAP_SIZE_OPTIONS } from "../../../../scripts/constants.js";
+import { createReactInspectorRenderer } from "../react/renderers/inspector-renderer";
+import { createReactTreeRenderer } from "../react/renderers/tree-renderer";
+import { createReactWorkspaceRenderer } from "../react/renderers/workspace-renderer";
+import type { SvgStudioUiRefs } from "../react/types";
 
-export function createRenderer({ store, state, ui, model, actions, rendererFactories = {} }) {
+interface RendererDeps {
+  store: any;
+  state: any;
+  ui: SvgStudioUiRefs;
+  model: any;
+  actions: Record<string, (...args: unknown[]) => unknown>;
+}
+
+export function createRenderer({ store, state, ui, model, actions }: RendererDeps) {
   const runtime = store?.getState?.() || state;
 
   function updateSource() {
@@ -78,8 +87,8 @@ export function createRenderer({ store, state, ui, model, actions, rendererFacto
     ui.surfaceGrid.classList.toggle("hidden", !runtime.gridSnapEnabled);
 
     ui.showTopbarButton.classList.toggle("hidden", !runtime.topbarCollapsed);
-    ui.collapseTopbarButton.querySelector(".tool-label").textContent = runtime.topbarCollapsed ? "Show" : "Hide";
-    ui.collapseTopbarButton.querySelector(".tool-icon").textContent = runtime.topbarCollapsed ? "+" : "-";
+    ui.collapseTopbarButton.querySelector(".tool-label")!.textContent = runtime.topbarCollapsed ? "Show" : "Hide";
+    ui.collapseTopbarButton.querySelector(".tool-icon")!.textContent = runtime.topbarCollapsed ? "+" : "-";
     ui.collapseTopbarButton.title = runtime.topbarCollapsed ? "Show toolbar" : "Hide toolbar";
     ui.gridSnapButton.classList.toggle("is-active", runtime.gridSnapEnabled);
     ui.gridSnapButton.setAttribute("aria-pressed", String(runtime.gridSnapEnabled));
@@ -158,16 +167,11 @@ export function createRenderer({ store, state, ui, model, actions, rendererFacto
     ui.deleteButton.disabled = !canChange;
   }
 
-  const createInspector = rendererFactories.createInspectorRenderer || createInspectorRenderer;
-  const createTree = rendererFactories.createTreeRenderer || createTreeRenderer;
-
-  const inspectorRenderer = createInspector({ store, state: runtime, ui, model, actions });
+  const inspectorRenderer = createReactInspectorRenderer({ store, state: runtime, ui, model, actions });
   const { renderInspector } = inspectorRenderer;
-  const treeRenderer = createTree({ store, state: runtime, ui, model, actions });
+  const treeRenderer = createReactTreeRenderer({ state: runtime, ui, model, actions });
   const { renderTree } = treeRenderer;
-  const createWorkspace = rendererFactories.createWorkspaceRenderer || createWorkspaceRenderer;
-  const workspaceRenderer = createWorkspace({
-    store,
+  const workspaceRenderer = createReactWorkspaceRenderer({
     state: runtime,
     ui,
     model,
@@ -177,7 +181,14 @@ export function createRenderer({ store, state, ui, model, actions, rendererFacto
   });
   const { renderOverlay, renderWorkspace } = workspaceRenderer;
 
-  function refresh(options = {}) {
+  function refresh(options: {
+    workspace?: boolean;
+    tree?: boolean;
+    inspector?: boolean;
+    source?: boolean;
+    actions?: boolean;
+    overlay?: boolean;
+  } = {}) {
     const {
       workspace = false,
       tree = false,
