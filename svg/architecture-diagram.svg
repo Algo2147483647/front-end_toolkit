@@ -112,13 +112,13 @@
   <g transform="translate(62,190)">
     <rect x="0" y="0" width="1876" height="176" rx="28" fill="url(#panel)" stroke="#e8d7ca" filter="url(#softShadow)"/>
     <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">1. 启动与装配层</text>
-    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">应用入口负责初始化状态、组装模型与渲染器、注入控制器动作并加载示例 SVG</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">React 入口负责挂载应用壳层、初始化运行时状态、组装模型与渲染器，并加载示例 SVG</text>
 
     <g transform="translate(28,84)">
       <rect x="0" y="0" width="250" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
-      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Static Shell</text>
-      <text x="15" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">index.html + styles.css</text>
-      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">三栏布局、工具栏、画布、源码面板、属性面板</text>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">React App Shell</text>
+      <text x="15" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">apps/react + styles.css</text>
+      <text x="15" y="60" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">壳层组件、三栏布局、工具栏、画布区、源码面板、属性面板</text>
     </g>
 
     <g transform="translate(318,84)">
@@ -130,17 +130,17 @@
 
     <g transform="translate(574,84)">
       <rect x="0" y="0" width="222" height="64" rx="18" fill="#fff" stroke="#e8d7ca"/>
-      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Runtime Context</text>
-      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">context.js</text>
-      <text x="18" y="61" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">`ui` DOM 引用 + `state` 全局状态容器</text>
+      <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">React Host Bridge</text>
+      <text x="18" y="44" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">useSvgStudio + types.ts</text>
+      <text x="18" y="61" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">显式 refs、workspace/window 事件桥接、宿主 UI 协议</text>
     </g>
 
     <g transform="translate(836,70)">
       <rect x="0" y="0" width="292" height="92" rx="22" fill="#fff8f1" stroke="#dbb79e" stroke-width="2"/>
-      <text x="20" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Bootstrap Core</text>
-      <text x="20" y="48" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">app.js</text>
-      <text x="20" y="67" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">createSvgModel→ createRenderer→ createEditor</text>
-      <text x="20" y="80" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">注入 actions、绑定事件、同步 chrome、加载 SAMPLE_SVG</text>
+      <text x="20" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">React Runtime Mount</text>
+      <text x="20" y="48" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">packages/core/src/react/mount.ts</text>
+      <text x="20" y="67" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">createSvgStudioState → createSvgModel → createRenderer → createEditor</text>
+      <text x="20" y="80" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">注入 React renderers、同步 chrome、加载 SAMPLE_SVG、暴露 dispose</text>
     </g>
 
     <g transform="translate(1168,84)">
@@ -174,16 +174,16 @@
 
   <g transform="translate(62,396)">
     <rect x="0" y="0" width="430" height="452" rx="28" fill="url(#panel)" stroke="#e7d6c7" filter="url(#softShadow)"/>
-    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">2. 全局状态与 UI 上下文</text>
-    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">context.js 是所有模块的共享依赖，既持有运行时状态，也缓存 DOM 句柄</text>
+    <text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">2. 共享状态与宿主接口</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">React 宿主通过 refs 与 UI 协议连接编辑器运行时；运行时状态仍是控制器与渲染器共享的核心依赖</text>
 
     <g transform="translate(28,84)">
       <rect x="0" y="0" width="374" height="146" rx="22" fill="#fff" stroke="#e8d7ca"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">UI References</text>
-      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">ui</text>
-      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">顶栏按钮、左右面板、树面板等 DOM 引用</text>
-      <text x="18" y="106" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">作用：事件绑定、DOM 更新、状态映射到视觉层</text>
-      <text x="18" y="128" class="mono" font-family="IBM Plex Mono, Consolas, monospace" font-weight="600" font-size="11">#appShell  #workspaceSurface  #selectionOverlay  #treePanel</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">refs / ui contract</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">顶栏按钮、左右面板、树面板、工作区等显式宿主引用</text>
+      <text x="18" y="106" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">作用：事件桥接、chrome 同步、状态映射到 React 渲染层</text>
+      <text x="18" y="128" class="mono" font-family="IBM Plex Mono, Consolas, monospace" font-weight="600" font-size="11">#appShell  #workspaceSurface  #svgHost  #treePanel</text>
     </g>
 
     <g transform="translate(28,250)">
@@ -201,13 +201,13 @@
   <g transform="translate(524,396)">
     
     <rect x="0" y="0" width="640" height="452" rx="28" fill="url(#panelCool)" stroke="#cee8df" filter="url(#softShadow)"/><text x="28" y="38" class="section-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="20">3. Editor 协调层 / 控制器层</text>
-    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">`editor.js` 负责组合四类控制器，并向 `app.js` 暴露统一 API</text>
+    <text x="28" y="58" class="section-note" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">`editor.js` 负责组合四类控制器，并向 React mount / hook 暴露统一 editor API</text>
 
     <g transform="translate(216,84)">
       <rect x="0" y="0" width="215" height="75" rx="18" fill="#f4fcfa" stroke="#85c3b5" stroke-width="2"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Controller Facade</text>
       <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">createEditor(...)</text>
-      <text x="18" y="62" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">统一转发 bind/load/select等行为</text>
+      <text x="18" y="62" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">统一转发 bind/load/select 与 workspace/window handlers</text>
     </g>
 
     <g transform="translate(28,184)">
@@ -263,17 +263,17 @@
     <g transform="translate(28,196)">
       <rect x="0" y="0" width="220" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Workspace Renderer</text>
-      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">workspace-renderer.js</text>
-      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">挂载 `svgRoot` 到 `svgHost`</text>
-      <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">维护独立 overlay</text>
-      <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">绘制选框,resize handle,Bezier 控制柄,多选框</text>
-      <text x="18" y="138" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10"><tspan xml:space="preserve" x="18" y="138">同步 viewBox /preserveAspectRatio /</tspan><tspan xml:space="preserve" x="18" y="150.5"> zoom / grid</tspan></text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">workspace-renderer.tsx</text>
+      <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">挂载 `svgRoot` 到 `svgHost` 的 React slot</text>
+      <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">由 React 绘制 selection / resize / Bezier / marquee overlay</text>
+      <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">同步 viewBox、preserveAspectRatio、zoom、grid</text>
+      <text x="18" y="138" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">支持 unmount / dispose，避免宿主重复挂载残留</text>
     </g>
 
     <g transform="translate(272,196)">
       <rect x="0" y="0" width="210" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Tree Renderer</text>
-      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">tree-renderer.js</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">tree-renderer.tsx</text>
       <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">递归渲染图层树</text>
       <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">节点折叠、选中、锁定、显示/隐藏状态</text>
       <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">以 `actions` 回调驱动选择和状态切换</text>
@@ -283,7 +283,7 @@
     <g transform="translate(506,196)">
       <rect x="0" y="0" width="208" height="162" rx="20" fill="#fff" stroke="#d9e7fb"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">Inspector Renderer</text>
-      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">inspector-renderer.js</text>
+      <text x="18" y="45" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">inspector-renderer.tsx</text>
       <text x="18" y="69" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">根据 tag 动态生成字段区段</text>
       <text x="18" y="92" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">支持颜色,字体,计数器,Bezier,动作控件</text>
       <text x="18" y="115" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="10">维护 section open state</text>
@@ -389,10 +389,10 @@
     <g transform="translate(28,88)">
       <rect x="0" y="0" width="712" height="204" rx="20" fill="#fff" stroke="#d7eee6"/>
       <text x="18" y="24" class="card-subtitle" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="11">UI Shell Mapping</text>
-      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">index.html 的主要区域</text>
+      <text x="18" y="46" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">React shell 的主要区域</text>
 
       <rect x="18" y="62" width="676" height="36" rx="12" fill="#fff7ef" stroke="#ecd6c8"/>
-      <text x="34" y="85" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">Topbar: 新建 / 导入 / 保存 / 导出 / Undo / Redo / Snap / Source / Zoom / Fit / Collapse</text>
+      <text x="34" y="85" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">Topbar: New / Import / Save / Export / Undo / Redo / Snap / Code / Zoom / Fit / Collapse</text>
 
       <rect x="18" y="112" width="154" height="72" rx="14" fill="#f8fbff" stroke="#d9e7fb"/>
       <text x="32" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Left Panel</text>
@@ -400,7 +400,7 @@
 
       <rect x="188" y="112" width="318" height="72" rx="14" fill="#f9fdfa" stroke="#d9eee5"/>
       <text x="204" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Workspace</text>
-      <text x="204" y="160" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">surface-grid / svgHost / overlay / drop-overlay</text>
+      <text x="204" y="160" class="card-body" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="500" font-size="12">surface-grid / svgHost / React workspace root / drop-overlay</text>
 
       <rect x="522" y="112" width="172" height="72" rx="14" fill="#fbf8ff" stroke="#e7e0ff"/>
       <text x="538" y="138" class="card-title" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="700" font-size="16">Right Panel</text>
@@ -421,7 +421,7 @@
 
   <g>
     <path d="M492 620C520 620 520 622 524 622" fill="none" stroke="#9a3412" stroke-width="3.5" marker-end="url(#arrowWarm)"/>
-    <text x="460" y="600" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">共享 state / ui</text>
+    <text x="460" y="600" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">共享 state / ui contract</text>
 
     <path d="M1164 622H1196" fill="none" stroke="#0f766e" stroke-width="3.5" marker-end="url(#arrowCool)"/>
     <text x="1160" y="600" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">触发刷新</text>
@@ -433,13 +433,13 @@
     
 
     
-    <text x="910" y="365" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 装配 createEditor</text>
+    <text x="910" y="365" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">mount.ts 装配 createEditor</text>
 
     
-    <text x="1490" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 装配 createRenderer</text>
+    <text x="1490" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">mount.ts 装配 createRenderer</text>
 
     
-    <text x="1245" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">app.js 注入 model</text>
+    <text x="1245" y="360" class="arrow-label" font-family="IBM Plex Sans, Segoe UI, Microsoft YaHei, sans-serif" font-weight="600" font-size="12">mount.ts 注入 model</text>
   </g>
 
   <g transform="translate(62,1372)">

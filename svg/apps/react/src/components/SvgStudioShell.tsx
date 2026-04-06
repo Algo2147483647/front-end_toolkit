@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { SvgStudioBindings, SvgStudioDomRefs } from "../hooks/useSvgStudio";
 
 interface ShellProps {
@@ -5,12 +7,97 @@ interface ShellProps {
   workspaceSurfaceProps?: SvgStudioBindings["workspaceSurfaceProps"];
 }
 
-function ToolButtonLabel({ icon, label }: { icon: string; label: string }) {
+function ToolButtonLabel({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <>
       <span className="tool-icon" aria-hidden="true">{icon}</span>
       <span className="tool-label">{label}</span>
     </>
+  );
+}
+
+function InsertIconRect() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="12" y="15" width="40" height="34" rx="12" fill="currentColor" opacity="0.14"></rect>
+      <rect x="16" y="19" width="32" height="26" rx="8" fill="none" stroke="currentColor" strokeWidth="4"></rect>
+    </svg>
+  );
+}
+
+function InsertIconCircle() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="20" fill="currentColor" opacity="0.14"></circle>
+      <circle cx="32" cy="32" r="16" fill="none" stroke="currentColor" strokeWidth="4"></circle>
+    </svg>
+  );
+}
+
+function InsertIconEllipse() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <ellipse cx="32" cy="32" rx="22" ry="16" fill="currentColor" opacity="0.14"></ellipse>
+      <ellipse cx="32" cy="32" rx="18" ry="12" fill="none" stroke="currentColor" strokeWidth="4"></ellipse>
+    </svg>
+  );
+}
+
+function InsertIconLine() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <line x1="17" y1="44" x2="47" y2="20" stroke="currentColor" strokeWidth="5" strokeLinecap="round"></line>
+      <circle cx="17" cy="44" r="5" fill="currentColor"></circle>
+      <circle cx="47" cy="20" r="5" fill="currentColor"></circle>
+    </svg>
+  );
+}
+
+function InsertIconText() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M18 18h28" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round"></path>
+      <path d="M32 18v28" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round"></path>
+      <path d="M22 46h20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" opacity="0.6"></path>
+    </svg>
+  );
+}
+
+function InsertIconPolyline() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <polyline points="12 42 24 28 34 36 52 16" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"></polyline>
+      <circle cx="12" cy="42" r="4" fill="currentColor"></circle>
+      <circle cx="24" cy="28" r="4" fill="currentColor" opacity="0.8"></circle>
+      <circle cx="34" cy="36" r="4" fill="currentColor" opacity="0.65"></circle>
+    </svg>
+  );
+}
+
+function InsertIconPolygon() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <polygon points="32 12 50 24 42 48 22 48 14 24" fill="currentColor" opacity="0.14"></polygon>
+      <polygon points="32 16 46 26 40 44 24 44 18 26" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"></polygon>
+    </svg>
+  );
+}
+
+function InsertIconPath() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M12 42 C18 16, 32 16, 36 34 S50 50, 52 22" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round"></path>
+    </svg>
+  );
+}
+
+function InsertIconImage() {
+  return (
+    <svg className="insert-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="14" y="16" width="36" height="30" rx="8" fill="none" stroke="currentColor" strokeWidth="4"></rect>
+      <circle cx="24" cy="25" r="4" fill="currentColor"></circle>
+      <path d="M18 40 28 31 35 37 42 28 50 40" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"></path>
+    </svg>
   );
 }
 
@@ -30,29 +117,29 @@ function Topbar({ refs }: ShellProps) {
             <ToolButtonLabel icon="+" label="New" />
           </button>
           <button className="tool-button" id="importButton" type="button" title="Import SVG" aria-label="Import SVG" ref={refs.importButtonRef}>
-            <ToolButtonLabel icon="In" label="Import" />
+            <ToolButtonLabel icon="↑" label="Import" />
           </button>
           <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden ref={refs.fileInputRef} />
           <button className="tool-button" id="saveButton" type="button" title="Save over original file" aria-label="Save over original file" ref={refs.saveButtonRef}>
             <ToolButtonLabel icon="S" label="Save" />
           </button>
           <button className="tool-button" id="exportButton" type="button" title="Export SVG" aria-label="Export SVG" ref={refs.exportButtonRef}>
-            <ToolButtonLabel icon="Out" label="Export" />
+            <ToolButtonLabel icon="↓" label="Export" />
           </button>
         </div>
 
         <div className="toolbar-group">
           <button className="tool-button" id="undoButton" type="button" title="Undo" aria-label="Undo" ref={refs.undoButtonRef}>
-            <ToolButtonLabel icon="U" label="Undo" />
+            <ToolButtonLabel icon="↶" label="Undo" />
           </button>
           <button className="tool-button" id="redoButton" type="button" title="Redo" aria-label="Redo" ref={refs.redoButtonRef}>
-            <ToolButtonLabel icon="R" label="Redo" />
+            <ToolButtonLabel icon="↷" label="Redo" />
           </button>
           <button className="tool-button" id="duplicateButton" type="button" title="Duplicate" aria-label="Duplicate" ref={refs.duplicateButtonRef}>
-            <ToolButtonLabel icon="C" label="Copy" />
+            <ToolButtonLabel icon="⎘" label="Copy" />
           </button>
           <button className="tool-button" id="deleteButton" type="button" title="Delete" aria-label="Delete" ref={refs.deleteButtonRef}>
-            <ToolButtonLabel icon="X" label="Delete" />
+            <ToolButtonLabel icon="×" label="Delete" />
           </button>
         </div>
 
@@ -77,10 +164,10 @@ function Topbar({ refs }: ShellProps) {
         <span id="zoomLabel" ref={refs.zoomLabelRef}>100%</span>
         <button className="tool-button compact" id="zoomInButton" type="button" title="Zoom in" aria-label="Zoom in" ref={refs.zoomInButtonRef}>+</button>
         <button className="tool-button" id="zoomResetButton" type="button" title="Fit to view" aria-label="Fit to view" ref={refs.zoomResetButtonRef}>
-          <ToolButtonLabel icon="Fit" label="Fit" />
+          <ToolButtonLabel icon="⤢" label="Fit" />
         </button>
         <button className="tool-button" id="collapseTopbarButton" type="button" title="Hide toolbar" aria-label="Hide toolbar" ref={refs.collapseTopbarButtonRef}>
-          <ToolButtonLabel icon="-" label="Hide" />
+          <ToolButtonLabel icon="▴" label="Hide" />
         </button>
       </div>
     </header>
@@ -108,7 +195,7 @@ function LeftPanel({ refs }: ShellProps) {
             <button className="panel-segment-button" id="leftPanelLayersTab" type="button" role="tab" aria-selected="false" aria-controls="leftPanelLayersSection" ref={refs.leftPanelLayersTabRef}>Layers</button>
           </div>
         </div>
-        <button className="tool-button compact" id="hideLeftPanelButton" type="button" title="Hide left panel" aria-label="Hide left panel" ref={refs.hideLeftPanelButtonRef}>X</button>
+        <button className="tool-button compact" id="hideLeftPanelButton" type="button" title="Hide left panel" aria-label="Hide left panel" ref={refs.hideLeftPanelButtonRef}>×</button>
       </div>
 
       <section className="panel-section left-panel-view" id="leftPanelInsertSection" ref={refs.leftPanelInsertSectionRef}>
@@ -117,15 +204,15 @@ function LeftPanel({ refs }: ShellProps) {
           <span className="hint-text">Click to add</span>
         </div>
         <div className="insert-grid" id="insertGrid" ref={refs.insertGridRef}>
-          <button className="insert-card" type="button" data-insert="rect" title="Insert rectangle" aria-label="Insert rectangle">rect</button>
-          <button className="insert-card" type="button" data-insert="circle" title="Insert circle" aria-label="Insert circle">circle</button>
-          <button className="insert-card" type="button" data-insert="ellipse" title="Insert ellipse" aria-label="Insert ellipse">ellipse</button>
-          <button className="insert-card" type="button" data-insert="line" title="Insert line" aria-label="Insert line">line</button>
-          <button className="insert-card" type="button" data-insert="text" title="Insert text" aria-label="Insert text">text</button>
-          <button className="insert-card" type="button" data-insert="polyline" title="Insert polyline" aria-label="Insert polyline">polyline</button>
-          <button className="insert-card" type="button" data-insert="polygon" title="Insert polygon" aria-label="Insert polygon">polygon</button>
-          <button className="insert-card" type="button" data-insert="path" title="Insert path" aria-label="Insert path">path</button>
-          <button className="insert-card" id="insertImageButton" type="button" title="Insert image" aria-label="Insert image" ref={refs.insertImageButtonRef}>image</button>
+          <button className="insert-card" type="button" data-insert="rect" title="Insert rectangle" aria-label="Insert rectangle"><InsertIconRect /></button>
+          <button className="insert-card" type="button" data-insert="circle" title="Insert circle" aria-label="Insert circle"><InsertIconCircle /></button>
+          <button className="insert-card" type="button" data-insert="ellipse" title="Insert ellipse" aria-label="Insert ellipse"><InsertIconEllipse /></button>
+          <button className="insert-card" type="button" data-insert="line" title="Insert line" aria-label="Insert line"><InsertIconLine /></button>
+          <button className="insert-card" type="button" data-insert="text" title="Insert text" aria-label="Insert text"><InsertIconText /></button>
+          <button className="insert-card" type="button" data-insert="polyline" title="Insert polyline" aria-label="Insert polyline"><InsertIconPolyline /></button>
+          <button className="insert-card" type="button" data-insert="polygon" title="Insert polygon" aria-label="Insert polygon"><InsertIconPolygon /></button>
+          <button className="insert-card" type="button" data-insert="path" title="Insert path" aria-label="Insert path"><InsertIconPath /></button>
+          <button className="insert-card" id="insertImageButton" type="button" title="Insert image" aria-label="Insert image" ref={refs.insertImageButtonRef}><InsertIconImage /></button>
         </div>
         <input id="imageInput" type="file" accept="image/*,.svg" hidden ref={refs.imageInputRef} />
       </section>
@@ -166,7 +253,7 @@ function Workspace({ refs, workspaceSurfaceProps }: ShellProps) {
               <h2>SVG Source</h2>
             </div>
             <button className="tool-button" id="applySourceButton" type="button" ref={refs.applySourceButtonRef}>
-              <ToolButtonLabel icon="OK" label="Apply" />
+              <ToolButtonLabel icon="✓" label="Apply" />
             </button>
           </div>
           <p className="source-pane-hint">Edit raw SVG and apply your changes when you are ready.</p>
@@ -189,7 +276,7 @@ function Inspector({ refs }: ShellProps) {
         <div>
           <h2>Inspector</h2>
         </div>
-        <button className="tool-button compact" id="hideRightPanelButton" type="button" title="Hide right panel" aria-label="Hide right panel" ref={refs.hideRightPanelButtonRef}>X</button>
+        <button className="tool-button compact" id="hideRightPanelButton" type="button" title="Hide right panel" aria-label="Hide right panel" ref={refs.hideRightPanelButtonRef}>×</button>
       </div>
       <section className="panel-section">
         <div className="inspector-empty" id="inspectorEmpty" ref={refs.inspectorEmptyRef}>Select an element from the canvas or layer tree.</div>

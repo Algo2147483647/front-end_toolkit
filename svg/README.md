@@ -290,7 +290,41 @@ The current refactor is now centered on a single host:
 - `apps/react/` renders the shell with actual React components and mounts the editor through `packages/core/src/react/`
 - `packages/core/src/react/` owns the host bridge, injected renderers, and runtime cleanup hooks
 
-That means the project has already crossed the migration boundary away from `app.js + context.js + shell.ts`, while the editing controllers and renderers are still being reused underneath.
+That means the project has already crossed the migration boundary away from the legacy bootstrap host, while the editing controllers and renderers are still being reused underneath.
+
+## Next Refactor Roadmap
+
+The next stage should focus on reducing the remaining DOM-driven coupling inside the editing runtime, not on adding another host.
+
+### Phase 1: Stabilize the React runtime boundary
+
+- Keep `apps/react/` as the only host and continue moving host-only concerns into `packages/core/src/react/`
+- Narrow the `ui` contract so controllers depend on fewer raw DOM nodes
+- Convert current implicit cleanup rules into explicit `dispose()` coverage for every mountable runtime part
+
+### Phase 2: Extract a single runtime store
+
+- Move shared editor state construction and mutations toward one runtime store module instead of spreading host knowledge across controllers and renderers
+- Separate persistent document state, transient interaction state, and host chrome state
+- Replace direct DOM class toggles where practical with state-driven rendering inputs
+
+### Phase 3: Split command logic from event wiring
+
+- Keep geometry and document mutation logic in the shared core
+- Move pointer, keyboard, and drag/drop binding details fully into React-side adapters
+- Let controllers expose commands such as select, drag, resize, zoom, load, export, and toggle panel state without owning browser listeners directly
+
+### Phase 4: Reduce renderer coupling
+
+- Continue using injected renderer factories, but push toward a clearer renderer interface with fewer side effects
+- Revisit `renderer.refresh(...)` so update intent is easier to trace and test
+- Gradually remove assumptions that tree, inspector, and workspace must be refreshed through shared imperative coordination
+
+### Phase 5: Add regression coverage before deeper rewrites
+
+- Add a lightweight test layer around document loading, selection, drag/resize history, inspector field updates, and export flows
+- Preserve build and typecheck as required gates for every change
+- Use those checks before attempting larger store or controller rewrites
 
 ## Who This Is For
 
