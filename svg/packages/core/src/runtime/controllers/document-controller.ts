@@ -7,15 +7,15 @@ export function createDocumentController({
   emptySvg,
   selectionController,
   historyController
-}) {
+}: any) {
   const runtime = store?.getState?.() || state;
 
-  function setCurrentFileBinding(fileHandle = null, fileName = "") {
+  function setCurrentFileBinding(fileHandle: any = null, fileName = "") {
     store.document.setCurrentFileBinding(fileHandle, fileName);
     renderer.syncChrome();
   }
 
-  async function ensureWritableFilePermission(fileHandle) {
+  async function ensureWritableFilePermission(fileHandle: any) {
     if (!fileHandle) {
       return false;
     }
@@ -51,7 +51,7 @@ export function createDocumentController({
     return runtime.svgRoot;
   }
 
-  function insertNode(node, recordReason = "insert") {
+  function insertNode(node: any, recordReason = "insert") {
     const root = ensureDocument();
     const parent = model.getInsertParent() || root;
     model.snapNodeToGrid(node);
@@ -70,17 +70,17 @@ export function createDocumentController({
     historyController.recordHistory(recordReason);
   }
 
-  function insertElement(kind) {
+  function insertElement(kind: string) {
     insertNode(model.createElementNode(kind), `insert-${kind}`);
   }
 
-  async function insertImageFile(file) {
+  async function insertImageFile(file: File) {
     ensureDocument();
     const imageNode = await model.createImageNodeFromFile(file);
     insertNode(imageNode, "insert-image");
   }
 
-  function toggleNodeVisibility(editorId) {
+  function toggleNodeVisibility(editorId: string) {
     const node = runtime.nodeMap.get(editorId);
     if (!node || node === runtime.svgRoot) {
       return;
@@ -103,8 +103,8 @@ export function createDocumentController({
     historyController.recordHistory("visibility");
   }
 
-  function updateField(editorId, field, value, record) {
-    const node = state.nodeMap.get(editorId);
+  function updateField(editorId: string, field: any, value: string, record: boolean) {
+    const node = runtime.nodeMap.get(editorId);
     if (!node || field.kind === "readonly" || model.isNodeLocked(node)) {
       return;
     }
@@ -142,7 +142,7 @@ export function createDocumentController({
       }
 
       model.rebuildNodeMap();
-      const keyMap = new Map();
+      const keyMap = new Map<string, string>();
       previousKeys.forEach((oldKey, currentNode) => {
         const nextKey = model.getNodeKey(currentNode);
         if (oldKey && nextKey && oldKey !== nextKey) {
@@ -217,12 +217,12 @@ export function createDocumentController({
     }
   }
 
-  function rebuildAfterStructureChange(reason, options = {}) {
+  function rebuildAfterStructureChange(reason: string, options: { record?: boolean } = {}) {
     const previousKeys = new Map(
       [...runtime.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
     );
     model.rebuildNodeMap();
-    const keyMap = new Map();
+    const keyMap = new Map<string, string>();
     previousKeys.forEach((oldKey, currentNode) => {
       const nextKey = model.getNodeKey(currentNode);
       if (oldKey && nextKey && oldKey !== nextKey) {
@@ -243,7 +243,7 @@ export function createDocumentController({
     }
   }
 
-  function getReorderTargets(editorId = null) {
+  function getReorderTargets(editorId: string | null = null) {
     if (editorId) {
       const node = runtime.nodeMap.get(editorId);
       if (!node || node === runtime.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
@@ -252,16 +252,16 @@ export function createDocumentController({
       return [node];
     }
 
-    return selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    return selectionController.getSelectionTargets().filter((node: any) => !model.isNodeLocked(node));
   }
 
-  function bringSelectionToFront(editorId = null) {
+  function bringSelectionToFront(editorId: string | null = null) {
     const nodes = getReorderTargets(editorId);
     if (!nodes.length) {
       return;
     }
 
-    nodes.forEach((node) => {
+    nodes.forEach((node: any) => {
       node.parentElement?.append(node);
     });
     if (editorId) {
@@ -270,14 +270,14 @@ export function createDocumentController({
     rebuildAfterStructureChange("z-order:front");
   }
 
-  function sendSelectionToBack(editorId = null) {
+  function sendSelectionToBack(editorId: string | null = null) {
     const nodes = getReorderTargets(editorId);
     if (!nodes.length) {
       return;
     }
 
-    const nodesByParent = new Map();
-    nodes.forEach((node) => {
+    const nodesByParent = new Map<any, any[]>();
+    nodes.forEach((node: any) => {
       const parent = node.parentElement;
       if (!parent) {
         return;
@@ -285,7 +285,7 @@ export function createDocumentController({
       if (!nodesByParent.has(parent)) {
         nodesByParent.set(parent, []);
       }
-      nodesByParent.get(parent).push(node);
+      nodesByParent.get(parent)!.push(node);
     });
 
     nodesByParent.forEach((siblings) => {
@@ -304,7 +304,7 @@ export function createDocumentController({
     rebuildAfterStructureChange("z-order:back");
   }
 
-  function applyGeometryControl(editorId, reason, applyChange, options = {}) {
+  function applyGeometryControl(editorId: string, reason: string, applyChange: (node: any) => boolean, options: any = {}) {
     const {
       record = true,
       renderInspector = record,
@@ -334,35 +334,35 @@ export function createDocumentController({
     }
   }
 
-  function updatePolygonSides(editorId, value, record = true) {
+  function updatePolygonSides(editorId: string, value: string, record = true) {
     applyGeometryControl(editorId, "polygon-sides", (node) => model.updatePolygonSideCount(node, value), {
       record,
       renderInspector: record
     });
   }
 
-  function regularizePolygon(editorId, record = true) {
+  function regularizePolygon(editorId: string, record = true) {
     applyGeometryControl(editorId, "polygon-regularize", (node) => model.regularizePolygon(node), {
       record,
       renderInspector: true
     });
   }
 
-  function regularizePolygonEqualSides(editorId, record = true) {
+  function regularizePolygonEqualSides(editorId: string, record = true) {
     applyGeometryControl(editorId, "polygon-regularize-equal-sides", (node) => model.regularizePolygonEqualSides(node), {
       record,
       renderInspector: true
     });
   }
 
-  function updatePolylinePointCount(editorId, value, record = true) {
+  function updatePolylinePointCount(editorId: string, value: string, record = true) {
     applyGeometryControl(editorId, "polyline-points", (node) => model.updatePolylinePointCount(node, value), {
       record,
       renderInspector: record
     });
   }
 
-  function updatePathBezier(editorId, bezier, record = true) {
+  function updatePathBezier(editorId: string, bezier: any, record = true) {
     applyGeometryControl(editorId, "path-bezier", (node) => model.updatePathBezier(node, bezier), {
       record,
       renderInspector: record
@@ -370,14 +370,14 @@ export function createDocumentController({
   }
 
   function duplicateSelection() {
-    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    const nodes = selectionController.getSelectionTargets().filter((node: any) => !model.isNodeLocked(node));
     if (!nodes.length) {
       return;
     }
 
-    const cloneIds = [];
-    nodes.forEach((node) => {
-      const clone = node.cloneNode(true);
+    const cloneIds: string[] = [];
+    nodes.forEach((node: any) => {
+      const clone = node.cloneNode(true) as any;
       model.remapSubtreeIds(clone);
       model.addEditorIds(clone);
       node.parentNode.insertBefore(clone, node.nextSibling);
@@ -400,13 +400,13 @@ export function createDocumentController({
   }
 
   function deleteSelection() {
-    const nodes = selectionController.getSelectionTargets().filter((node) => !model.isNodeLocked(node));
+    const nodes = selectionController.getSelectionTargets().filter((node: any) => !model.isNodeLocked(node));
     if (!nodes.length) {
       return;
     }
 
     const fallback = nodes[0].previousElementSibling || nodes[0].parentElement || runtime.svgRoot;
-    nodes.forEach((node) => node.remove());
+    nodes.forEach((node: any) => node.remove());
     model.rebuildNodeMap();
     model.syncEditorMetadata();
     selectionController.selectNode(
@@ -459,7 +459,7 @@ export function createDocumentController({
     return true;
   }
 
-  function loadDocument(source, options = {}) {
+  function loadDocument(source: string, options: any = {}) {
     const {
       fitScale = null,
       pushHistory = true,

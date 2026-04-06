@@ -1,7 +1,7 @@
 import "../../../../styles.css";
 import "../host.css";
 import { EMPTY_SVG, SAMPLE_SVG } from "../../../../scripts/constants.js";
-import { createEditor } from "../../../../scripts/editor.js";
+import { createEditor } from "../runtime/create-editor";
 import { createSvgModel } from "../../../../scripts/svg-model.js";
 import { createRenderer } from "../runtime/create-renderer";
 import { createSvgRuntimeStore } from "./state";

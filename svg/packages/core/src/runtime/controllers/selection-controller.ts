@@ -1,4 +1,4 @@
-export function createSelectionController({ store, state, model, renderer }) {
+export function createSelectionController({ store, state, model, renderer }: any) {
   const runtime = store?.getState?.() || state;
 
   function refreshSelectionState() {
@@ -19,7 +19,7 @@ export function createSelectionController({ store, state, model, renderer }) {
     };
   }
 
-  function restoreEditorState(snapshot) {
+  function restoreEditorState(snapshot: any) {
     store.selection.restoreEditorState(snapshot);
   }
 
@@ -27,7 +27,7 @@ export function createSelectionController({ store, state, model, renderer }) {
     store.selection.resetEditorState();
   }
 
-  function remapMetadataKey(oldKey, newKey) {
+  function remapMetadataKey(oldKey: string | null, newKey: string | null) {
     if (!oldKey || !newKey || oldKey === newKey) {
       return;
     }
@@ -49,13 +49,13 @@ export function createSelectionController({ store, state, model, renderer }) {
     }
   }
 
-  function remapMetadataKeys(keyMap) {
+  function remapMetadataKeys(keyMap: Map<string, string>) {
     if (!(keyMap instanceof Map) || !keyMap.size) {
       return;
     }
 
-    const remapSet = (currentSet) => {
-      const nextSet = new Set();
+    const remapSet = (currentSet: Set<string>) => {
+      const nextSet = new Set<string>();
       currentSet.forEach((key) => {
         nextSet.add(keyMap.get(key) || key);
       });
@@ -71,7 +71,7 @@ export function createSelectionController({ store, state, model, renderer }) {
     runtime.lockedNodeKeys = remapSet(runtime.lockedNodeKeys);
   }
 
-  function setSelection(editorIds, options = {}) {
+  function setSelection(editorIds: string[], options: { primaryId?: string | null; render?: boolean } = {}) {
     const { primaryId = null, render = true } = options;
     const validIds = [...new Set(
       editorIds
@@ -124,14 +124,14 @@ export function createSelectionController({ store, state, model, renderer }) {
     setSelection([], options);
   }
 
-  function selectNode(editorId, options = {}) {
+  function selectNode(editorId: string | null, options: { render?: boolean } = {}) {
     setSelection(editorId ? [editorId] : [], {
       primaryId: editorId || null,
       render: options.render !== false
     });
   }
 
-  function toggleNodeCollapse(editorId) {
+  function toggleNodeCollapse(editorId: string) {
     const nodeKey = model.getNodeKeyByEditorId(editorId);
     if (!nodeKey) {
       return;
@@ -146,7 +146,7 @@ export function createSelectionController({ store, state, model, renderer }) {
     renderer.refresh({ tree: true });
   }
 
-  function toggleNodeLock(editorId) {
+  function toggleNodeLock(editorId: string) {
     const node = runtime.nodeMap.get(editorId);
     const nodeKey = model.getNodeKeyByEditorId(editorId);
     if (!node || !nodeKey || node === runtime.svgRoot) {

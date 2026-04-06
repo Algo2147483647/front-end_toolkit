@@ -1,9 +1,9 @@
-import { createDocumentController } from "./controllers/document-controller.js";
-import { createHistoryController } from "./controllers/history-controller.js";
-import { createInteractionController } from "./controllers/interaction-controller.js";
-import { createSelectionController } from "./controllers/selection-controller.js";
+import { createDocumentController } from "./controllers/document-controller";
+import { createHistoryController } from "./controllers/history-controller";
+import { createInteractionController } from "./controllers/interaction-controller";
+import { createSelectionController } from "./controllers/selection-controller";
 
-export function createEditor({ store, state, ui, model, renderer, emptySvg }) {
+export function createEditor({ store, state, ui, model, renderer, emptySvg }: any) {
   const selectionController = createSelectionController({ store, state, model, renderer });
   const historyController = createHistoryController({ store, state, model, renderer });
   const documentController = createDocumentController({

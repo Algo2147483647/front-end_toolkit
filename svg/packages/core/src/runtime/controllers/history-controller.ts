@@ -1,12 +1,12 @@
-export function createHistoryController({ store, state, model, renderer }) {
+export function createHistoryController({ store, state, model, renderer }: any) {
   const runtime = store?.getState?.() || state;
-  let loadDocument = null;
+  let loadDocument: ((source: string, options?: any) => void) | null = null;
 
-  function setLoadDocument(fn) {
+  function setLoadDocument(fn: (source: string, options?: any) => void) {
     loadDocument = fn;
   }
 
-  function recordHistory(reason) {
+  function recordHistory(reason: string) {
     if (!runtime.svgRoot || runtime.restoring) {
       return;
     }
@@ -27,7 +27,7 @@ export function createHistoryController({ store, state, model, renderer }) {
     renderer.refresh({ actions: true });
   }
 
-  function restoreHistory(index) {
+  function restoreHistory(index: number) {
     const entry = runtime.history[index];
     if (!entry || typeof loadDocument !== "function") {
       return;

@@ -2,7 +2,7 @@ import {
   GRID_SNAP_SIZE_OPTIONS,
   GRID_SNAP_SIZE_STORAGE_KEY,
   GRID_SNAP_STORAGE_KEY
-} from "../constants.js";
+} from "../../../../../scripts/constants.js";
 
 export function createInteractionController({
   store,
@@ -14,7 +14,7 @@ export function createInteractionController({
   selectionController,
   historyController,
   documentController
-}) {
+}: any) {
   const runtime = store?.getState?.() || state;
   const NON_GEOMETRY_TAGS = new Set([
     "svg",
@@ -32,11 +32,12 @@ export function createInteractionController({
   ]);
 
   async function openSvgDocumentPicker() {
-    if (typeof window.showOpenFilePicker !== "function") {
+    const showOpenFilePicker = (window as any).showOpenFilePicker;
+    if (typeof showOpenFilePicker !== "function") {
       return null;
     }
 
-    const [handle] = await window.showOpenFilePicker({
+    const [handle] = await showOpenFilePicker({
       excludeAcceptAllOption: false,
       multiple: false,
       types: [{
@@ -58,41 +59,41 @@ export function createInteractionController({
     };
   }
 
-  function clampZoom(value) {
+  function clampZoom(value: number) {
     return Math.max(0.01, Math.min(2.5, value));
   }
 
-  function setTopbarCollapsed(collapsed) {
+  function setTopbarCollapsed(collapsed: boolean) {
     store.chrome.setTopbarCollapsed(collapsed);
     renderer.syncChrome();
   }
 
-  function setLeftPanelHidden(hidden) {
+  function setLeftPanelHidden(hidden: boolean) {
     store.chrome.setLeftPanelHidden(hidden);
     renderer.syncChrome();
   }
 
-  function setLeftPanelView(view) {
+  function setLeftPanelView(view: string) {
     store.chrome.setLeftPanelView(view);
     renderer.syncChrome();
   }
 
-  function setRightPanelHidden(hidden) {
+  function setRightPanelHidden(hidden: boolean) {
     store.chrome.setRightPanelHidden(hidden);
     renderer.syncChrome();
   }
 
-  function setGridSnapEnabled(enabled) {
+  function setGridSnapEnabled(enabled: boolean) {
     store.chrome.setGridSnapEnabled(enabled);
     try {
       localStorage.setItem(GRID_SNAP_STORAGE_KEY, String(enabled));
-    } catch (error) {
+    } catch {
       // Ignore storage errors and keep the toggle working for this session.
     }
     renderer.syncChrome();
   }
 
-  function setGridSnapSize(size) {
+  function setGridSnapSize(size: string) {
     const parsed = Number.parseInt(size, 10);
     if (!GRID_SNAP_SIZE_OPTIONS.includes(parsed)) {
       if (Number.isFinite(parsed) && parsed >= 1) {
@@ -107,13 +108,13 @@ export function createInteractionController({
 
     try {
       localStorage.setItem(GRID_SNAP_SIZE_STORAGE_KEY, String(parsed));
-    } catch (error) {
+    } catch {
       // Ignore storage errors and keep the selector working for this session.
     }
     renderer.syncChrome();
   }
 
-  function setSourcePaneVisible(visible) {
+  function setSourcePaneVisible(visible: boolean) {
     store.chrome.setSourceVisible(visible);
     ui.sourcePane.classList.toggle("hidden", !visible);
     ui.workspaceContent.classList.toggle("is-source-visible", visible);
@@ -126,7 +127,7 @@ export function createInteractionController({
     ui.sourceToggleButton.title = visible ? "Hide source" : "Show source";
   }
 
-  function setZoom(value) {
+  function setZoom(value: number) {
     store.viewport.setZoom(clampZoom(value));
     renderer.applyZoom();
   }
@@ -142,7 +143,7 @@ export function createInteractionController({
     ui.dropOverlay.classList.add("hidden");
   }
 
-  function isFileDragEvent(event) {
+  function isFileDragEvent(event: any) {
     const types = event?.dataTransfer?.types;
     if (!types) {
       return false;
@@ -156,7 +157,7 @@ export function createInteractionController({
     ui.contextMenu.classList.add("hidden");
   }
 
-  function showContextMenu(editorId, clientX, clientY) {
+  function showContextMenu(editorId: string | null, clientX: number, clientY: number) {
     const menuHost = ui.contextMenu.offsetParent || ui.contextMenu.parentElement || document.body;
     const hostRect = menuHost.getBoundingClientRect();
     const menuWidth = ui.contextMenu.offsetWidth || 180;
@@ -182,7 +183,7 @@ export function createInteractionController({
     ui.sendToBackButton.disabled = !canReorder;
   }
 
-  function resolveSelectionTarget(startNode) {
+  function resolveSelectionTarget(startNode: any) {
     const rawTarget = startNode?.closest?.("[data-editor-id]") || null;
     if (!rawTarget || rawTarget === runtime.svgRoot) {
       return rawTarget;
@@ -191,7 +192,7 @@ export function createInteractionController({
     return model.resolveEditableNode?.(rawTarget, { preferredNode: startNode }) || rawTarget;
   }
 
-  function normalizeBox(startPoint, endPoint) {
+  function normalizeBox(startPoint: { x: number; y: number }, endPoint: { x: number; y: number }) {
     const x = Math.min(startPoint.x, endPoint.x);
     const y = Math.min(startPoint.y, endPoint.y);
     return {
@@ -202,14 +203,14 @@ export function createInteractionController({
     };
   }
 
-  function rectContainsRect(container, target) {
+  function rectContainsRect(container: any, target: any) {
     return target.x >= container.x
       && target.y >= container.y
       && target.x + target.width <= container.x + container.width
       && target.y + target.height <= container.y + container.height;
   }
 
-  function isSelectableGeometryNode(node) {
+  function isSelectableGeometryNode(node: any) {
     if (!node || node === runtime.svgRoot || model.isNodeLocked(node) || model.isNodeHidden(node)) {
       return false;
     }
@@ -221,12 +222,12 @@ export function createInteractionController({
     return !NON_GEOMETRY_TAGS.has(node.tagName.toLowerCase());
   }
 
-  function getNodeBounds(node) {
+  function getNodeBounds(node: any) {
     return model.getNodeVisualBounds(node);
   }
 
-  function collectSelectionBoxMatches(box) {
-    const matches = new Set();
+  function collectSelectionBoxMatches(box: any) {
+    const matches = new Set<string>();
     for (const [editorId, node] of runtime.nodeMap.entries()) {
       if (!isSelectableGeometryNode(node)) {
         continue;
@@ -250,22 +251,22 @@ export function createInteractionController({
     return [...matches];
   }
 
-  function setCanvasPanning(active) {
+  function setCanvasPanning(active: boolean) {
     ui.workspaceSurface.classList.toggle("is-panning", active);
   }
 
-  function setSelectionBoxActive(active) {
+  function setSelectionBoxActive(active: boolean) {
     ui.workspaceSurface.classList.toggle("is-selecting", active);
   }
 
-  function beginDrag(node, event) {
-    const selectedEditorIds = state.selectedIds.has(node.dataset.editorId)
+  function beginDrag(node: any, event: PointerEvent) {
+    const selectedEditorIds = runtime.selectedIds.has(node.dataset.editorId)
       ? selectionController.getSelectedEditorIds()
       : [node.dataset.editorId];
     const dragItems = selectedEditorIds
-      .map((editorId) => runtime.nodeMap.get(editorId))
-      .filter((selectedNode) => selectedNode && model.canDragNode(selectedNode))
-      .map((selectedNode) => {
+      .map((editorId: string) => runtime.nodeMap.get(editorId))
+      .filter((selectedNode: any) => selectedNode && model.canDragNode(selectedNode))
+      .map((selectedNode: any) => {
         const referenceNode = selectedNode.parentElement || runtime.svgRoot;
         return {
           editorId: selectedNode.dataset.editorId,
@@ -289,7 +290,7 @@ export function createInteractionController({
       : `Dragging: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
-  function beginCanvasDrag(event, source = "surface") {
+  function beginCanvasDrag(event: PointerEvent, source = "surface") {
     store.interaction.setDrag({
       type: "canvas",
       startClientX: event.clientX,
@@ -303,7 +304,7 @@ export function createInteractionController({
     ui.statusPill.textContent = "Panning canvas";
   }
 
-  function beginResizeDrag(editorId, handle, event) {
+  function beginResizeDrag(editorId: string, handle: string) {
     const node = runtime.nodeMap.get(editorId);
     if (!node || !model.canResizeNode(node)) {
       return;
@@ -324,7 +325,7 @@ export function createInteractionController({
     ui.statusPill.textContent = `Resizing: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
-  function beginPathBezierDrag(editorId, handle, event) {
+  function beginPathBezierDrag(editorId: string, handle: string) {
     const node = runtime.nodeMap.get(editorId);
     if (!node || node.tagName.toLowerCase() !== "path" || model.isNodeLocked(node)) {
       return;
@@ -344,7 +345,7 @@ export function createInteractionController({
     ui.statusPill.textContent = `Editing curve: ${model.labelFor(node)}`;
   }
 
-  function beginPointHandleDrag(editorId, handle, event) {
+  function beginPointHandleDrag(editorId: string, handle: string) {
     const node = runtime.nodeMap.get(editorId);
     if (!node || !["polyline", "polygon"].includes(node.tagName.toLowerCase()) || model.isNodeLocked(node)) {
       return;
@@ -364,7 +365,7 @@ export function createInteractionController({
     ui.statusPill.textContent = `Editing points: ${model.labelFor(node)}`;
   }
 
-  function beginSelectionBox(event, source = "surface") {
+  function beginSelectionBox(event: PointerEvent, source = "surface") {
     hideContextMenu();
     const point = model.toLocalPoint(runtime.svgRoot, event.clientX, event.clientY);
     store.interaction.setDrag({
@@ -385,7 +386,7 @@ export function createInteractionController({
     renderer.refresh({ overlay: true });
   }
 
-  function moveDrag(event) {
+  function moveDrag(event: PointerEvent) {
     if (!runtime.drag) {
       return;
     }
@@ -407,19 +408,19 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "path-bezier") {
-      const node = state.nodeMap.get(state.drag.editorId);
+    if (runtime.drag.type === "path-bezier") {
+      const node = runtime.nodeMap.get(runtime.drag.editorId);
       if (!node) {
         return;
       }
 
       const currentPoint = model.toLocalPoint(node, event.clientX, event.clientY);
-      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
-      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      const dx = currentPoint.x - runtime.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - runtime.drag.descriptor.startHandle.y;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        state.drag.moved = true;
+        runtime.drag.moved = true;
       }
-      model.applyPathBezierHandle(node, state.drag.descriptor, currentPoint);
+      model.applyPathBezierHandle(node, runtime.drag.descriptor, currentPoint);
       renderer.refresh({
         inspector: true,
         source: true,
@@ -428,19 +429,19 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "point-handle") {
-      const node = state.nodeMap.get(state.drag.editorId);
+    if (runtime.drag.type === "point-handle") {
+      const node = runtime.nodeMap.get(runtime.drag.editorId);
       if (!node) {
         return;
       }
 
       const currentPoint = model.toLocalPoint(node, event.clientX, event.clientY);
-      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
-      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      const dx = currentPoint.x - runtime.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - runtime.drag.descriptor.startHandle.y;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        state.drag.moved = true;
+        runtime.drag.moved = true;
       }
-      model.applyPointHandle(node, state.drag.descriptor, currentPoint);
+      model.applyPointHandle(node, runtime.drag.descriptor, currentPoint);
       renderer.refresh({
         inspector: true,
         source: true,
@@ -449,24 +450,23 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "canvas") {
-      const dx = event.clientX - state.drag.startClientX;
-      const dy = event.clientY - state.drag.startClientY;
+    if (runtime.drag.type === "canvas") {
+      const dx = event.clientX - runtime.drag.startClientX;
+      const dy = event.clientY - runtime.drag.startClientY;
       if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-        state.drag.moved = true;
+        runtime.drag.moved = true;
       }
-      state.panX = state.drag.startPanX + dx;
-      state.panY = state.drag.startPanY + dy;
+      store.viewport.setPan(runtime.drag.startPanX + dx, runtime.drag.startPanY + dy);
       renderer.applyZoom();
       return;
     }
 
-    if (state.drag.type === "selection-box") {
-      const currentPoint = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
-      const box = normalizeBox(state.drag.startPoint, currentPoint);
-      state.drag.currentPoint = currentPoint;
-      state.drag.moved = box.width > 1 || box.height > 1;
-      state.selectionBox = box;
+    if (runtime.drag.type === "selection-box") {
+      const currentPoint = model.toLocalPoint(runtime.svgRoot, event.clientX, event.clientY);
+      const box = normalizeBox(runtime.drag.startPoint, currentPoint);
+      runtime.drag.currentPoint = currentPoint;
+      runtime.drag.moved = box.width > 1 || box.height > 1;
+      store.interaction.setSelectionBox(box);
       selectionController.setSelection(collectSelectionBoxMatches(box), { render: false });
       renderer.refresh({
         tree: true,
@@ -477,8 +477,8 @@ export function createInteractionController({
       return;
     }
 
-    for (const item of state.drag.items) {
-      const node = state.nodeMap.get(item.editorId);
+    for (const item of runtime.drag.items) {
+      const node = runtime.nodeMap.get(item.editorId);
       if (!node) {
         continue;
       }
@@ -487,7 +487,7 @@ export function createInteractionController({
       const dx = Math.round((currentPoint.x - item.startPoint.x) * 100) / 100;
       const dy = Math.round((currentPoint.y - item.startPoint.y) * 100) / 100;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        state.drag.moved = true;
+        runtime.drag.moved = true;
       }
       model.applyDrag(node, item.descriptor, dx, dy);
     }
@@ -495,19 +495,19 @@ export function createInteractionController({
   }
 
   function endDrag() {
-    if (!state.drag) {
+    if (!runtime.drag) {
       return;
     }
 
-    if (state.drag.type === "resize") {
-      const moved = state.drag.moved;
-      state.drag = null;
+    if (runtime.drag.type === "resize") {
+      const moved = runtime.drag.moved;
+      store.interaction.clearDrag();
       if (!moved) {
         renderer.refresh({ overlay: true });
         return;
       }
 
-      state.suppressNextSvgClick = true;
+      store.interaction.setSuppressNextSvgClick(true);
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -518,24 +518,24 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "canvas") {
-      state.suppressNextContextMenu = state.drag.moved;
-      state.suppressNextSvgClick = state.drag.moved && state.drag.source === "svg";
-      state.drag = null;
+    if (runtime.drag.type === "canvas") {
+      store.interaction.setSuppressNextContextMenu(runtime.drag.moved);
+      store.interaction.setSuppressNextSvgClick(runtime.drag.moved && runtime.drag.source === "svg");
+      store.interaction.clearDrag();
       setCanvasPanning(false);
       ui.statusPill.textContent = "Canvas moved";
       return;
     }
 
-    if (state.drag.type === "path-bezier") {
-      const moved = state.drag.moved;
-      state.drag = null;
+    if (runtime.drag.type === "path-bezier") {
+      const moved = runtime.drag.moved;
+      store.interaction.clearDrag();
       if (!moved) {
         renderer.refresh({ overlay: true });
         return;
       }
 
-      state.suppressNextSvgClick = true;
+      store.interaction.setSuppressNextSvgClick(true);
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -546,15 +546,15 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "point-handle") {
-      const moved = state.drag.moved;
-      state.drag = null;
+    if (runtime.drag.type === "point-handle") {
+      const moved = runtime.drag.moved;
+      store.interaction.clearDrag();
       if (!moved) {
         renderer.refresh({ overlay: true });
         return;
       }
 
-      state.suppressNextSvgClick = true;
+      store.interaction.setSuppressNextSvgClick(true);
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -565,23 +565,23 @@ export function createInteractionController({
       return;
     }
 
-    if (state.drag.type === "selection-box") {
-      const moved = state.drag.moved;
-      const source = state.drag.source;
-      state.drag = null;
-      state.selectionBox = null;
+    if (runtime.drag.type === "selection-box") {
+      const moved = runtime.drag.moved;
+      const source = runtime.drag.source;
+      store.interaction.clearDrag();
+      store.interaction.clearSelectionBox();
       setSelectionBoxActive(false);
       if (!moved) {
         selectionController.clearSelection();
       } else {
         selectionController.refreshSelectionState();
-        state.suppressNextSvgClick = source === "svg";
+        store.interaction.setSuppressNextSvgClick(source === "svg");
       }
       return;
     }
 
-    const moved = state.drag.moved;
-    state.drag = null;
+    const moved = runtime.drag.moved;
+    store.interaction.clearDrag();
     if (!moved) {
       renderer.refresh({
         inspector: true,
@@ -590,7 +590,7 @@ export function createInteractionController({
       return;
     }
 
-    state.suppressNextSvgClick = true;
+    store.interaction.setSuppressNextSvgClick(true);
     renderer.refresh({
       inspector: true,
       source: true,
@@ -599,7 +599,7 @@ export function createInteractionController({
     historyController.recordHistory("drag");
   }
 
-  async function handleWorkspaceFiles(fileList) {
+  async function handleWorkspaceFiles(fileList: FileList | File[]) {
     const files = [...fileList];
     if (!files.length) {
       return;
@@ -616,10 +616,10 @@ export function createInteractionController({
     }
   }
 
-  function onSvgClick(event) {
+  function onSvgClick(event: MouseEvent) {
     hideContextMenu();
-    if (state.suppressNextSvgClick) {
-      state.suppressNextSvgClick = false;
+    if (runtime.suppressNextSvgClick) {
+      store.interaction.setSuppressNextSvgClick(false);
       return;
     }
 
@@ -631,7 +631,7 @@ export function createInteractionController({
     event.preventDefault();
     event.stopPropagation();
 
-    if (target === state.svgRoot) {
+    if (target === runtime.svgRoot) {
       selectionController.clearSelection();
       return;
     }
@@ -639,7 +639,7 @@ export function createInteractionController({
     selectionController.selectNode(target.dataset.editorId);
   }
 
-  function onSvgPointerDown(event) {
+  function onSvgPointerDown(event: PointerEvent) {
     hideContextMenu();
     const target = resolveSelectionTarget(event.target);
     if (!target) {
@@ -656,67 +656,67 @@ export function createInteractionController({
       return;
     }
 
-    if (target === state.svgRoot) {
+    if (target === runtime.svgRoot) {
       event.preventDefault();
       beginSelectionBox(event, "svg");
       return;
     }
 
-    if (!state.selectedIds.has(target.dataset.editorId)) {
+    if (!runtime.selectedIds.has(target.dataset.editorId)) {
       selectionController.selectNode(target.dataset.editorId);
     }
     beginDrag(target, event);
   }
 
-  function onResizeHandlePointerDown(event, editorId, handle) {
+  function onResizeHandlePointerDown(event: PointerEvent, editorId: string, handle: string) {
     if (event.button !== 0) {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
-    if (!state.selectedIds.has(editorId)) {
+    if (!runtime.selectedIds.has(editorId)) {
       selectionController.selectNode(editorId);
     }
-    beginResizeDrag(editorId, handle, event);
+    beginResizeDrag(editorId, handle);
   }
 
-  function onPathBezierHandlePointerDown(event, editorId, handle) {
+  function onPathBezierHandlePointerDown(event: PointerEvent, editorId: string, handle: string) {
     if (event.button !== 0) {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
-    if (!state.selectedIds.has(editorId)) {
+    if (!runtime.selectedIds.has(editorId)) {
       selectionController.selectNode(editorId);
     }
-    beginPathBezierDrag(editorId, handle, event);
+    beginPathBezierDrag(editorId, handle);
   }
 
-  function onPointHandlePointerDown(event, editorId, handle) {
+  function onPointHandlePointerDown(event: PointerEvent, editorId: string, handle: string) {
     if (event.button !== 0) {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
-    if (!state.selectedIds.has(editorId)) {
+    if (!runtime.selectedIds.has(editorId)) {
       selectionController.selectNode(editorId);
     }
-    beginPointHandleDrag(editorId, handle, event);
+    beginPointHandleDrag(editorId, handle);
   }
 
-  function onWorkspaceContextMenu(event) {
-    if (state.suppressNextContextMenu) {
-      state.suppressNextContextMenu = false;
+  function onWorkspaceContextMenu(event: MouseEvent) {
+    if (runtime.suppressNextContextMenu) {
+      store.interaction.setSuppressNextContextMenu(false);
       hideContextMenu();
       event.preventDefault();
       return;
     }
 
     const target = resolveSelectionTarget(event.target);
-    if (!target || target === state.svgRoot) {
+    if (!target || target === runtime.svgRoot) {
       hideContextMenu();
       event.preventDefault();
       return;
@@ -728,7 +728,7 @@ export function createInteractionController({
     showContextMenu(target.dataset.editorId, event.clientX, event.clientY);
   }
 
-  function onWorkspacePointerDown(event) {
+  function onWorkspacePointerDown(event: PointerEvent) {
     if (event.button !== 2) {
       hideContextMenu();
     }
@@ -742,7 +742,7 @@ export function createInteractionController({
       return;
     }
 
-    const editorTarget = event.target.closest("[data-editor-id]");
+    const editorTarget = (event.target as HTMLElement | null)?.closest?.("[data-editor-id]");
     if (editorTarget) {
       return;
     }
@@ -751,35 +751,35 @@ export function createInteractionController({
     beginSelectionBox(event, "surface");
   }
 
-  function onWorkspaceDragEnter(event) {
+  function onWorkspaceDragEnter(event: DragEvent) {
     if (!isFileDragEvent(event)) {
       return;
     }
     event.preventDefault();
-    state.dropDepth += 1;
+    store.interaction.setDropDepth(runtime.dropDepth + 1);
     ui.workspaceSurface.classList.add("is-dropping");
     ui.dropOverlay.classList.remove("hidden");
   }
 
-  function onWorkspaceDragOver(event) {
+  function onWorkspaceDragOver(event: DragEvent) {
     if (!isFileDragEvent(event)) {
       return;
     }
     event.preventDefault();
   }
 
-  function onWorkspaceDragLeave(event) {
-    if (!state.dropDepth) {
+  function onWorkspaceDragLeave(event: DragEvent) {
+    if (!runtime.dropDepth) {
       return;
     }
     event.preventDefault();
-    state.dropDepth = Math.max(0, state.dropDepth - 1);
-    if (state.dropDepth === 0) {
+    store.interaction.setDropDepth(Math.max(0, runtime.dropDepth - 1));
+    if (runtime.dropDepth === 0) {
       clearDropState();
     }
   }
 
-  async function onWorkspaceDrop(event) {
+  async function onWorkspaceDrop(event: DragEvent) {
     if (!isFileDragEvent(event)) {
       clearDropState();
       return;
@@ -788,12 +788,12 @@ export function createInteractionController({
     clearDropState();
     try {
       await handleWorkspaceFiles(event.dataTransfer?.files || []);
-    } catch (error) {
+    } catch (error: any) {
       alert(error.message);
     }
   }
 
-  function onWindowPointerMove(event) {
+  function onWindowPointerMove(event: PointerEvent) {
     moveDrag(event);
   }
 
@@ -819,29 +819,29 @@ export function createInteractionController({
     clearDropState();
   }
 
-  function onWindowPointerDown(event) {
-    if (event.button === 0 && !event.target.closest("#contextMenu")) {
+  function onWindowPointerDown(event: PointerEvent) {
+    if (event.button === 0 && !(event.target as HTMLElement | null)?.closest?.("#contextMenu")) {
       hideContextMenu();
     }
   }
 
-  function onWindowKeyDown(event) {
-    if (event.key === "Escape" && state.contextMenu.visible) {
+  function onWindowKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape" && runtime.contextMenu.visible) {
       hideContextMenu();
       return;
     }
-    if (event.key === "Escape" && state.sourceVisible) {
+    if (event.key === "Escape" && runtime.sourceVisible) {
       setSourcePaneVisible(false);
       return;
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
-      historyController.restoreHistory(event.shiftKey ? state.historyIndex + 1 : state.historyIndex - 1);
+      historyController.restoreHistory(event.shiftKey ? runtime.historyIndex + 1 : runtime.historyIndex - 1);
       return;
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
-      documentController.saveToSourceFile().catch((error) => {
+      documentController.saveToSourceFile().catch((error: any) => {
         alert(error.message);
       });
       return;
@@ -852,14 +852,14 @@ export function createInteractionController({
     }
   }
 
-  function bindEvents(options = {}) {
+  function bindEvents(options: { bindWindowEvents?: boolean; bindWorkspaceEvents?: boolean } = {}) {
     const {
       bindWindowEvents = true,
       bindWorkspaceEvents = true
     } = options;
 
     ui.importButton.addEventListener("click", async () => {
-      if (typeof window.showOpenFilePicker !== "function") {
+      if (typeof (window as any).showOpenFilePicker !== "function") {
         ui.fileInput.click();
         return;
       }
@@ -876,25 +876,25 @@ export function createInteractionController({
           fitScale: 0.7,
           preserveEditorState: false
         });
-      } catch (error) {
+      } catch (error: any) {
         if (error?.name === "AbortError") {
           return;
         }
         alert(error.message);
       }
     });
-    ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!state.gridSnapEnabled));
+    ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!runtime.gridSnapEnabled));
 
-    ui.gridSnapSizeInput.addEventListener("input", (event) => {
-      const value = event.target.value;
+    ui.gridSnapSizeInput.addEventListener("input", (event: Event) => {
+      const value = (event.target as HTMLInputElement).value;
       if (value === "" || value === "-") {
         return;
       }
       setGridSnapSize(value);
     });
 
-    ui.gridSnapSizeInput.addEventListener("change", (event) => {
-      const value = event.target.value;
+    ui.gridSnapSizeInput.addEventListener("change", (event: Event) => {
+      const value = (event.target as HTMLInputElement).value;
       if (value === "" || value === "-") {
         renderer.syncChrome();
         return;
@@ -902,22 +902,22 @@ export function createInteractionController({
       setGridSnapSize(value);
     });
 
-    ui.gridSnapSizeSelect.addEventListener("change", (event) => {
-      const value = event.target.value;
+    ui.gridSnapSizeSelect.addEventListener("change", (event: Event) => {
+      const value = (event.target as HTMLSelectElement).value;
       if (value) {
         setGridSnapSize(value);
       }
     });
 
-    ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!state.sourceVisible));
-    ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!state.topbarCollapsed));
+    ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!runtime.sourceVisible));
+    ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!runtime.topbarCollapsed));
     ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));
     ui.leftPanelInsertTab.addEventListener("click", () => setLeftPanelView("insert"));
     ui.leftPanelLayersTab.addEventListener("click", () => setLeftPanelView("layers"));
     ui.hideLeftPanelButton.addEventListener("click", () => setLeftPanelHidden(true));
     ui.hideRightPanelButton.addEventListener("click", () => setRightPanelHidden(true));
-    ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!state.leftPanelHidden));
-    ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!state.rightPanelHidden));
+    ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!runtime.leftPanelHidden));
+    ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!runtime.rightPanelHidden));
     ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
     ui.newDocumentButton.addEventListener("click", () => documentController.loadDocument(emptySvg, {
       fileHandle: null,
@@ -927,20 +927,20 @@ export function createInteractionController({
     ui.applySourceButton.addEventListener("click", () => {
       try {
         documentController.loadDocument(ui.sourceEditor.value, { preserveEditorState: true });
-      } catch (error) {
+      } catch (error: any) {
         alert(error.message);
       }
     });
     ui.saveButton.addEventListener("click", async () => {
       try {
         await documentController.saveToSourceFile();
-      } catch (error) {
+      } catch (error: any) {
         alert(error.message);
       }
     });
     ui.exportButton.addEventListener("click", documentController.downloadSvg);
-    ui.fileInput.addEventListener("change", async (event) => {
-      const [file] = event.target.files || [];
+    ui.fileInput.addEventListener("change", async (event: Event) => {
+      const [file] = (event.target as HTMLInputElement).files || [];
       if (!file) {
         return;
       }
@@ -951,54 +951,54 @@ export function createInteractionController({
           fitScale: 0.7,
           preserveEditorState: false
         });
-        event.target.value = "";
-      } catch (error) {
+        (event.target as HTMLInputElement).value = "";
+      } catch (error: any) {
         alert(error.message);
       }
     });
-    ui.imageInput.addEventListener("change", async (event) => {
-      const [file] = event.target.files || [];
+    ui.imageInput.addEventListener("change", async (event: Event) => {
+      const [file] = (event.target as HTMLInputElement).files || [];
       if (!file) {
         return;
       }
       try {
         await documentController.insertImageFile(file);
-        event.target.value = "";
-      } catch (error) {
+        (event.target as HTMLInputElement).value = "";
+      } catch (error: any) {
         alert(error.message);
       }
     });
-    ui.insertGrid.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-insert]");
+    ui.insertGrid.addEventListener("click", (event: Event) => {
+      const button = (event.target as HTMLElement | null)?.closest?.("[data-insert]") as HTMLElement | null;
       if (!button) {
         return;
       }
       documentController.insertElement(button.dataset.insert);
     });
-    ui.undoButton.addEventListener("click", () => historyController.restoreHistory(state.historyIndex - 1));
-    ui.redoButton.addEventListener("click", () => historyController.restoreHistory(state.historyIndex + 1));
+    ui.undoButton.addEventListener("click", () => historyController.restoreHistory(runtime.historyIndex - 1));
+    ui.redoButton.addEventListener("click", () => historyController.restoreHistory(runtime.historyIndex + 1));
     ui.duplicateButton.addEventListener("click", documentController.duplicateSelection);
     ui.deleteButton.addEventListener("click", documentController.deleteSelection);
-    ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
-    ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
+    ui.zoomInButton.addEventListener("click", () => setZoom(runtime.zoom + 0.1));
+    ui.zoomOutButton.addEventListener("click", () => setZoom(runtime.zoom - 0.1));
     ui.zoomResetButton.addEventListener("click", fitToView);
     if (bindWorkspaceEvents) {
-      ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu);
-      ui.workspaceSurface.addEventListener("pointerdown", onWorkspacePointerDown);
-      ui.workspaceSurface.addEventListener("dragenter", onWorkspaceDragEnter);
-      ui.workspaceSurface.addEventListener("dragover", onWorkspaceDragOver);
-      ui.workspaceSurface.addEventListener("dragleave", onWorkspaceDragLeave);
-      ui.workspaceSurface.addEventListener("drop", onWorkspaceDrop);
+      ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu as EventListener);
+      ui.workspaceSurface.addEventListener("pointerdown", onWorkspacePointerDown as EventListener);
+      ui.workspaceSurface.addEventListener("dragenter", onWorkspaceDragEnter as EventListener);
+      ui.workspaceSurface.addEventListener("dragover", onWorkspaceDragOver as EventListener);
+      ui.workspaceSurface.addEventListener("dragleave", onWorkspaceDragLeave as EventListener);
+      ui.workspaceSurface.addEventListener("drop", onWorkspaceDrop as unknown as EventListener);
     }
-    ui.contextMenu.addEventListener("pointerdown", (event) => {
+    ui.contextMenu.addEventListener("pointerdown", (event: Event) => {
       event.stopPropagation();
     });
     ui.bringToFrontButton.addEventListener("click", () => {
-      documentController.bringSelectionToFront(state.contextMenu.editorId);
+      documentController.bringSelectionToFront(runtime.contextMenu.editorId);
       hideContextMenu();
     });
     ui.sendToBackButton.addEventListener("click", () => {
-      documentController.sendSelectionToBack(state.contextMenu.editorId);
+      documentController.sendSelectionToBack(runtime.contextMenu.editorId);
       hideContextMenu();
     });
     if (bindWindowEvents) {
