@@ -39,7 +39,6 @@ export interface SvgStudioUiRefs {
   treePanel: HTMLDivElement;
   surfaceGrid: HTMLDivElement;
   svgHost: HTMLDivElement;
-  overlay: SVGSVGElement;
   insertGrid: HTMLDivElement;
   surfaceInner: HTMLDivElement;
   workspaceSurface: HTMLElement;
@@ -52,5 +51,4 @@ export interface SvgStudioUiRefs {
   sourceEditor: HTMLTextAreaElement;
   propertyForm: HTMLFormElement;
   inspectorEmpty: HTMLDivElement;
-  fieldTemplate: HTMLTemplateElement;
 }

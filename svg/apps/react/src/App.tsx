@@ -2,7 +2,7 @@ import { SvgStudioShell } from "./components/SvgStudioShell";
 import { useSvgStudio } from "./hooks/useSvgStudio";
 
 export default function App() {
-  const refs = useSvgStudio();
+  const { refs, workspaceSurfaceProps } = useSvgStudio();
 
-  return <SvgStudioShell refs={refs} />;
+  return <SvgStudioShell refs={refs} workspaceSurfaceProps={workspaceSurfaceProps} />;
 }

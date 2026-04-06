@@ -3,23 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:react": "vite --config vite.react.config.ts",
-    "dev:vue": "vite --config vite.vue.config.ts",
-    "build:react": "vite build --config vite.react.config.ts",
-    "build:vue": "vite build --config vite.vue.config.ts",
-    "build": "npm run build:react && npm run build:vue"
+    "dev": "vite --config vite.react.config.ts",
+    "build": "vite build --config vite.react.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "vue": "^3.5.13"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitejs/plugin-vue": "^4.6.2",
-    "@vue/compiler-sfc": "^3.5.13",
     "typescript": "^5.6.3",
     "vite": "^4.5.14"
   }

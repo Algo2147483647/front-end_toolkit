@@ -1,6 +1,6 @@
 # SVG Studio
 
-A browser-based SVG visual editor that runs directly in the browser with no build step. It is designed for front-end developers, design collaborators, and anyone who needs to inspect, adjust, and export SVG files with a practical editing workflow.
+A browser-based SVG visual editor built around a React + TypeScript workspace. It is designed for front-end developers, design collaborators, and anyone who needs to inspect, adjust, and export SVG files with a practical editing workflow.
 
 ![SVG Studio architecture overview](./architecture-diagram.svg)
 
@@ -8,15 +8,15 @@ A browser-based SVG visual editor that runs directly in the browser with no buil
 
 `SVG Studio` is the SVG tool inside the `front-end_toolkit` repository. It is not intended to replace Illustrator, Figma, or Inkscape. The goal is to provide a lighter browser-side editor that fits front-end delivery workflows more naturally.
 
-This directory now supports two execution paths:
+This directory now targets a single execution path:
 
-- `legacy static`: keep using [index.html](./index.html) with no build step
-- `modern workspace`: run React + TypeScript or Vue + TypeScript hosts through Vite
+- `React workspace`: run the editor through React + TypeScript on Vite
 
 Current migration status:
 
-- `React`: the app shell is now rendered as a real React component tree and mounted through typed DOM refs
-- `Vue`: currently remains on the compatibility host path and still bootstraps the legacy editor shell
+- `React shell`: the app shell, layer tree, inspector, and workspace canvas/overlay are now rendered through React-managed layers
+- `React events`: workspace surface events and window-level pointer/keyboard listeners are now attached from the React hook/component side
+- `Shared editing core`: drag, resize, selection, geometry, and document mutation logic are still reused from the existing controller/model layer while the legacy host layer has been removed
 
 Typical use cases include:
 
@@ -28,7 +28,7 @@ Typical use cases include:
 
 ## What Is Already Implemented
 
-This project is already a working static application, not just a design draft.
+This project is already a working React application, not just a design draft.
 
 ### 1. Document and file operations
 
@@ -114,7 +114,7 @@ There are also shape-specific editing helpers:
 
 ## Quick Start
 
-### Option 0: Run the React / Vue + TypeScript workspace
+### Run the React + TypeScript workspace
 
 Install dependencies once:
 
@@ -126,45 +126,18 @@ npm install
 Start the React host:
 
 ```powershell
-npm run dev:react
+npm run dev
 ```
 
-Start the Vue host:
-
-```powershell
-npm run dev:vue
-```
-
-Build both modern targets:
+Build the React target:
 
 ```powershell
 npm run build
 ```
 
-Build outputs:
+Build output:
 
 - `svg/dist/react/`
-- `svg/dist/vue/`
-
-### Option 1: Open directly
-
-1. Go into the `svg/` directory.
-2. Open [index.html](./index.html) in a browser.
-
-This is the fastest way to preview and use the editor, but overwrite-saving the original file is usually unavailable in this mode.
-
-### Option 2: Run a local static server
-
-If you want better browser compatibility for local file workflows, especially overwrite-save behavior, run the project through a local static server:
-
-```powershell
-cd D:\Algo\Projects\front-end_toolkit\svg
-python -m http.server 8080
-```
-
-Then open:
-
-- [http://localhost:8080](http://localhost:8080)
 
 ## Browser Compatibility
 
@@ -277,19 +250,15 @@ The current version is useful for day-to-day SVG editing and structural adjustme
 ```text
 svg/
 |-- apps/
-|   |-- react/                    # React + TypeScript host
-|   `-- vue/                      # Vue + TypeScript host
+|   `-- react/                    # React + TypeScript host
 |-- architecture-diagram.svg      # Project diagram
-|-- index.html                    # App entry
 |-- package.json                  # Modern workspace scripts
 |-- packages/
-|   `-- core/                     # Shared shell/bootstrap layer
+|   `-- core/                     # Shared React host + editing runtime bridge
 |-- README.md                     # Current documentation
 |-- styles.css                    # App styles
 `-- scripts/
-    |-- app.js                    # Application bootstrap
     |-- constants.js              # Constants, field config, sample SVG
-    |-- context.js                # Global state and UI references
     |-- editor.js                 # Main editor composition
     |-- renderer.js               # Render coordinator
     |-- svg-model.js              # Model aggregation entry
@@ -316,20 +285,19 @@ svg/
 
 ## Refactor Strategy
 
-The current refactor is now split by host:
+The current refactor is now centered on a single host:
 
 - `apps/react/` renders the shell with actual React components and mounts the editor through `packages/core/src/react/`
-- `apps/vue/` still uses the compatibility shell/bootstrap path
-- `packages/core/src/bootstrap.ts` remains for the legacy-compatible hosts
+- `packages/core/src/react/` owns the host bridge, injected renderers, and runtime cleanup hooks
 
-That means the React path has already crossed the first migration boundary away from `app.js + context.js + shell.ts`, while the editing controllers and renderers are still being reused underneath.
+That means the project has already crossed the migration boundary away from `app.js + context.js + shell.ts`, while the editing controllers and renderers are still being reused underneath.
 
 ## Who This Is For
 
 - Front-end engineers who need to edit SVG quickly
 - Design collaborators who need lightweight browser-side adjustments
 - Product or engineering teammates who need to inspect SVG structure directly
-- Developers who want an SVG editing tool that can run as a simple static page
+- Developers who want an SVG editing tool that fits a modern React workflow
 
 ## Possible Next Improvements
 
@@ -341,6 +309,6 @@ That means the React path has already crossed the first migration boundary away 
 
 ## Related Files
 
-- Entry page: [index.html](./index.html)
+- React entry: [apps/react/src/main.tsx](./apps/react/src/main.tsx)
+- React shell: [apps/react/src/components/SvgStudioShell.tsx](./apps/react/src/components/SvgStudioShell.tsx)
 - Styles: [styles.css](./styles.css)
-- Bootstrap: [app.js](./scripts/app.js)

@@ -8,6 +8,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "types": ["node"],
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -17,15 +18,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@core": ["packages/core/src/index.ts"],
       "@core/*": ["packages/core/src/*"]
     }
   },
   "include": [
     "apps/react/src",
-    "apps/vue/src",
     "packages/core/src",
-    "vite.react.config.ts",
-    "vite.vue.config.ts"
+    "vite.react.config.ts"
   ]
 }

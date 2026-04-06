@@ -3,7 +3,7 @@ import { createInspectorRenderer } from "./renderer/inspector-renderer.js";
 import { createTreeRenderer } from "./renderer/tree-renderer.js";
 import { createWorkspaceRenderer } from "./renderer/workspace-renderer.js";
 
-export function createRenderer({ state, ui, model, actions }) {
+export function createRenderer({ state, ui, model, actions, rendererFactories = {} }) {
   function updateSource() {
     ui.sourceEditor.value = model.serialize();
   }
@@ -156,9 +156,15 @@ export function createRenderer({ state, ui, model, actions }) {
     ui.deleteButton.disabled = !canChange;
   }
 
-  const { renderInspector } = createInspectorRenderer({ state, ui, model, actions });
-  const { renderTree } = createTreeRenderer({ state, ui, model, actions });
-  const { renderOverlay, renderWorkspace } = createWorkspaceRenderer({
+  const createInspector = rendererFactories.createInspectorRenderer || createInspectorRenderer;
+  const createTree = rendererFactories.createTreeRenderer || createTreeRenderer;
+
+  const inspectorRenderer = createInspector({ state, ui, model, actions });
+  const { renderInspector } = inspectorRenderer;
+  const treeRenderer = createTree({ state, ui, model, actions });
+  const { renderTree } = treeRenderer;
+  const createWorkspace = rendererFactories.createWorkspaceRenderer || createWorkspaceRenderer;
+  const workspaceRenderer = createWorkspace({
     state,
     ui,
     model,
@@ -166,6 +172,7 @@ export function createRenderer({ state, ui, model, actions }) {
     applyZoom,
     updateGridSurface
   });
+  const { renderOverlay, renderWorkspace } = workspaceRenderer;
 
   function refresh(options = {}) {
     const {
@@ -202,6 +209,11 @@ export function createRenderer({ state, ui, model, actions }) {
 
   return {
     applyZoom,
+    dispose() {
+      workspaceRenderer.dispose?.();
+      treeRenderer.dispose?.();
+      inspectorRenderer.dispose?.();
+    },
     getFitZoom,
     refresh,
     renderInspector,

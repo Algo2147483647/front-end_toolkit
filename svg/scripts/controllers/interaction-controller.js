@@ -733,7 +733,136 @@ export function createInteractionController({
     showContextMenu(target.dataset.editorId, event.clientX, event.clientY);
   }
 
-  function bindEvents() {
+  function onWorkspacePointerDown(event) {
+    if (event.button !== 2) {
+      hideContextMenu();
+    }
+    if (event.button === 2) {
+      event.preventDefault();
+      beginCanvasDrag(event, "surface");
+      return;
+    }
+
+    if (event.button !== 0) {
+      return;
+    }
+
+    const editorTarget = event.target.closest("[data-editor-id]");
+    if (editorTarget) {
+      return;
+    }
+
+    event.preventDefault();
+    beginSelectionBox(event, "surface");
+  }
+
+  function onWorkspaceDragEnter(event) {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+    event.preventDefault();
+    state.dropDepth += 1;
+    ui.workspaceSurface.classList.add("is-dropping");
+    ui.dropOverlay.classList.remove("hidden");
+  }
+
+  function onWorkspaceDragOver(event) {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+    event.preventDefault();
+  }
+
+  function onWorkspaceDragLeave(event) {
+    if (!state.dropDepth) {
+      return;
+    }
+    event.preventDefault();
+    state.dropDepth = Math.max(0, state.dropDepth - 1);
+    if (state.dropDepth === 0) {
+      clearDropState();
+    }
+  }
+
+  async function onWorkspaceDrop(event) {
+    if (!isFileDragEvent(event)) {
+      clearDropState();
+      return;
+    }
+    event.preventDefault();
+    clearDropState();
+    try {
+      await handleWorkspaceFiles(event.dataTransfer?.files || []);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  function onWindowPointerMove(event) {
+    moveDrag(event);
+  }
+
+  function onWindowPointerUp() {
+    endDrag();
+  }
+
+  function onWindowPointerCancel() {
+    endDrag();
+  }
+
+  function onWindowResize() {
+    hideContextMenu();
+    renderer.applyZoom();
+    renderer.refresh({ overlay: true });
+  }
+
+  function onWindowDragEnd() {
+    clearDropState();
+  }
+
+  function onWindowDrop() {
+    clearDropState();
+  }
+
+  function onWindowPointerDown(event) {
+    if (event.button === 0 && !event.target.closest("#contextMenu")) {
+      hideContextMenu();
+    }
+  }
+
+  function onWindowKeyDown(event) {
+    if (event.key === "Escape" && state.contextMenu.visible) {
+      hideContextMenu();
+      return;
+    }
+    if (event.key === "Escape" && state.sourceVisible) {
+      setSourcePaneVisible(false);
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      historyController.restoreHistory(event.shiftKey ? state.historyIndex + 1 : state.historyIndex - 1);
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      documentController.saveToSourceFile().catch((error) => {
+        alert(error.message);
+      });
+      return;
+    }
+    const editable = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
+    if ((event.key === "Delete" || event.key === "Backspace") && !editable) {
+      documentController.deleteSelection();
+    }
+  }
+
+  function bindEvents(options = {}) {
+    const {
+      bindWindowEvents = true,
+      bindWorkspaceEvents = true
+    } = options;
+
     ui.importButton.addEventListener("click", async () => {
       if (typeof window.showOpenFilePicker !== "function") {
         ui.fileInput.click();
@@ -858,67 +987,14 @@ export function createInteractionController({
     ui.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 0.1));
     ui.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 0.1));
     ui.zoomResetButton.addEventListener("click", fitToView);
-    ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu);
-    ui.workspaceSurface.addEventListener("pointerdown", (event) => {
-      if (event.button !== 2) {
-        hideContextMenu();
-      }
-      if (event.button === 2) {
-        event.preventDefault();
-        beginCanvasDrag(event, "surface");
-        return;
-      }
-
-      if (event.button !== 0) {
-        return;
-      }
-
-      const editorTarget = event.target.closest("[data-editor-id]");
-      if (editorTarget) {
-        return;
-      }
-
-      event.preventDefault();
-      beginSelectionBox(event, "surface");
-    });
-    ui.workspaceSurface.addEventListener("dragenter", (event) => {
-      if (!isFileDragEvent(event)) {
-        return;
-      }
-      event.preventDefault();
-      state.dropDepth += 1;
-      ui.workspaceSurface.classList.add("is-dropping");
-      ui.dropOverlay.classList.remove("hidden");
-    });
-    ui.workspaceSurface.addEventListener("dragover", (event) => {
-      if (!isFileDragEvent(event)) {
-        return;
-      }
-      event.preventDefault();
-    });
-    ui.workspaceSurface.addEventListener("dragleave", (event) => {
-      if (!state.dropDepth) {
-        return;
-      }
-      event.preventDefault();
-      state.dropDepth = Math.max(0, state.dropDepth - 1);
-      if (state.dropDepth === 0) {
-        clearDropState();
-      }
-    });
-    ui.workspaceSurface.addEventListener("drop", async (event) => {
-      if (!isFileDragEvent(event)) {
-        clearDropState();
-        return;
-      }
-      event.preventDefault();
-      clearDropState();
-      try {
-        await handleWorkspaceFiles(event.dataTransfer?.files || []);
-      } catch (error) {
-        alert(error.message);
-      }
-    });
+    if (bindWorkspaceEvents) {
+      ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu);
+      ui.workspaceSurface.addEventListener("pointerdown", onWorkspacePointerDown);
+      ui.workspaceSurface.addEventListener("dragenter", onWorkspaceDragEnter);
+      ui.workspaceSurface.addEventListener("dragover", onWorkspaceDragOver);
+      ui.workspaceSurface.addEventListener("dragleave", onWorkspaceDragLeave);
+      ui.workspaceSurface.addEventListener("drop", onWorkspaceDrop);
+    }
     ui.contextMenu.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
     });
@@ -930,57 +1006,16 @@ export function createInteractionController({
       documentController.sendSelectionToBack(state.contextMenu.editorId);
       hideContextMenu();
     });
-    window.addEventListener("pointermove", (event) => {
-      moveDrag(event);
-    });
-    window.addEventListener("pointerup", () => {
-      endDrag();
-    });
-    window.addEventListener("pointercancel", () => {
-      endDrag();
-    });
-    window.addEventListener("resize", () => {
-      hideContextMenu();
-      renderer.applyZoom();
-      renderer.refresh({ overlay: true });
-    });
-    window.addEventListener("dragend", () => {
-      clearDropState();
-    });
-    window.addEventListener("drop", () => {
-      clearDropState();
-    });
-    window.addEventListener("pointerdown", (event) => {
-      if (event.button === 0 && !event.target.closest("#contextMenu")) {
-        hideContextMenu();
-      }
-    });
-    window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && state.contextMenu.visible) {
-        hideContextMenu();
-        return;
-      }
-      if (event.key === "Escape" && state.sourceVisible) {
-        setSourcePaneVisible(false);
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        historyController.restoreHistory(event.shiftKey ? state.historyIndex + 1 : state.historyIndex - 1);
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-        event.preventDefault();
-        documentController.saveToSourceFile().catch((error) => {
-          alert(error.message);
-        });
-        return;
-      }
-      const editable = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
-      if ((event.key === "Delete" || event.key === "Backspace") && !editable) {
-        documentController.deleteSelection();
-      }
-    });
+    if (bindWindowEvents) {
+      window.addEventListener("pointermove", onWindowPointerMove);
+      window.addEventListener("pointerup", onWindowPointerUp);
+      window.addEventListener("pointercancel", onWindowPointerCancel);
+      window.addEventListener("resize", onWindowResize);
+      window.addEventListener("dragend", onWindowDragEnd);
+      window.addEventListener("drop", onWindowDrop);
+      window.addEventListener("pointerdown", onWindowPointerDown);
+      window.addEventListener("keydown", onWindowKeyDown);
+    }
   }
 
   return {
@@ -991,6 +1026,20 @@ export function createInteractionController({
     onResizeHandlePointerDown,
     onSvgClick,
     onSvgPointerDown,
+    onWindowDragEnd,
+    onWindowDrop,
+    onWindowKeyDown,
+    onWindowPointerCancel,
+    onWindowPointerDown,
+    onWindowPointerMove,
+    onWindowPointerUp,
+    onWindowResize,
+    onWorkspaceContextMenu,
+    onWorkspaceDragEnter,
+    onWorkspaceDragLeave,
+    onWorkspaceDragOver,
+    onWorkspaceDrop,
+    onWorkspacePointerDown,
     setGridSnapEnabled,
     setGridSnapSize,
     setLeftPanelHidden,

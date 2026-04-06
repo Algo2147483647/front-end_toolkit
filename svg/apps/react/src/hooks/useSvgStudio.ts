@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import type { DragEventHandler, MouseEventHandler, PointerEventHandler, RefObject } from "react";
 import { mountReactSvgStudio } from "@core/react/mount";
 import type { SvgStudioUiRefs } from "@core/react/types";
-import type { RefObject } from "react";
 
 function assertRef<T>(name: string, value: T | null): T {
   if (!value) {
@@ -52,7 +52,6 @@ export interface SvgStudioDomRefs {
   treePanelRef: RefObject<HTMLDivElement>;
   surfaceGridRef: RefObject<HTMLDivElement>;
   svgHostRef: RefObject<HTMLDivElement>;
-  overlayRef: RefObject<SVGSVGElement>;
   insertGridRef: RefObject<HTMLDivElement>;
   surfaceInnerRef: RefObject<HTMLDivElement>;
   workspaceSurfaceRef: RefObject<HTMLElement>;
@@ -65,7 +64,38 @@ export interface SvgStudioDomRefs {
   sourceEditorRef: RefObject<HTMLTextAreaElement>;
   propertyFormRef: RefObject<HTMLFormElement>;
   inspectorEmptyRef: RefObject<HTMLDivElement>;
-  fieldTemplateRef: RefObject<HTMLTemplateElement>;
+}
+
+interface MountedStudio {
+  dispose?: () => void;
+  editor: {
+    onWindowDragEnd: () => void;
+    onWindowDrop: () => void;
+    onWindowKeyDown: (event: KeyboardEvent) => void;
+    onWindowPointerCancel: () => void;
+    onWindowPointerDown: (event: PointerEvent) => void;
+    onWindowPointerMove: (event: PointerEvent) => void;
+    onWindowPointerUp: () => void;
+    onWindowResize: () => void;
+    onWorkspaceContextMenu: (event: MouseEvent) => void;
+    onWorkspaceDragEnter: (event: DragEvent) => void;
+    onWorkspaceDragLeave: (event: DragEvent) => void;
+    onWorkspaceDragOver: (event: DragEvent) => void;
+    onWorkspaceDrop: (event: DragEvent) => Promise<void> | void;
+    onWorkspacePointerDown: (event: PointerEvent) => void;
+  };
+}
+
+export interface SvgStudioBindings {
+  refs: SvgStudioDomRefs;
+  workspaceSurfaceProps: {
+    onContextMenu: MouseEventHandler<HTMLElement>;
+    onDragEnter: DragEventHandler<HTMLElement>;
+    onDragLeave: DragEventHandler<HTMLElement>;
+    onDragOver: DragEventHandler<HTMLElement>;
+    onDrop: DragEventHandler<HTMLElement>;
+    onPointerDown: PointerEventHandler<HTMLElement>;
+  };
 }
 
 function toUiRefs(refs: SvgStudioDomRefs): SvgStudioUiRefs {
@@ -110,7 +140,6 @@ function toUiRefs(refs: SvgStudioDomRefs): SvgStudioUiRefs {
     treePanel: assertRef("treePanel", refs.treePanelRef.current),
     surfaceGrid: assertRef("surfaceGrid", refs.surfaceGridRef.current),
     svgHost: assertRef("svgHost", refs.svgHostRef.current),
-    overlay: assertRef("overlay", refs.overlayRef.current),
     insertGrid: assertRef("insertGrid", refs.insertGridRef.current),
     surfaceInner: assertRef("surfaceInner", refs.surfaceInnerRef.current),
     workspaceSurface: assertRef("workspaceSurface", refs.workspaceSurfaceRef.current),
@@ -122,12 +151,11 @@ function toUiRefs(refs: SvgStudioDomRefs): SvgStudioUiRefs {
     sourcePane: assertRef("sourcePane", refs.sourcePaneRef.current),
     sourceEditor: assertRef("sourceEditor", refs.sourceEditorRef.current),
     propertyForm: assertRef("propertyForm", refs.propertyFormRef.current),
-    inspectorEmpty: assertRef("inspectorEmpty", refs.inspectorEmptyRef.current),
-    fieldTemplate: assertRef("fieldTemplate", refs.fieldTemplateRef.current)
+    inspectorEmpty: assertRef("inspectorEmpty", refs.inspectorEmptyRef.current)
   };
 }
 
-export function useSvgStudio(): SvgStudioDomRefs {
+export function useSvgStudio(): SvgStudioBindings {
   const refs: SvgStudioDomRefs = {
     appShellRef: useRef<HTMLDivElement>(null),
     topbarRef: useRef<HTMLElement>(null),
@@ -169,7 +197,6 @@ export function useSvgStudio(): SvgStudioDomRefs {
     treePanelRef: useRef<HTMLDivElement>(null),
     surfaceGridRef: useRef<HTMLDivElement>(null),
     svgHostRef: useRef<HTMLDivElement>(null),
-    overlayRef: useRef<SVGSVGElement>(null),
     insertGridRef: useRef<HTMLDivElement>(null),
     surfaceInnerRef: useRef<HTMLDivElement>(null),
     workspaceSurfaceRef: useRef<HTMLElement>(null),
@@ -181,13 +208,63 @@ export function useSvgStudio(): SvgStudioDomRefs {
     sourcePaneRef: useRef<HTMLElement>(null),
     sourceEditorRef: useRef<HTMLTextAreaElement>(null),
     propertyFormRef: useRef<HTMLFormElement>(null),
-    inspectorEmptyRef: useRef<HTMLDivElement>(null),
-    fieldTemplateRef: useRef<HTMLTemplateElement>(null)
+    inspectorEmptyRef: useRef<HTMLDivElement>(null)
   };
 
+  const studioRef = useRef<MountedStudio | null>(null);
+
   useEffect(() => {
-    mountReactSvgStudio(toUiRefs(refs));
+    studioRef.current = mountReactSvgStudio(toUiRefs(refs)) as MountedStudio;
+    const studio = studioRef.current;
+    if (!studio) {
+      return;
+    }
+
+    const onPointerMove = (event: PointerEvent) => studio.editor.onWindowPointerMove(event);
+    const onPointerUp = () => studio.editor.onWindowPointerUp();
+    const onPointerCancel = () => studio.editor.onWindowPointerCancel();
+    const onResize = () => studio.editor.onWindowResize();
+    const onDragEnd = () => studio.editor.onWindowDragEnd();
+    const onDrop = () => studio.editor.onWindowDrop();
+    const onPointerDown = (event: PointerEvent) => studio.editor.onWindowPointerDown(event);
+    const onKeyDown = (event: KeyboardEvent) => studio.editor.onWindowKeyDown(event);
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("dragend", onDragEnd);
+    window.addEventListener("drop", onDrop);
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("dragend", onDragEnd);
+      window.removeEventListener("drop", onDrop);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      studio.dispose?.();
+      studioRef.current = null;
+    };
   }, []);
 
-  return refs;
+  const workspaceSurfaceProps = useMemo<SvgStudioBindings["workspaceSurfaceProps"]>(() => ({
+    onContextMenu: (event) => studioRef.current?.editor.onWorkspaceContextMenu(event.nativeEvent),
+    onDragEnter: (event) => studioRef.current?.editor.onWorkspaceDragEnter(event.nativeEvent),
+    onDragLeave: (event) => studioRef.current?.editor.onWorkspaceDragLeave(event.nativeEvent),
+    onDragOver: (event) => studioRef.current?.editor.onWorkspaceDragOver(event.nativeEvent),
+    onDrop: (event) => {
+      void studioRef.current?.editor.onWorkspaceDrop(event.nativeEvent);
+    },
+    onPointerDown: (event) => studioRef.current?.editor.onWorkspacePointerDown(event.nativeEvent)
+  }), []);
+
+  return {
+    refs,
+    workspaceSurfaceProps
+  };
 }

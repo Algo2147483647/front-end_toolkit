@@ -1,7 +1,8 @@
-import type { SvgStudioDomRefs } from "../hooks/useSvgStudio";
+import type { SvgStudioBindings, SvgStudioDomRefs } from "../hooks/useSvgStudio";
 
 interface ShellProps {
   refs: SvgStudioDomRefs;
+  workspaceSurfaceProps?: SvgStudioBindings["workspaceSurfaceProps"];
 }
 
 function ToolButtonLabel({ icon, label }: { icon: string; label: string }) {
@@ -141,16 +142,19 @@ function LeftPanel({ refs }: ShellProps) {
   );
 }
 
-function Workspace({ refs }: ShellProps) {
+function Workspace({ refs, workspaceSurfaceProps }: ShellProps) {
   return (
     <main className="workspace-panel">
       <section className="workspace-content" id="workspaceContent" ref={refs.workspaceContentRef}>
-        <section className="workspace-surface" id="workspaceSurface" ref={refs.workspaceSurfaceRef}>
+        <section
+          className="workspace-surface"
+          id="workspaceSurface"
+          ref={refs.workspaceSurfaceRef}
+          {...workspaceSurfaceProps}
+        >
           <div className="surface-grid" ref={refs.surfaceGridRef}></div>
           <div className="surface-inner" id="surfaceInner" ref={refs.surfaceInnerRef}>
-            <div className="svg-host" id="svgHost" ref={refs.svgHostRef}>
-              <svg className="selection-overlay" id="selectionOverlay" aria-hidden="true" ref={refs.overlayRef}></svg>
-            </div>
+            <div className="svg-host" id="svgHost" ref={refs.svgHostRef}></div>
           </div>
           <div className="drop-overlay hidden" id="dropOverlay" ref={refs.dropOverlayRef}>Drop to insert file</div>
         </section>
@@ -195,28 +199,14 @@ function Inspector({ refs }: ShellProps) {
   );
 }
 
-function FieldTemplate({ refs }: ShellProps) {
+export function SvgStudioShell({ refs, workspaceSurfaceProps }: ShellProps) {
   return (
-    <template id="propertyFieldTemplate" ref={refs.fieldTemplateRef}>
-      <label className="field-row">
-        <span className="field-label"></span>
-        <input className="field-input" />
-      </label>
-    </template>
-  );
-}
-
-export function SvgStudioShell({ refs }: ShellProps) {
-  return (
-    <>
-      <div className="app-shell svg-studio-app-host" id="appShell" ref={refs.appShellRef}>
-        <Topbar refs={refs} />
-        <FloatingDock refs={refs} />
-        <LeftPanel refs={refs} />
-        <Workspace refs={refs} />
-        <Inspector refs={refs} />
-      </div>
-      <FieldTemplate refs={refs} />
-    </>
+    <div className="app-shell svg-studio-app-host" id="appShell" ref={refs.appShellRef}>
+      <Topbar refs={refs} />
+      <FloatingDock refs={refs} />
+      <LeftPanel refs={refs} />
+      <Workspace refs={refs} workspaceSurfaceProps={workspaceSurfaceProps} />
+      <Inspector refs={refs} />
+    </div>
   );
 }
