@@ -11,7 +11,12 @@ A browser-based SVG visual editor that runs directly in the browser with no buil
 This directory now supports two execution paths:
 
 - `legacy static`: keep using [index.html](./index.html) with no build step
-- `modern workspace`: run React + TypeScript or Vue + TypeScript hosts through Vite while reusing the existing editor logic
+- `modern workspace`: run React + TypeScript or Vue + TypeScript hosts through Vite
+
+Current migration status:
+
+- `React`: the app shell is now rendered as a real React component tree and mounted through typed DOM refs
+- `Vue`: currently remains on the compatibility host path and still bootstraps the legacy editor shell
 
 Typical use cases include:
 
@@ -311,13 +316,13 @@ svg/
 
 ## Refactor Strategy
 
-The current refactor is a migration layer, not a full behavior rewrite:
+The current refactor is now split by host:
 
-- `packages/core/src/shell.ts` contains the shared app shell markup
-- `packages/core/src/bootstrap.ts` loads the legacy editor scripts and styles
-- `apps/react/` and `apps/vue/` render the shell in framework code and bootstrap the editor
+- `apps/react/` renders the shell with actual React components and mounts the editor through `packages/core/src/react/`
+- `apps/vue/` still uses the compatibility shell/bootstrap path
+- `packages/core/src/bootstrap.ts` remains for the legacy-compatible hosts
 
-That moves the project into a React/TS/Vue-compatible structure without rewriting the SVG editing engine in one pass.
+That means the React path has already crossed the first migration boundary away from `app.js + context.js + shell.ts`, while the editing controllers and renderers are still being reused underneath.
 
 ## Who This Is For
 

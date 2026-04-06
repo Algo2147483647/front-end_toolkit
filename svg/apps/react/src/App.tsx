@@ -1,15 +1,8 @@
-import { useEffect } from "react";
-import { bootstrapLegacySvgStudio, svgStudioShellHtml } from "@core";
+import { SvgStudioShell } from "./components/SvgStudioShell";
+import { useSvgStudio } from "./hooks/useSvgStudio";
 
 export default function App() {
-  useEffect(() => {
-    void bootstrapLegacySvgStudio();
-  }, []);
+  const refs = useSvgStudio();
 
-  return (
-    <div
-      className="svg-studio-app-host"
-      dangerouslySetInnerHTML={{ __html: svgStudioShellHtml }}
-    />
-  );
+  return <SvgStudioShell refs={refs} />;
 }
