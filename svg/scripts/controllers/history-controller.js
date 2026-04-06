@@ -1,4 +1,5 @@
-export function createHistoryController({ state, model, renderer }) {
+export function createHistoryController({ store, state, model, renderer }) {
+  const runtime = store?.getState?.() || state;
   let loadDocument = null;
 
   function setLoadDocument(fn) {
@@ -6,35 +7,36 @@ export function createHistoryController({ state, model, renderer }) {
   }
 
   function recordHistory(reason) {
-    if (!state.svgRoot || state.restoring) {
+    if (!runtime.svgRoot || runtime.restoring) {
       return;
     }
 
     const snapshot = model.serialize();
-    const previous = state.history[state.historyIndex]?.snapshot;
+    const previous = runtime.history[runtime.historyIndex]?.snapshot;
     if (snapshot === previous) {
       return;
     }
 
-    state.history = state.history.slice(0, state.historyIndex + 1);
-    state.history.push({ reason, snapshot });
-    if (state.history.length > 80) {
-      state.history.shift();
+    const nextHistory = runtime.history.slice(0, runtime.historyIndex + 1);
+    nextHistory.push({ reason, snapshot });
+    if (nextHistory.length > 80) {
+      nextHistory.shift();
     }
-    state.historyIndex = state.history.length - 1;
+
+    store.history.replace(nextHistory, nextHistory.length - 1);
     renderer.refresh({ actions: true });
   }
 
   function restoreHistory(index) {
-    const entry = state.history[index];
+    const entry = runtime.history[index];
     if (!entry || typeof loadDocument !== "function") {
       return;
     }
 
-    state.restoring = true;
+    store.history.setRestoring(true);
     loadDocument(entry.snapshot, { pushHistory: false, preserveEditorState: true });
-    state.historyIndex = index;
-    state.restoring = false;
+    store.history.replace(runtime.history, index);
+    store.history.setRestoring(false);
     renderer.refresh({ actions: true });
   }
 

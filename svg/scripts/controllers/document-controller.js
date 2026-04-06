@@ -1,4 +1,5 @@
 export function createDocumentController({
+  store,
   state,
   ui,
   model,
@@ -7,9 +8,10 @@ export function createDocumentController({
   selectionController,
   historyController
 }) {
+  const runtime = store?.getState?.() || state;
+
   function setCurrentFileBinding(fileHandle = null, fileName = "") {
-    state.currentFileHandle = fileHandle || null;
-    state.currentFileName = fileName || fileHandle?.name || "";
+    store.document.setCurrentFileBinding(fileHandle, fileName);
     renderer.syncChrome();
   }
 
@@ -34,7 +36,7 @@ export function createDocumentController({
   }
 
   function buildExportFileName() {
-    const sourceName = (state.currentFileName || "edited-graphic").trim();
+    const sourceName = (runtime.currentFileName || "edited-graphic").trim();
     const baseName = sourceName.replace(/\.svg$/i, "") || "edited-graphic";
     const now = new Date();
     const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
@@ -42,11 +44,11 @@ export function createDocumentController({
   }
 
   function ensureDocument() {
-    if (!state.svgRoot) {
+    if (!runtime.svgRoot) {
       loadDocument(emptySvg);
     }
 
-    return state.svgRoot;
+    return runtime.svgRoot;
   }
 
   function insertNode(node, recordReason = "insert") {
@@ -79,8 +81,8 @@ export function createDocumentController({
   }
 
   function toggleNodeVisibility(editorId) {
-    const node = state.nodeMap.get(editorId);
-    if (!node || node === state.svgRoot) {
+    const node = runtime.nodeMap.get(editorId);
+    if (!node || node === runtime.svgRoot) {
       return;
     }
 
@@ -132,7 +134,7 @@ export function createDocumentController({
 
     if (field.kind === "z-order") {
       const previousKeys = new Map(
-        [...state.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
+        [...runtime.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
       );
       const changed = model.setZOrder(node, value);
       if (!changed) {
@@ -217,7 +219,7 @@ export function createDocumentController({
 
   function rebuildAfterStructureChange(reason, options = {}) {
     const previousKeys = new Map(
-      [...state.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
+      [...runtime.nodeMap.values()].map((currentNode) => [currentNode, model.getNodeKey(currentNode)])
     );
     model.rebuildNodeMap();
     const keyMap = new Map();
@@ -243,8 +245,8 @@ export function createDocumentController({
 
   function getReorderTargets(editorId = null) {
     if (editorId) {
-      const node = state.nodeMap.get(editorId);
-      if (!node || node === state.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
+      const node = runtime.nodeMap.get(editorId);
+      if (!node || node === runtime.svgRoot || !node.parentNode || model.isNodeLocked(node)) {
         return [];
       }
       return [node];
@@ -308,7 +310,7 @@ export function createDocumentController({
       renderInspector = record,
       renderWorkspace = true
     } = options;
-    const node = state.nodeMap.get(editorId);
+    const node = runtime.nodeMap.get(editorId);
     if (!node || model.isNodeLocked(node)) {
       return;
     }
@@ -403,14 +405,14 @@ export function createDocumentController({
       return;
     }
 
-    const fallback = nodes[0].previousElementSibling || nodes[0].parentElement || state.svgRoot;
+    const fallback = nodes[0].previousElementSibling || nodes[0].parentElement || runtime.svgRoot;
     nodes.forEach((node) => node.remove());
     model.rebuildNodeMap();
     model.syncEditorMetadata();
     selectionController.selectNode(
-      state.nodeMap.has(fallback?.dataset?.editorId)
+      runtime.nodeMap.has(fallback?.dataset?.editorId)
         ? fallback.dataset.editorId
-        : state.svgRoot?.dataset?.editorId || null,
+        : runtime.svgRoot?.dataset?.editorId || null,
       { render: false }
     );
     renderer.refresh({
@@ -433,12 +435,12 @@ export function createDocumentController({
   }
 
   async function saveToSourceFile() {
-    const fileHandle = state.currentFileHandle;
+    const fileHandle = runtime.currentFileHandle;
     if (!fileHandle || typeof fileHandle.createWritable !== "function") {
       throw new Error("Overwrite save is unavailable for this document. Re-import the SVG with file access first.");
     }
 
-    const targetName = state.currentFileName || fileHandle.name || "current SVG";
+    const targetName = runtime.currentFileName || fileHandle.name || "current SVG";
     const shouldOverwrite = globalThis.confirm?.(`Overwrite "${targetName}"?`) ?? false;
     if (!shouldOverwrite) {
       return false;
@@ -469,13 +471,12 @@ export function createDocumentController({
     const preservedEditorState = preserveEditorState ? selectionController.snapshotEditorState() : null;
     const root = model.parseSvg(source);
     model.addEditorIds(root);
-    state.svgRoot = root;
-    state.drag = null;
-    state.selectionBox = null;
+    store.document.setSvgRoot(root);
+    store.interaction.clearDrag();
+    store.interaction.clearSelectionBox();
     ui.workspaceSurface.classList.remove("is-panning", "is-selecting");
     if (!preserveEditorState) {
-      state.panX = 0;
-      state.panY = 0;
+      store.viewport.resetPan();
     }
     model.rebuildNodeMap();
     model.normalizeManagedTextNodes(root);
@@ -499,9 +500,11 @@ export function createDocumentController({
     });
     if (Number.isFinite(fitScale) && fitScale > 0) {
       const applyFittedZoom = () => {
-        state.panX = 0;
-        state.panY = 0;
-        state.zoom = Math.max(0.01, Math.min(2.5, renderer.getFitZoom() * fitScale));
+        store.viewport.setTransform({
+          panX: 0,
+          panY: 0,
+          zoom: Math.max(0.01, Math.min(2.5, renderer.getFitZoom() * fitScale))
+        });
         renderer.applyZoom();
       };
       applyFittedZoom();

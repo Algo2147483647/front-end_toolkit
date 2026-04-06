@@ -25,6 +25,7 @@ import {
 } from "./inspector-utils";
 
 interface InspectorDeps {
+  store: any;
   state: any;
   ui: any;
   model: any;
@@ -589,7 +590,7 @@ function InspectorField({ actions, field, locked, model, node, quickEdit }: any)
   );
 }
 
-function SingleNodeInspector({ actions, model, node, state }: any) {
+function SingleNodeInspector({ actions, model, node, state, store }: any) {
   const locked = model.isNodeLocked(node);
   const hidden = model.isNodeHidden(node);
 
@@ -633,7 +634,7 @@ function SingleNodeInspector({ actions, model, node, state }: any) {
           key={section.title}
           className="inspector-card inspector-section"
           open={isSectionOpen(state, node, section)}
-          onToggle={(event) => rememberSectionState(state, node, section.title, (event.target as HTMLDetailsElement).open)}
+          onToggle={(event) => rememberSectionState(store, state, node, section.title, (event.target as HTMLDetailsElement).open)}
         >
           <summary className="inspector-section-summary">{section.title}</summary>
           <div className={`inspector-section-body${section.title === "Quick Edit" ? " inspector-quick-grid" : ""}`}>
@@ -655,7 +656,7 @@ function SingleNodeInspector({ actions, model, node, state }: any) {
   );
 }
 
-function InspectorPanel({ actions, model, state }: Omit<InspectorDeps, "ui">) {
+function InspectorPanel({ actions, model, state, store }: Omit<InspectorDeps, "ui">) {
   const selectedNodes = [...state.selectedIds]
     .map((editorId) => state.nodeMap.get(editorId))
     .filter(Boolean);
@@ -686,10 +687,10 @@ function InspectorPanel({ actions, model, state }: Omit<InspectorDeps, "ui">) {
     );
   }
 
-  return <SingleNodeInspector actions={actions} model={model} node={node} state={state} />;
+  return <SingleNodeInspector actions={actions} model={model} node={node} state={state} store={store} />;
 }
 
-export function createReactInspectorRenderer({ state, ui, model, actions }: InspectorDeps) {
+export function createReactInspectorRenderer({ store, state, ui, model, actions }: InspectorDeps) {
   const root: Root = createRoot(ui.propertyForm);
 
   function renderInspector() {
@@ -702,6 +703,7 @@ export function createReactInspectorRenderer({ state, ui, model, actions }: Insp
         actions={actions}
         model={model}
         state={state}
+        store={store}
       />
     );
   }

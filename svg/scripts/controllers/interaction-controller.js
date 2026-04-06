@@ -5,6 +5,7 @@ import {
 } from "../constants.js";
 
 export function createInteractionController({
+  store,
   state,
   ui,
   model,
@@ -14,6 +15,7 @@ export function createInteractionController({
   historyController,
   documentController
 }) {
+  const runtime = store?.getState?.() || state;
   const NON_GEOMETRY_TAGS = new Set([
     "svg",
     "g",
@@ -61,27 +63,27 @@ export function createInteractionController({
   }
 
   function setTopbarCollapsed(collapsed) {
-    state.topbarCollapsed = collapsed;
+    store.chrome.setTopbarCollapsed(collapsed);
     renderer.syncChrome();
   }
 
   function setLeftPanelHidden(hidden) {
-    state.leftPanelHidden = hidden;
+    store.chrome.setLeftPanelHidden(hidden);
     renderer.syncChrome();
   }
 
   function setLeftPanelView(view) {
-    state.leftPanelView = view === "layers" ? "layers" : "insert";
+    store.chrome.setLeftPanelView(view);
     renderer.syncChrome();
   }
 
   function setRightPanelHidden(hidden) {
-    state.rightPanelHidden = hidden;
+    store.chrome.setRightPanelHidden(hidden);
     renderer.syncChrome();
   }
 
   function setGridSnapEnabled(enabled) {
-    state.gridSnapEnabled = enabled;
+    store.chrome.setGridSnapEnabled(enabled);
     try {
       localStorage.setItem(GRID_SNAP_STORAGE_KEY, String(enabled));
     } catch (error) {
@@ -94,13 +96,13 @@ export function createInteractionController({
     const parsed = Number.parseInt(size, 10);
     if (!GRID_SNAP_SIZE_OPTIONS.includes(parsed)) {
       if (Number.isFinite(parsed) && parsed >= 1) {
-        state.gridSnapSize = parsed;
+        store.chrome.setGridSnapSize(parsed);
       } else {
         renderer.syncChrome();
         return;
       }
     } else {
-      state.gridSnapSize = parsed;
+      store.chrome.setGridSnapSize(parsed);
     }
 
     try {
@@ -112,7 +114,7 @@ export function createInteractionController({
   }
 
   function setSourcePaneVisible(visible) {
-    state.sourceVisible = visible;
+    store.chrome.setSourceVisible(visible);
     ui.sourcePane.classList.toggle("hidden", !visible);
     ui.workspaceContent.classList.toggle("is-source-visible", visible);
     ui.sourceToggleButton.classList.toggle("is-active", visible);
@@ -125,18 +127,17 @@ export function createInteractionController({
   }
 
   function setZoom(value) {
-    state.zoom = clampZoom(value);
+    store.viewport.setZoom(clampZoom(value));
     renderer.applyZoom();
   }
 
   function fitToView() {
-    state.panX = 0;
-    state.panY = 0;
+    store.viewport.resetPan();
     setZoom(renderer.getFitZoom());
   }
 
   function clearDropState() {
-    state.dropDepth = 0;
+    store.interaction.clearDropDepth();
     ui.workspaceSurface.classList.remove("is-dropping");
     ui.dropOverlay.classList.add("hidden");
   }
@@ -151,8 +152,7 @@ export function createInteractionController({
   }
 
   function hideContextMenu() {
-    state.contextMenu.visible = false;
-    state.contextMenu.editorId = null;
+    store.contextMenu.hide();
     ui.contextMenu.classList.add("hidden");
   }
 
@@ -167,20 +167,15 @@ export function createInteractionController({
     const left = Math.max(padding, Math.min(clientX - hostRect.left, maxLeft));
     const top = Math.max(padding, Math.min(clientY - hostRect.top, maxTop));
 
-    state.contextMenu = {
-      editorId,
-      visible: true,
-      x: left,
-      y: top
-    };
+    store.contextMenu.show({ editorId, x: left, y: top });
 
     ui.contextMenu.style.left = `${left}px`;
     ui.contextMenu.style.top = `${top}px`;
     ui.contextMenu.classList.remove("hidden");
 
-    const menuTarget = editorId ? state.nodeMap.get(editorId) : null;
+    const menuTarget = editorId ? runtime.nodeMap.get(editorId) : null;
     const canReorder = !!(menuTarget
-      && menuTarget !== state.svgRoot
+      && menuTarget !== runtime.svgRoot
       && menuTarget.parentNode
       && !model.isNodeLocked(menuTarget));
     ui.bringToFrontButton.disabled = !canReorder;
@@ -189,7 +184,7 @@ export function createInteractionController({
 
   function resolveSelectionTarget(startNode) {
     const rawTarget = startNode?.closest?.("[data-editor-id]") || null;
-    if (!rawTarget || rawTarget === state.svgRoot) {
+    if (!rawTarget || rawTarget === runtime.svgRoot) {
       return rawTarget;
     }
 
@@ -215,7 +210,7 @@ export function createInteractionController({
   }
 
   function isSelectableGeometryNode(node) {
-    if (!node || node === state.svgRoot || model.isNodeLocked(node) || model.isNodeHidden(node)) {
+    if (!node || node === runtime.svgRoot || model.isNodeLocked(node) || model.isNodeHidden(node)) {
       return false;
     }
 
@@ -232,7 +227,7 @@ export function createInteractionController({
 
   function collectSelectionBoxMatches(box) {
     const matches = new Set();
-    for (const [editorId, node] of state.nodeMap.entries()) {
+    for (const [editorId, node] of runtime.nodeMap.entries()) {
       if (!isSelectableGeometryNode(node)) {
         continue;
       }
@@ -268,10 +263,10 @@ export function createInteractionController({
       ? selectionController.getSelectedEditorIds()
       : [node.dataset.editorId];
     const dragItems = selectedEditorIds
-      .map((editorId) => state.nodeMap.get(editorId))
+      .map((editorId) => runtime.nodeMap.get(editorId))
       .filter((selectedNode) => selectedNode && model.canDragNode(selectedNode))
       .map((selectedNode) => {
-        const referenceNode = selectedNode.parentElement || state.svgRoot;
+        const referenceNode = selectedNode.parentElement || runtime.svgRoot;
         return {
           editorId: selectedNode.dataset.editorId,
           descriptor: model.getDragDescriptor(selectedNode),
@@ -284,32 +279,32 @@ export function createInteractionController({
       return;
     }
 
-    state.drag = {
+    store.interaction.setDrag({
       items: dragItems,
       moved: false,
       type: "selection"
-    };
+    });
     ui.statusPill.textContent = dragItems.length > 1
       ? `Dragging ${dragItems.length} objects`
       : `Dragging: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
   function beginCanvasDrag(event, source = "surface") {
-    state.drag = {
+    store.interaction.setDrag({
       type: "canvas",
       startClientX: event.clientX,
       startClientY: event.clientY,
-      startPanX: state.panX,
-      startPanY: state.panY,
+      startPanX: runtime.panX,
+      startPanY: runtime.panY,
       moved: false,
       source
-    };
+    });
     setCanvasPanning(true);
     ui.statusPill.textContent = "Panning canvas";
   }
 
   function beginResizeDrag(editorId, handle, event) {
-    const node = state.nodeMap.get(editorId);
+    const node = runtime.nodeMap.get(editorId);
     if (!node || !model.canResizeNode(node)) {
       return;
     }
@@ -319,18 +314,18 @@ export function createInteractionController({
       return;
     }
 
-    state.drag = {
+    store.interaction.setDrag({
       descriptor,
       editorId,
       moved: false,
-      referenceNode: descriptor.referenceNode || state.svgRoot,
+      referenceNode: descriptor.referenceNode || runtime.svgRoot,
       type: "resize"
-    };
+    });
     ui.statusPill.textContent = `Resizing: ${node.tagName.toLowerCase()} ${model.labelFor(node)}`;
   }
 
   function beginPathBezierDrag(editorId, handle, event) {
-    const node = state.nodeMap.get(editorId);
+    const node = runtime.nodeMap.get(editorId);
     if (!node || node.tagName.toLowerCase() !== "path" || model.isNodeLocked(node)) {
       return;
     }
@@ -340,17 +335,17 @@ export function createInteractionController({
       return;
     }
 
-    state.drag = {
+    store.interaction.setDrag({
       descriptor,
       editorId,
       moved: false,
       type: "path-bezier"
-    };
+    });
     ui.statusPill.textContent = `Editing curve: ${model.labelFor(node)}`;
   }
 
   function beginPointHandleDrag(editorId, handle, event) {
-    const node = state.nodeMap.get(editorId);
+    const node = runtime.nodeMap.get(editorId);
     if (!node || !["polyline", "polygon"].includes(node.tagName.toLowerCase()) || model.isNodeLocked(node)) {
       return;
     }
@@ -360,54 +355,54 @@ export function createInteractionController({
       return;
     }
 
-    state.drag = {
+    store.interaction.setDrag({
       descriptor,
       editorId,
       moved: false,
       type: "point-handle"
-    };
+    });
     ui.statusPill.textContent = `Editing points: ${model.labelFor(node)}`;
   }
 
   function beginSelectionBox(event, source = "surface") {
     hideContextMenu();
-    const point = model.toLocalPoint(state.svgRoot, event.clientX, event.clientY);
-    state.drag = {
+    const point = model.toLocalPoint(runtime.svgRoot, event.clientX, event.clientY);
+    store.interaction.setDrag({
       currentPoint: point,
       moved: false,
       source,
       startPoint: point,
       type: "selection-box"
-    };
-    state.selectionBox = {
+    });
+    store.interaction.setSelectionBox({
       x: point.x,
       y: point.y,
       width: 0,
       height: 0
-    };
+    });
     setSelectionBoxActive(true);
     ui.statusPill.textContent = "Selecting objects";
     renderer.refresh({ overlay: true });
   }
 
   function moveDrag(event) {
-    if (!state.drag) {
+    if (!runtime.drag) {
       return;
     }
 
-    if (state.drag.type === "resize") {
-      const node = state.nodeMap.get(state.drag.editorId);
+    if (runtime.drag.type === "resize") {
+      const node = runtime.nodeMap.get(runtime.drag.editorId);
       if (!node) {
         return;
       }
 
-      const currentPoint = model.toLocalPoint(state.drag.referenceNode || state.svgRoot, event.clientX, event.clientY);
-      const dx = currentPoint.x - state.drag.descriptor.startHandle.x;
-      const dy = currentPoint.y - state.drag.descriptor.startHandle.y;
+      const currentPoint = model.toLocalPoint(runtime.drag.referenceNode || runtime.svgRoot, event.clientX, event.clientY);
+      const dx = currentPoint.x - runtime.drag.descriptor.startHandle.x;
+      const dy = currentPoint.y - runtime.drag.descriptor.startHandle.y;
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-        state.drag.moved = true;
+        runtime.drag.moved = true;
       }
-      model.applyResize(node, state.drag.descriptor, currentPoint);
+      model.applyResize(node, runtime.drag.descriptor, currentPoint);
       renderer.refresh({ overlay: true });
       return;
     }

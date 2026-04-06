@@ -3,7 +3,9 @@ import { createInspectorRenderer } from "./renderer/inspector-renderer.js";
 import { createTreeRenderer } from "./renderer/tree-renderer.js";
 import { createWorkspaceRenderer } from "./renderer/workspace-renderer.js";
 
-export function createRenderer({ state, ui, model, actions, rendererFactories = {} }) {
+export function createRenderer({ store, state, ui, model, actions, rendererFactories = {} }) {
+  const runtime = store?.getState?.() || state;
+
   function updateSource() {
     ui.sourceEditor.value = model.serialize();
   }
@@ -31,7 +33,7 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
     ui.surfaceGrid.style.removeProperty("--grid-offset-x");
     ui.surfaceGrid.style.removeProperty("--grid-offset-y");
 
-    if (!state.gridSnapEnabled || !state.svgRoot) {
+    if (!runtime.gridSnapEnabled || !runtime.svgRoot) {
       return;
     }
 
@@ -40,22 +42,22 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
     const surfaceHeight = ui.surfaceGrid.clientHeight || ui.surfaceInner?.clientHeight || 0;
     const hostWidth = ui.svgHost.offsetWidth || 0;
     const hostHeight = ui.svgHost.offsetHeight || 0;
-    const gridSize = state.gridSnapSize || GRID_SNAP_DEFAULT_SIZE || GRID_SNAP_SIZE_OPTIONS[0] || 1;
+    const gridSize = runtime.gridSnapSize || GRID_SNAP_DEFAULT_SIZE || GRID_SNAP_SIZE_OPTIONS[0] || 1;
 
     if (!viewBox.width || !viewBox.height || !surfaceWidth || !surfaceHeight || !hostWidth || !hostHeight || !gridSize) {
       return;
     }
 
-    const screenUnitX = (hostWidth / viewBox.width) * state.zoom;
-    const screenUnitY = (hostHeight / viewBox.height) * state.zoom;
+    const screenUnitX = (hostWidth / viewBox.width) * runtime.zoom;
+    const screenUnitY = (hostHeight / viewBox.height) * runtime.zoom;
     const stepX = gridSize * screenUnitX;
     const stepY = gridSize * screenUnitY;
     if (!stepX || !stepY) {
       return;
     }
 
-    const renderedLeft = ((surfaceWidth - hostWidth) / 2) + state.panX + ((1 - state.zoom) * hostWidth / 2);
-    const renderedTop = ((surfaceHeight - hostHeight) / 2) + state.panY + ((1 - state.zoom) * hostHeight / 2);
+    const renderedLeft = ((surfaceWidth - hostWidth) / 2) + runtime.panX + ((1 - runtime.zoom) * hostWidth / 2);
+    const renderedTop = ((surfaceHeight - hostHeight) / 2) + runtime.panY + ((1 - runtime.zoom) * hostHeight / 2);
     const docOffsetX = ((-viewBox.x % gridSize) + gridSize) % gridSize;
     const docOffsetY = ((-viewBox.y % gridSize) + gridSize) % gridSize;
     const offsetX = renderedLeft + (docOffsetX * screenUnitX);
@@ -69,35 +71,35 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
 
   function syncChrome() {
     ensureGridSizeOptions();
-    ui.appShell.classList.toggle("is-topbar-collapsed", state.topbarCollapsed);
-    ui.appShell.classList.toggle("is-left-hidden", state.leftPanelHidden);
-    ui.appShell.classList.toggle("is-right-hidden", state.rightPanelHidden);
-    ui.workspaceSurface.style.setProperty("--grid-size", `${state.gridSnapSize}px`);
-    ui.surfaceGrid.classList.toggle("hidden", !state.gridSnapEnabled);
+    ui.appShell.classList.toggle("is-topbar-collapsed", runtime.topbarCollapsed);
+    ui.appShell.classList.toggle("is-left-hidden", runtime.leftPanelHidden);
+    ui.appShell.classList.toggle("is-right-hidden", runtime.rightPanelHidden);
+    ui.workspaceSurface.style.setProperty("--grid-size", `${runtime.gridSnapSize}px`);
+    ui.surfaceGrid.classList.toggle("hidden", !runtime.gridSnapEnabled);
 
-    ui.showTopbarButton.classList.toggle("hidden", !state.topbarCollapsed);
-    ui.collapseTopbarButton.querySelector(".tool-label").textContent = state.topbarCollapsed ? "Show" : "Hide";
-    ui.collapseTopbarButton.querySelector(".tool-icon").textContent = state.topbarCollapsed ? "+" : "-";
-    ui.collapseTopbarButton.title = state.topbarCollapsed ? "Show toolbar" : "Hide toolbar";
-    ui.gridSnapButton.classList.toggle("is-active", state.gridSnapEnabled);
-    ui.gridSnapButton.setAttribute("aria-pressed", String(state.gridSnapEnabled));
-    ui.gridSnapButton.title = state.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
+    ui.showTopbarButton.classList.toggle("hidden", !runtime.topbarCollapsed);
+    ui.collapseTopbarButton.querySelector(".tool-label").textContent = runtime.topbarCollapsed ? "Show" : "Hide";
+    ui.collapseTopbarButton.querySelector(".tool-icon").textContent = runtime.topbarCollapsed ? "+" : "-";
+    ui.collapseTopbarButton.title = runtime.topbarCollapsed ? "Show toolbar" : "Hide toolbar";
+    ui.gridSnapButton.classList.toggle("is-active", runtime.gridSnapEnabled);
+    ui.gridSnapButton.setAttribute("aria-pressed", String(runtime.gridSnapEnabled));
+    ui.gridSnapButton.title = runtime.gridSnapEnabled ? "Disable grid snap" : "Enable grid snap";
 
     const canOverwriteSave = Boolean(
-      state.currentFileHandle && typeof state.currentFileHandle.createWritable === "function"
+      runtime.currentFileHandle && typeof runtime.currentFileHandle.createWritable === "function"
     );
     ui.saveButton.disabled = !canOverwriteSave;
     ui.saveButton.title = canOverwriteSave
-      ? `Save and overwrite ${state.currentFileName || "current SVG"}`
-      : state.currentFileName
-        ? `Overwrite save unavailable for ${state.currentFileName}. Re-import with file access.`
+      ? `Save and overwrite ${runtime.currentFileName || "current SVG"}`
+      : runtime.currentFileName
+        ? `Overwrite save unavailable for ${runtime.currentFileName}. Re-import with file access.`
         : "Import an SVG file with file access to enable overwrite save.";
 
-    ui.gridSnapSizeInput.value = String(state.gridSnapSize);
+    ui.gridSnapSizeInput.value = String(runtime.gridSnapSize);
     ui.gridSnapSizeSelect.value = "";
-    ui.gridSnapSizeGroup.title = `Grid size: ${state.gridSnapSize}px`;
+    ui.gridSnapSizeGroup.title = `Grid size: ${runtime.gridSnapSize}px`;
 
-    const isInsertView = state.leftPanelView !== "layers";
+    const isInsertView = runtime.leftPanelView !== "layers";
     ui.leftPanelInsertTab.classList.toggle("is-active", isInsertView);
     ui.leftPanelInsertTab.setAttribute("aria-selected", String(isInsertView));
     ui.leftPanelLayersTab.classList.toggle("is-active", !isInsertView);
@@ -105,24 +107,24 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
     ui.leftPanelInsertSection.classList.toggle("hidden", !isInsertView);
     ui.leftPanelLayersSection.classList.toggle("hidden", isInsertView);
 
-    ui.floatingLeftButton.textContent = state.leftPanelHidden ? "Show Left" : "Hide Left";
-    ui.floatingLeftButton.classList.toggle("is-active", !state.leftPanelHidden);
-    ui.hideLeftPanelButton.textContent = state.leftPanelHidden ? "+" : "×";
+    ui.floatingLeftButton.textContent = runtime.leftPanelHidden ? "Show Left" : "Hide Left";
+    ui.floatingLeftButton.classList.toggle("is-active", !runtime.leftPanelHidden);
+    ui.hideLeftPanelButton.textContent = runtime.leftPanelHidden ? "+" : "x";
 
-    ui.floatingRightButton.textContent = state.rightPanelHidden ? "Show Right" : "Hide Right";
-    ui.floatingRightButton.classList.toggle("is-active", !state.rightPanelHidden);
-    ui.hideRightPanelButton.textContent = state.rightPanelHidden ? "+" : "×";
+    ui.floatingRightButton.textContent = runtime.rightPanelHidden ? "Show Right" : "Hide Right";
+    ui.floatingRightButton.classList.toggle("is-active", !runtime.rightPanelHidden);
+    ui.hideRightPanelButton.textContent = runtime.rightPanelHidden ? "+" : "x";
     updateGridSurface();
   }
 
   function applyZoom() {
-    ui.svgHost.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
-    ui.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+    ui.svgHost.style.transform = `translate(${runtime.panX}px, ${runtime.panY}px) scale(${runtime.zoom})`;
+    ui.zoomLabel.textContent = `${Math.round(runtime.zoom * 100)}%`;
     updateGridSurface();
   }
 
   function getFitZoom() {
-    if (!state.svgRoot) {
+    if (!runtime.svgRoot) {
       return 1;
     }
 
@@ -145,13 +147,13 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
   }
 
   function updateActions() {
-    const selectedNodes = [...state.selectedIds]
-      .map((editorId) => state.nodeMap.get(editorId))
+    const selectedNodes = [...runtime.selectedIds]
+      .map((editorId) => runtime.nodeMap.get(editorId))
       .filter(Boolean);
     const canChange = selectedNodes.length > 0
-      && selectedNodes.every((node) => node !== state.svgRoot && !model.isNodeLocked(node));
-    ui.undoButton.disabled = state.historyIndex <= 0;
-    ui.redoButton.disabled = state.historyIndex >= state.history.length - 1 || state.historyIndex < 0;
+      && selectedNodes.every((node) => node !== runtime.svgRoot && !model.isNodeLocked(node));
+    ui.undoButton.disabled = runtime.historyIndex <= 0;
+    ui.redoButton.disabled = runtime.historyIndex >= runtime.history.length - 1 || runtime.historyIndex < 0;
     ui.duplicateButton.disabled = !canChange;
     ui.deleteButton.disabled = !canChange;
   }
@@ -159,13 +161,14 @@ export function createRenderer({ state, ui, model, actions, rendererFactories = 
   const createInspector = rendererFactories.createInspectorRenderer || createInspectorRenderer;
   const createTree = rendererFactories.createTreeRenderer || createTreeRenderer;
 
-  const inspectorRenderer = createInspector({ state, ui, model, actions });
+  const inspectorRenderer = createInspector({ store, state: runtime, ui, model, actions });
   const { renderInspector } = inspectorRenderer;
-  const treeRenderer = createTree({ state, ui, model, actions });
+  const treeRenderer = createTree({ store, state: runtime, ui, model, actions });
   const { renderTree } = treeRenderer;
   const createWorkspace = rendererFactories.createWorkspaceRenderer || createWorkspaceRenderer;
   const workspaceRenderer = createWorkspace({
-    state,
+    store,
+    state: runtime,
     ui,
     model,
     actions,

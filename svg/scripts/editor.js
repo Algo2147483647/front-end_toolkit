@@ -3,10 +3,11 @@ import { createHistoryController } from "./controllers/history-controller.js";
 import { createInteractionController } from "./controllers/interaction-controller.js";
 import { createSelectionController } from "./controllers/selection-controller.js";
 
-export function createEditor({ state, ui, model, renderer, emptySvg }) {
-  const selectionController = createSelectionController({ state, model, renderer });
-  const historyController = createHistoryController({ state, model, renderer });
+export function createEditor({ store, state, ui, model, renderer, emptySvg }) {
+  const selectionController = createSelectionController({ store, state, model, renderer });
+  const historyController = createHistoryController({ store, state, model, renderer });
   const documentController = createDocumentController({
+    store,
     state,
     ui,
     model,
@@ -16,6 +17,7 @@ export function createEditor({ state, ui, model, renderer, emptySvg }) {
     historyController
   });
   const interactionController = createInteractionController({
+    store,
     state,
     ui,
     model,

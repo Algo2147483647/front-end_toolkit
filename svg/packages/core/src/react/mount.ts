@@ -7,14 +7,16 @@ import { createSvgModel } from "../../../../scripts/svg-model.js";
 import { createReactInspectorRenderer } from "./renderers/inspector-renderer";
 import { createReactTreeRenderer } from "./renderers/tree-renderer";
 import { createReactWorkspaceRenderer } from "./renderers/workspace-renderer";
-import { createSvgStudioState } from "./state";
+import { createSvgRuntimeStore } from "./state";
 import type { SvgStudioUiRefs } from "./types";
 
 export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
-  const state = createSvgStudioState();
+  const store = createSvgRuntimeStore();
+  const state = store.getState();
   const actions: Record<string, (...args: unknown[]) => unknown> = {};
   const model = createSvgModel(state);
   const renderer = createRenderer({
+    store,
     state,
     ui,
     model,
@@ -25,7 +27,7 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
       createWorkspaceRenderer: createReactWorkspaceRenderer
     }
   });
-  const editor = createEditor({ state, ui, model, renderer, emptySvg: EMPTY_SVG });
+  const editor = createEditor({ store, state, ui, model, renderer, emptySvg: EMPTY_SVG });
 
   Object.assign(actions, {
     onPointHandlePointerDown: editor.onPointHandlePointerDown,
@@ -60,6 +62,7 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
     editor,
     model,
     renderer,
-    state
+    state,
+    store
   };
 }

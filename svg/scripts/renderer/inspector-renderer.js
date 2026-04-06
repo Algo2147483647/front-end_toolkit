@@ -17,7 +17,7 @@ const FIELD_OPTION_SETS = new Map([
   ["text-anchor", TEXT_ANCHOR_OPTIONS]
 ]);
 
-export function createInspectorRenderer({ state, ui, model, actions }) {
+export function createInspectorRenderer({ store, state, ui, model, actions }) {
   function getSectionStateKey(node, sectionTitle) {
     if (!node || !sectionTitle) {
       return null;
@@ -43,6 +43,11 @@ export function createInspectorRenderer({ state, ui, model, actions }) {
   function rememberSectionState(node, sectionTitle, isOpen) {
     const key = getSectionStateKey(node, sectionTitle);
     if (!key) {
+      return;
+    }
+
+    if (store?.inspector?.setSectionState) {
+      store.inspector.setSectionState(key, isOpen);
       return;
     }
 

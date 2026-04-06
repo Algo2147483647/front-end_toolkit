@@ -46,9 +46,14 @@ export function isSectionOpen(state: any, node: Element, section: any) {
   return Boolean(section.open);
 }
 
-export function rememberSectionState(state: any, node: Element, sectionTitle: string, open: boolean) {
+export function rememberSectionState(store: any, state: any, node: Element, sectionTitle: string, open: boolean) {
   const key = getSectionStateKey(node, sectionTitle);
   if (key) {
+    if (store?.inspector?.setSectionState) {
+      store.inspector.setSectionState(key, open);
+      return;
+    }
+
     state.inspectorSectionStates.set(key, Boolean(open));
   }
 }
