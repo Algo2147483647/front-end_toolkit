@@ -1,5 +1,7 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { createElement, useLayoutEffect, useMemo, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import type { CSSProperties, ReactNode } from "react";
+import type { SerializedSvgChild, SerializedSvgElementNode } from "../../runtime/model/types";
 import { useRuntimeVersion } from "./use-runtime-version";
 
 const PPT_OVERLAY = {
@@ -57,8 +59,85 @@ function OverlayHandle({ className, cursor, editorId, fill = PPT_OVERLAY.fill, h
   );
 }
 
-function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface }: WorkspaceDeps) {
-  const svgSlotRef = useRef<HTMLDivElement>(null);
+function toCamelCaseAttribute(attributeName: string) {
+  return attributeName.replace(/[:-]([a-z])/g, (_match, letter: string) => letter.toUpperCase());
+}
+
+function toReactPropName(attributeName: string) {
+  if (attributeName === "class") {
+    return "className";
+  }
+
+  if (attributeName === "for") {
+    return "htmlFor";
+  }
+
+  if (attributeName.startsWith("data-") || attributeName.startsWith("aria-")) {
+    return attributeName;
+  }
+
+  return toCamelCaseAttribute(attributeName);
+}
+
+function parseInlineStyle(styleText: string): CSSProperties {
+  return styleText
+    .split(";")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .reduce((styles, segment) => {
+      const separatorIndex = segment.indexOf(":");
+      if (separatorIndex < 0) {
+        return styles;
+      }
+
+      const name = segment.slice(0, separatorIndex).trim();
+      const value = segment.slice(separatorIndex + 1).trim();
+      if (!name || !value) {
+        return styles;
+      }
+
+      const propName = toCamelCaseAttribute(name);
+      styles[propName as keyof CSSProperties] = value as never;
+      return styles;
+    }, {} as CSSProperties);
+}
+
+function buildReactProps(node: SerializedSvgElementNode) {
+  const props: Record<string, unknown> = {};
+
+  Object.entries(node.attributes).forEach(([attributeName, attributeValue]) => {
+    if (attributeName === "style") {
+      props.style = parseInlineStyle(attributeValue);
+      return;
+    }
+
+    props[toReactPropName(attributeName)] = attributeValue;
+  });
+
+  return props;
+}
+
+function renderSnapshotChild(node: SerializedSvgChild, rootRef: ((node: SVGSVGElement | null) => void) | null, path = "0"): ReactNode {
+  if (node.kind === "text") {
+    return node.value;
+  }
+
+  const props = buildReactProps(node);
+  props.key = node.attributes["data-editor-id"] || `${node.tagName}-${path}`;
+  if (rootRef && node.tagName.toLowerCase() === "svg") {
+    props.ref = rootRef;
+  }
+
+  return createElement(
+    node.tagName,
+    props,
+    node.children.map((child, index) => renderSnapshotChild(child, null, `${path}.${index}`))
+  );
+}
+
+function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGridSurface }: WorkspaceDeps) {
+  const mountedSvgRef = useRef<SVGSVGElement | null>(null);
+  const boundRevisionRef = useRef(-1);
   const selectedNodes = [...state.selectedIds]
     .map((editorId) => state.nodeMap.get(editorId))
     .filter(Boolean);
@@ -66,32 +145,38 @@ function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface
   const preserveAspectRatio = state.svgRoot?.getAttribute("preserveAspectRatio") || "xMidYMid meet";
 
   useLayoutEffect(() => {
-    if (!svgSlotRef.current) {
-      return;
-    }
-
-    const slot = svgSlotRef.current;
-    if (!state.svgRoot) {
-      if (slot.childNodes.length > 0) {
-        slot.replaceChildren();
+    if (!state.documentSnapshot) {
+      if (state.svgRoot) {
+        store.document.bindMountedSvgRoot(null);
+        model.rebuildNodeMap();
       }
       return;
     }
 
-    state.svgRoot.classList.add("workspace-svg");
-    if (slot.firstChild !== state.svgRoot || slot.childNodes.length !== 1) {
-      slot.replaceChildren(state.svgRoot);
+    const mountedRoot = mountedSvgRef.current;
+    if (!mountedRoot) {
+      return;
+    }
+
+    mountedRoot.classList.add("workspace-svg");
+    const rootChanged = state.svgRoot !== mountedRoot;
+    store.document.bindMountedSvgRoot(mountedRoot);
+    if (rootChanged || boundRevisionRef.current !== state.documentRevision) {
+      model.rebuildNodeMap();
+      model.syncEditorMetadata();
+      boundRevisionRef.current = state.documentRevision;
+      store.invalidate();
     }
 
     updateGridSurface();
     applyZoom();
-  }, [actions, applyZoom, state.svgRoot, state.zoom, state.panX, state.panY, updateGridSurface]);
+  }, [applyZoom, model, state.documentRevision, state.documentSnapshot, state.svgRoot, store, updateGridSurface]);
 
   useLayoutEffect(() => {
     ui.svgHost.style.aspectRatio = state.svgRoot
       ? `${model.getViewBoxRect().width} / ${model.getViewBoxRect().height}`
       : "";
-  }, [model, state.svgRoot, ui.svgHost]);
+  }, [model, state.documentRevision, state.svgRoot, ui.svgHost]);
 
   const overlayElements = useMemo(() => {
     if (!state.svgRoot) {
@@ -259,10 +344,15 @@ function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface
     <>
       <div
         className="workspace-svg-slot"
-        ref={svgSlotRef}
         onClick={(event) => actions.onSvgClick?.(event.nativeEvent)}
         onPointerDown={(event) => actions.onSvgPointerDown?.(event.nativeEvent)}
-      ></div>
+      >
+        {state.documentSnapshot
+          ? renderSnapshotChild(state.documentSnapshot, (node) => {
+            mountedSvgRef.current = node;
+          })
+          : null}
+      </div>
       {state.svgRoot ? (
         <svg
           className="selection-overlay"

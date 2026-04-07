@@ -31,6 +31,10 @@ export function createInteractionController({
     "marker"
   ]);
 
+  function syncDocumentSnapshot() {
+    store.document.setDocumentSnapshot(model.captureDocumentSnapshot());
+  }
+
   async function openSvgDocumentPicker() {
     const showOpenFilePicker = (window as any).showOpenFilePicker;
     if (typeof showOpenFilePicker !== "function") {
@@ -508,6 +512,7 @@ export function createInteractionController({
       }
 
       store.interaction.setSuppressNextSvgClick(true);
+      syncDocumentSnapshot();
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -536,6 +541,7 @@ export function createInteractionController({
       }
 
       store.interaction.setSuppressNextSvgClick(true);
+      syncDocumentSnapshot();
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -555,6 +561,7 @@ export function createInteractionController({
       }
 
       store.interaction.setSuppressNextSvgClick(true);
+      syncDocumentSnapshot();
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -591,6 +598,7 @@ export function createInteractionController({
     }
 
     store.interaction.setSuppressNextSvgClick(true);
+    syncDocumentSnapshot();
     renderer.refresh({
       inspector: true,
       source: true,

@@ -3,6 +3,20 @@ export interface SvgPoint {
   y: number;
 }
 
+export interface SerializedSvgTextNode {
+  kind: "text";
+  value: string;
+}
+
+export interface SerializedSvgElementNode {
+  kind: "element";
+  tagName: string;
+  attributes: Record<string, string>;
+  children: SerializedSvgChild[];
+}
+
+export type SerializedSvgChild = SerializedSvgElementNode | SerializedSvgTextNode;
+
 export interface SvgRect {
   x: number;
   y: number;
@@ -36,6 +50,8 @@ export type SvgSvgNode = SVGSVGElement & EditorSvgElement;
 
 export interface SvgRuntimeStateLike {
   svgRoot: SvgSvgNode | null;
+  documentSnapshot: SerializedSvgElementNode | null;
+  documentRevision: number;
   nodeMap: Map<string, EditorSvgElement>;
   selectedId: string | null;
   nextId: number;
@@ -287,6 +303,7 @@ export interface DragResizeTools {
 }
 
 export interface DocumentTools {
+  captureDocumentSnapshot(root?: Element | null): SerializedSvgElementNode | null;
   parseSvg(source: string): SvgSvgNode;
   remapSubtreeIds(root: Element): void;
   renameNodeId(node: Element, requestedId?: string): string;

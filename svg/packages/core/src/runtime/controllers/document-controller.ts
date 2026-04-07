@@ -10,6 +10,10 @@ export function createDocumentController({
 }: any) {
   const runtime = store?.getState?.() || state;
 
+  function syncDocumentSnapshot(root: Element | null = runtime.svgRoot) {
+    store.document.setDocumentSnapshot(model.captureDocumentSnapshot(root));
+  }
+
   function setCurrentFileBinding(fileHandle: any = null, fileName = "") {
     store.document.setCurrentFileBinding(fileHandle, fileName);
     renderer.syncChrome();
@@ -59,6 +63,7 @@ export function createDocumentController({
     parent.append(node);
     model.rebuildNodeMap();
     model.syncEditorMetadata();
+    syncDocumentSnapshot(root);
     selectionController.selectNode(node.dataset.editorId, { render: false });
     renderer.refresh({
       workspace: true,
@@ -93,6 +98,7 @@ export function createDocumentController({
     }
 
     model.syncEditorMetadata();
+    syncDocumentSnapshot();
     renderer.refresh({
       workspace: true,
       tree: true,
@@ -120,6 +126,7 @@ export function createDocumentController({
       const nextNodeKey = model.getNodeKey(node);
       selectionController.remapMetadataKey(previousNodeKey, nextNodeKey);
       model.syncEditorMetadata();
+      syncDocumentSnapshot();
       selectionController.selectNode(node.dataset.editorId, { render: false });
       renderer.refresh({
         workspace: true,
@@ -151,6 +158,7 @@ export function createDocumentController({
       });
       selectionController.remapMetadataKeys(keyMap);
       selectionController.selectNode(node.dataset.editorId, { render: false });
+      syncDocumentSnapshot();
       renderer.refresh({
         workspace: true,
         tree: true,
@@ -170,6 +178,7 @@ export function createDocumentController({
         return;
       }
 
+      syncDocumentSnapshot();
       renderer.refresh({
         tree: true,
         inspector: true,
@@ -205,6 +214,7 @@ export function createDocumentController({
       model.refreshTextLayout(node);
     }
 
+    syncDocumentSnapshot();
     renderer.refresh({
       tree: true,
       inspector: record,
@@ -231,6 +241,7 @@ export function createDocumentController({
     });
     selectionController.remapMetadataKeys(keyMap);
     selectionController.resolveLiveSelection();
+    syncDocumentSnapshot();
     renderer.refresh({
       workspace: true,
       tree: true,
@@ -321,6 +332,7 @@ export function createDocumentController({
     }
 
     model.syncEditorMetadata();
+    syncDocumentSnapshot();
     renderer.refresh({
       workspace: renderWorkspace,
       tree: true,
@@ -385,6 +397,7 @@ export function createDocumentController({
     });
     model.rebuildNodeMap();
     model.syncEditorMetadata();
+    syncDocumentSnapshot();
     selectionController.setSelection(cloneIds, {
       primaryId: cloneIds[cloneIds.length - 1] || null,
       render: false
@@ -409,6 +422,7 @@ export function createDocumentController({
     nodes.forEach((node: any) => node.remove());
     model.rebuildNodeMap();
     model.syncEditorMetadata();
+    syncDocumentSnapshot();
     selectionController.selectNode(
       runtime.nodeMap.has(fallback?.dataset?.editorId)
         ? fallback.dataset.editorId
@@ -471,9 +485,12 @@ export function createDocumentController({
     const preservedEditorState = preserveEditorState ? selectionController.snapshotEditorState() : null;
     const root = model.parseSvg(source);
     model.addEditorIds(root);
-    store.document.setSvgRoot(root);
-    store.interaction.clearDrag();
-    store.interaction.clearSelectionBox();
+    store.batch(() => {
+      store.document.setSvgRoot(root);
+      store.document.setDocumentSnapshot(model.captureDocumentSnapshot(root));
+      store.interaction.clearDrag();
+      store.interaction.clearSelectionBox();
+    });
     ui.workspaceSurface.classList.remove("is-panning", "is-selecting");
     if (!preserveEditorState) {
       store.viewport.resetPan();

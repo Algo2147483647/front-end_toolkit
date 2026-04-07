@@ -2,7 +2,14 @@ import {
   DANGEROUS_TAGS,
   REFERENCE_ATTRS
 } from "../constants";
-import type { DocumentTools, EditorSvgElement, SvgRuntimeStateLike, SvgSvgNode } from "./types";
+import type {
+  DocumentTools,
+  EditorSvgElement,
+  SerializedSvgChild,
+  SerializedSvgElementNode,
+  SvgRuntimeStateLike,
+  SvgSvgNode
+} from "./types";
 
 function getSvgSubtree(root: Element): Element[] {
   return [root, ...Array.from(root.querySelectorAll("*"))];
@@ -13,6 +20,40 @@ function isSvgRootElement(node: Element | null): node is SvgSvgNode {
 }
 
 export function createSvgDocumentTools(state: SvgRuntimeStateLike): DocumentTools {
+  function serializeChildNode(node: ChildNode): SerializedSvgChild | null {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return {
+        kind: "text",
+        value: node.textContent || ""
+      };
+    }
+
+    if (node instanceof SVGElement) {
+      return serializeElementNode(node);
+    }
+
+    return null;
+  }
+
+  function serializeElementNode(node: Element): SerializedSvgElementNode {
+    const attributes: Record<string, string> = {};
+    node.getAttributeNames().forEach((name) => {
+      const value = node.getAttribute(name);
+      if (value != null) {
+        attributes[name] = value;
+      }
+    });
+
+    return {
+      kind: "element",
+      tagName: node.tagName,
+      attributes,
+      children: Array.from(node.childNodes)
+        .map((child) => serializeChildNode(child))
+        .filter(Boolean) as SerializedSvgChild[]
+    };
+  }
+
   function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
@@ -240,6 +281,14 @@ export function createSvgDocumentTools(state: SvgRuntimeStateLike): DocumentTool
     return root;
   }
 
+  function captureDocumentSnapshot(root: Element | null = state.svgRoot) {
+    if (!root) {
+      return null;
+    }
+
+    return serializeElementNode(root);
+  }
+
   function cleanForExport(root: Element) {
     for (const node of getSvgSubtree(root)) {
       for (const attrName of node.getAttributeNames()) {
@@ -261,6 +310,7 @@ export function createSvgDocumentTools(state: SvgRuntimeStateLike): DocumentTool
   }
 
   return {
+    captureDocumentSnapshot,
     parseSvg,
     remapSubtreeIds,
     renameNodeId,

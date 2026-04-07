@@ -66,6 +66,8 @@ function createContextMenuState(overrides: Partial<{
 export function createSvgRuntimeState() {
   return {
     svgRoot: null,
+    documentSnapshot: null,
+    documentRevision: 0,
     nodeMap: new Map(),
     selectedId: null,
     selectedIds: new Set(),
@@ -220,10 +222,19 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
       }
     },
     document: {
+      bindMountedSvgRoot(svgRoot: SVGSVGElement | null) {
+        state.svgRoot = svgRoot;
+      },
       setCurrentFileBinding(fileHandle: any = null, fileName = "") {
         commit(() => {
           state.currentFileHandle = fileHandle || null;
           state.currentFileName = fileName || fileHandle?.name || "";
+        });
+      },
+      setDocumentSnapshot(snapshot: unknown) {
+        commit(() => {
+          state.documentSnapshot = snapshot || null;
+          state.documentRevision += 1;
         });
       },
       setSvgRoot(svgRoot: SVGSVGElement | null) {
