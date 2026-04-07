@@ -1,4 +1,4 @@
-import { GRID_SNAP_DEFAULT_SIZE, GRID_SNAP_SIZE_OPTIONS } from "../../../../scripts/constants.js";
+import { GRID_SNAP_DEFAULT_SIZE, GRID_SNAP_SIZE_OPTIONS } from "./constants";
 import { createReactInspectorRenderer } from "../react/renderers/inspector-renderer";
 import { createReactTreeRenderer } from "../react/renderers/tree-renderer";
 import { createReactWorkspaceRenderer } from "../react/renderers/workspace-renderer";

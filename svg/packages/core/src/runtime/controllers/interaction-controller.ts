@@ -2,7 +2,7 @@ import {
   GRID_SNAP_SIZE_OPTIONS,
   GRID_SNAP_SIZE_STORAGE_KEY,
   GRID_SNAP_STORAGE_KEY
-} from "../../../../../scripts/constants.js";
+} from "../constants";
 
 export function createInteractionController({
   store,

@@ -1,7 +1,7 @@
 import {
   createSvgRuntimeState,
   createSvgRuntimeStore
-} from "../../../../scripts/runtime-store.js";
+} from "../runtime/runtime-store";
 
 export { createSvgRuntimeStore };
 

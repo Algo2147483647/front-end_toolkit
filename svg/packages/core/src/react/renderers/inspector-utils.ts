@@ -7,7 +7,7 @@ import {
   FONT_STYLE_OPTIONS,
   TEXT_ANCHOR_OPTIONS,
   TEXT_DECORATION_OPTIONS
-} from "../../../../../scripts/constants.js";
+} from "../../runtime/constants";
 
 const FIELD_OPTION_SETS = new Map([
   ["font-weight", COMMON_FONT_WEIGHT_OPTIONS],

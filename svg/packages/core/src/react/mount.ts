@@ -1,8 +1,8 @@
 import "../../../../styles.css";
 import "../host.css";
-import { EMPTY_SVG, SAMPLE_SVG } from "../../../../scripts/constants.js";
+import { EMPTY_SVG, SAMPLE_SVG } from "../runtime/constants";
 import { createEditor } from "../runtime/create-editor";
-import { createSvgModel } from "../../../../scripts/svg-model.js";
+import { createSvgModel } from "../runtime/create-svg-model";
 import { createRenderer } from "../runtime/create-renderer";
 import { createSvgRuntimeStore } from "./state";
 import type { SvgStudioUiRefs } from "./types";
