@@ -167,6 +167,48 @@ export function createSvgDragResizeTools({
     return svgPoint.matrixTransform(matrix);
   }
 
+  function projectPointFromRoot(node: SVGGraphicsElement | SVGSVGElement | null | undefined, point: SvgPoint): SvgPoint {
+    const svgPoint = state.svgRoot?.createSVGPoint?.();
+    const matrix = node?.getCTM?.();
+    if (!svgPoint || !matrix) {
+      return {
+        x: point.x,
+        y: point.y
+      };
+    }
+
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
+    return svgPoint.matrixTransform(matrix.inverse());
+  }
+
+  function projectBoxFromRoot(node: SVGGraphicsElement | SVGSVGElement | null | undefined, box: SvgRect): SvgRect | null {
+    const corners = [
+      { x: box.x, y: box.y },
+      { x: box.x + box.width, y: box.y },
+      { x: box.x + box.width, y: box.y + box.height },
+      { x: box.x, y: box.y + box.height }
+    ].map((corner) => projectPointFromRoot(node, corner));
+
+    const xs = corners.map((corner) => corner.x);
+    const ys = corners.map((corner) => corner.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    if (![minX, maxX, minY, maxY].every((value) => Number.isFinite(value))) {
+      return null;
+    }
+
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(maxX - minX, 1),
+      height: Math.max(maxY - minY, 1)
+    };
+  }
+
   function createRegularPolygonPoints(box: SvgRect, sides: number): SvgPoint[] {
     const centerX = box.x + (box.width / 2);
     const centerY = box.y + (box.height / 2);
@@ -1126,25 +1168,29 @@ export function createSvgDragResizeTools({
         return;
       }
 
+      const localTargetBox = projectBoxFromRoot(node as SVGGraphicsElement, nextBox) || nextBox;
+
       const changed = updateTextBoxDimensions(node, {
-        width: nextBox.width,
-        height: nextBox.height
+        width: localTargetBox.width,
+        height: localTargetBox.height
       });
       if (!changed) {
         return;
       }
 
-      const actualBox = getTextVisualBounds(node);
-      const actualAnchor = getBoxCorner(actualBox, descriptor.anchorHandle);
+      const actualLocalBox = getNodeGeometryBounds(node);
+      const actualAnchor = getBoxCorner(actualLocalBox, descriptor.anchorHandle);
       if (!actualAnchor) {
         return;
       }
 
-      const dx = descriptor.anchor.x - actualAnchor.x;
-      const dy = descriptor.anchor.y - actualAnchor.y;
+      const desiredAnchor = projectPointFromRoot(node as SVGGraphicsElement, descriptor.anchor);
+      const dx = desiredAnchor.x - actualAnchor.x;
+      const dy = desiredAnchor.y - actualAnchor.y;
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
         node.setAttribute("x", String(roundCoordinate(getNumericAttr(node, "x") + dx)));
         node.setAttribute("y", String(roundCoordinate(getNumericAttr(node, "y") + dy)));
+        applyManagedTextLayout(node);
       }
     }
   }

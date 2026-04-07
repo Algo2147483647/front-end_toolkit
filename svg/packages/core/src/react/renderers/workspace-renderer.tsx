@@ -1,6 +1,6 @@
-import { createElement, useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { SerializedSvgChild, SerializedSvgElementNode } from "../../runtime/model/types";
 import { useRuntimeVersion } from "./use-runtime-version";
 
@@ -59,90 +59,41 @@ function OverlayHandle({ className, cursor, editorId, fill = PPT_OVERLAY.fill, h
   );
 }
 
-function toCamelCaseAttribute(attributeName: string) {
-  return attributeName.replace(/[:-]([a-z])/g, (_match, letter: string) => letter.toUpperCase());
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
-function toReactPropName(attributeName: string) {
-  if (attributeName === "class") {
-    return "className";
-  }
-
-  if (attributeName === "for") {
-    return "htmlFor";
-  }
-
-  if (attributeName.startsWith("data-") || attributeName.startsWith("aria-")) {
-    return attributeName;
-  }
-
-  return toCamelCaseAttribute(attributeName);
+function escapeAttribute(value: string) {
+  return escapeHtml(value).replace(/"/g, "&quot;");
 }
 
-function parseInlineStyle(styleText: string): CSSProperties {
-  return styleText
-    .split(";")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-    .reduce((styles, segment) => {
-      const separatorIndex = segment.indexOf(":");
-      if (separatorIndex < 0) {
-        return styles;
-      }
-
-      const name = segment.slice(0, separatorIndex).trim();
-      const value = segment.slice(separatorIndex + 1).trim();
-      if (!name || !value) {
-        return styles;
-      }
-
-      const propName = toCamelCaseAttribute(name);
-      styles[propName as keyof CSSProperties] = value as never;
-      return styles;
-    }, {} as CSSProperties);
-}
-
-function buildReactProps(node: SerializedSvgElementNode) {
-  const props: Record<string, unknown> = {};
-
-  Object.entries(node.attributes).forEach(([attributeName, attributeValue]) => {
-    if (attributeName === "style") {
-      props.style = parseInlineStyle(attributeValue);
-      return;
-    }
-
-    props[toReactPropName(attributeName)] = attributeValue;
-  });
-
-  return props;
-}
-
-function renderSnapshotChild(node: SerializedSvgChild, rootRef: ((node: SVGSVGElement | null) => void) | null, path = "0"): ReactNode {
+function serializeSnapshotChild(node: SerializedSvgChild): string {
   if (node.kind === "text") {
-    return node.value;
+    return escapeHtml(node.value);
   }
 
-  const props = buildReactProps(node);
-  props.key = node.attributes["data-editor-id"] || `${node.tagName}-${path}`;
-  if (rootRef && node.tagName.toLowerCase() === "svg") {
-    props.ref = rootRef;
-  }
-
-  return createElement(
-    node.tagName,
-    props,
-    node.children.map((child, index) => renderSnapshotChild(child, null, `${path}.${index}`))
-  );
+  const attributes = Object.entries(node.attributes)
+    .map(([attributeName, attributeValue]) => ` ${attributeName}="${escapeAttribute(attributeValue)}"`)
+    .join("");
+  const children = node.children.map((child) => serializeSnapshotChild(child)).join("");
+  return `<${node.tagName}${attributes}>${children}</${node.tagName}>`;
 }
 
 function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGridSurface }: WorkspaceDeps) {
   const mountedSvgRef = useRef<SVGSVGElement | null>(null);
   const boundRevisionRef = useRef(-1);
+  const svgSlotRef = useRef<HTMLDivElement | null>(null);
   const selectedNodes = [...state.selectedIds]
     .map((editorId) => state.nodeMap.get(editorId))
     .filter(Boolean);
   const viewBox = state.svgRoot ? model.viewBoxFor(state.svgRoot) : undefined;
   const preserveAspectRatio = state.svgRoot?.getAttribute("preserveAspectRatio") || "xMidYMid meet";
+  const snapshotMarkup = state.documentSnapshot
+    ? serializeSnapshotChild(state.documentSnapshot)
+    : "";
 
   useLayoutEffect(() => {
     if (!state.documentSnapshot) {
@@ -153,7 +104,8 @@ function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGrid
       return;
     }
 
-    const mountedRoot = mountedSvgRef.current;
+    const mountedRoot = (svgSlotRef.current?.querySelector("svg") as SVGSVGElement | null) || null;
+    mountedSvgRef.current = mountedRoot;
     if (!mountedRoot) {
       return;
     }
@@ -344,14 +296,11 @@ function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGrid
     <>
       <div
         className="workspace-svg-slot"
+        ref={svgSlotRef}
         onClick={(event) => actions.onSvgClick?.(event.nativeEvent)}
         onPointerDown={(event) => actions.onSvgPointerDown?.(event.nativeEvent)}
+        dangerouslySetInnerHTML={snapshotMarkup ? { __html: snapshotMarkup } : undefined}
       >
-        {state.documentSnapshot
-          ? renderSnapshotChild(state.documentSnapshot, (node) => {
-            mountedSvgRef.current = node;
-          })
-          : null}
       </div>
       {state.svgRoot ? (
         <svg

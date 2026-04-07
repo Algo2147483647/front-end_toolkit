@@ -19,6 +19,54 @@ function isSvgRootElement(node: Element | null): node is SvgSvgNode {
   return Boolean(node instanceof SVGSVGElement);
 }
 
+function stabilizeSvgRootViewBox(root: Element | null) {
+  const svgRoot = root as (Element & {
+    getBBox?: () => { x: number; y: number; width: number; height: number };
+    setAttribute?: (name: string, value: string) => void;
+    hasAttribute?: (name: string) => boolean;
+    getAttribute?: (name: string) => string | null;
+    tagName?: string;
+  }) | null;
+
+  if (!svgRoot || String(svgRoot.tagName || "").toLowerCase() !== "svg") {
+    return;
+  }
+
+  if (svgRoot.hasAttribute?.("viewBox")) {
+    return;
+  }
+
+  const widthAttr = svgRoot.getAttribute?.("width");
+  const heightAttr = svgRoot.getAttribute?.("height");
+  if ((widthAttr && widthAttr.trim()) || (heightAttr && heightAttr.trim())) {
+    return;
+  }
+
+  let bounds: { x: number; y: number; width: number; height: number } | null = null;
+  try {
+    const measured = svgRoot.getBBox?.();
+    if (
+      measured
+      && Number.isFinite(measured.x)
+      && Number.isFinite(measured.y)
+      && Number.isFinite(measured.width)
+      && Number.isFinite(measured.height)
+      && measured.width > 0
+      && measured.height > 0
+    ) {
+      bounds = measured;
+    }
+  } catch {
+    bounds = null;
+  }
+
+  if (!bounds) {
+    return;
+  }
+
+  svgRoot.setAttribute?.("viewBox", `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+}
+
 export function createSvgDocumentTools(state: SvgRuntimeStateLike): DocumentTools {
   function serializeChildNode(node: ChildNode): SerializedSvgChild | null {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -286,6 +334,7 @@ export function createSvgDocumentTools(state: SvgRuntimeStateLike): DocumentTool
       return null;
     }
 
+    stabilizeSvgRootViewBox(root);
     return serializeElementNode(root);
   }
 
