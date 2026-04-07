@@ -857,8 +857,20 @@ export function createInteractionController({
       bindWindowEvents = true,
       bindWorkspaceEvents = true
     } = options;
+    const disposers: Array<() => void> = [];
+    const listen = (
+      target: EventTarget,
+      type: string,
+      handler: EventListenerOrEventListenerObject,
+      listenerOptions?: boolean | AddEventListenerOptions
+    ) => {
+      target.addEventListener(type, handler, listenerOptions);
+      disposers.push(() => {
+        target.removeEventListener(type, handler, listenerOptions);
+      });
+    };
 
-    ui.importButton.addEventListener("click", async () => {
+    listen(ui.importButton, "click", async () => {
       if (typeof (window as any).showOpenFilePicker !== "function") {
         ui.fileInput.click();
         return;
@@ -883,9 +895,9 @@ export function createInteractionController({
         alert(error.message);
       }
     });
-    ui.gridSnapButton.addEventListener("click", () => setGridSnapEnabled(!runtime.gridSnapEnabled));
+    listen(ui.gridSnapButton, "click", () => setGridSnapEnabled(!runtime.gridSnapEnabled));
 
-    ui.gridSnapSizeInput.addEventListener("input", (event: Event) => {
+    listen(ui.gridSnapSizeInput, "input", (event: Event) => {
       const value = (event.target as HTMLInputElement).value;
       if (value === "" || value === "-") {
         return;
@@ -893,7 +905,7 @@ export function createInteractionController({
       setGridSnapSize(value);
     });
 
-    ui.gridSnapSizeInput.addEventListener("change", (event: Event) => {
+    listen(ui.gridSnapSizeInput, "change", (event: Event) => {
       const value = (event.target as HTMLInputElement).value;
       if (value === "" || value === "-") {
         renderer.syncChrome();
@@ -902,44 +914,44 @@ export function createInteractionController({
       setGridSnapSize(value);
     });
 
-    ui.gridSnapSizeSelect.addEventListener("change", (event: Event) => {
+    listen(ui.gridSnapSizeSelect, "change", (event: Event) => {
       const value = (event.target as HTMLSelectElement).value;
       if (value) {
         setGridSnapSize(value);
       }
     });
 
-    ui.sourceToggleButton.addEventListener("click", () => setSourcePaneVisible(!runtime.sourceVisible));
-    ui.collapseTopbarButton.addEventListener("click", () => setTopbarCollapsed(!runtime.topbarCollapsed));
-    ui.showTopbarButton.addEventListener("click", () => setTopbarCollapsed(false));
-    ui.leftPanelInsertTab.addEventListener("click", () => setLeftPanelView("insert"));
-    ui.leftPanelLayersTab.addEventListener("click", () => setLeftPanelView("layers"));
-    ui.hideLeftPanelButton.addEventListener("click", () => setLeftPanelHidden(true));
-    ui.hideRightPanelButton.addEventListener("click", () => setRightPanelHidden(true));
-    ui.floatingLeftButton.addEventListener("click", () => setLeftPanelHidden(!runtime.leftPanelHidden));
-    ui.floatingRightButton.addEventListener("click", () => setRightPanelHidden(!runtime.rightPanelHidden));
-    ui.insertImageButton.addEventListener("click", () => ui.imageInput.click());
-    ui.newDocumentButton.addEventListener("click", () => documentController.loadDocument(emptySvg, {
+    listen(ui.sourceToggleButton, "click", () => setSourcePaneVisible(!runtime.sourceVisible));
+    listen(ui.collapseTopbarButton, "click", () => setTopbarCollapsed(!runtime.topbarCollapsed));
+    listen(ui.showTopbarButton, "click", () => setTopbarCollapsed(false));
+    listen(ui.leftPanelInsertTab, "click", () => setLeftPanelView("insert"));
+    listen(ui.leftPanelLayersTab, "click", () => setLeftPanelView("layers"));
+    listen(ui.hideLeftPanelButton, "click", () => setLeftPanelHidden(true));
+    listen(ui.hideRightPanelButton, "click", () => setRightPanelHidden(true));
+    listen(ui.floatingLeftButton, "click", () => setLeftPanelHidden(!runtime.leftPanelHidden));
+    listen(ui.floatingRightButton, "click", () => setRightPanelHidden(!runtime.rightPanelHidden));
+    listen(ui.insertImageButton, "click", () => ui.imageInput.click());
+    listen(ui.newDocumentButton, "click", () => documentController.loadDocument(emptySvg, {
       fileHandle: null,
       fileName: "",
       preserveEditorState: false
     }));
-    ui.applySourceButton.addEventListener("click", () => {
+    listen(ui.applySourceButton, "click", () => {
       try {
         documentController.loadDocument(ui.sourceEditor.value, { preserveEditorState: true });
       } catch (error: any) {
         alert(error.message);
       }
     });
-    ui.saveButton.addEventListener("click", async () => {
+    listen(ui.saveButton, "click", async () => {
       try {
         await documentController.saveToSourceFile();
       } catch (error: any) {
         alert(error.message);
       }
     });
-    ui.exportButton.addEventListener("click", documentController.downloadSvg);
-    ui.fileInput.addEventListener("change", async (event: Event) => {
+    listen(ui.exportButton, "click", documentController.downloadSvg);
+    listen(ui.fileInput, "change", async (event: Event) => {
       const [file] = (event.target as HTMLInputElement).files || [];
       if (!file) {
         return;
@@ -956,7 +968,7 @@ export function createInteractionController({
         alert(error.message);
       }
     });
-    ui.imageInput.addEventListener("change", async (event: Event) => {
+    listen(ui.imageInput, "change", async (event: Event) => {
       const [file] = (event.target as HTMLInputElement).files || [];
       if (!file) {
         return;
@@ -968,49 +980,53 @@ export function createInteractionController({
         alert(error.message);
       }
     });
-    ui.insertGrid.addEventListener("click", (event: Event) => {
+    listen(ui.insertGrid, "click", (event: Event) => {
       const button = (event.target as HTMLElement | null)?.closest?.("[data-insert]") as HTMLElement | null;
       if (!button) {
         return;
       }
       documentController.insertElement(button.dataset.insert);
     });
-    ui.undoButton.addEventListener("click", () => historyController.restoreHistory(runtime.historyIndex - 1));
-    ui.redoButton.addEventListener("click", () => historyController.restoreHistory(runtime.historyIndex + 1));
-    ui.duplicateButton.addEventListener("click", documentController.duplicateSelection);
-    ui.deleteButton.addEventListener("click", documentController.deleteSelection);
-    ui.zoomInButton.addEventListener("click", () => setZoom(runtime.zoom + 0.1));
-    ui.zoomOutButton.addEventListener("click", () => setZoom(runtime.zoom - 0.1));
-    ui.zoomResetButton.addEventListener("click", fitToView);
+    listen(ui.undoButton, "click", () => historyController.restoreHistory(runtime.historyIndex - 1));
+    listen(ui.redoButton, "click", () => historyController.restoreHistory(runtime.historyIndex + 1));
+    listen(ui.duplicateButton, "click", documentController.duplicateSelection);
+    listen(ui.deleteButton, "click", documentController.deleteSelection);
+    listen(ui.zoomInButton, "click", () => setZoom(runtime.zoom + 0.1));
+    listen(ui.zoomOutButton, "click", () => setZoom(runtime.zoom - 0.1));
+    listen(ui.zoomResetButton, "click", fitToView);
     if (bindWorkspaceEvents) {
-      ui.workspaceSurface.addEventListener("contextmenu", onWorkspaceContextMenu as EventListener);
-      ui.workspaceSurface.addEventListener("pointerdown", onWorkspacePointerDown as EventListener);
-      ui.workspaceSurface.addEventListener("dragenter", onWorkspaceDragEnter as EventListener);
-      ui.workspaceSurface.addEventListener("dragover", onWorkspaceDragOver as EventListener);
-      ui.workspaceSurface.addEventListener("dragleave", onWorkspaceDragLeave as EventListener);
-      ui.workspaceSurface.addEventListener("drop", onWorkspaceDrop as unknown as EventListener);
+      listen(ui.workspaceSurface, "contextmenu", onWorkspaceContextMenu as EventListener);
+      listen(ui.workspaceSurface, "pointerdown", onWorkspacePointerDown as EventListener);
+      listen(ui.workspaceSurface, "dragenter", onWorkspaceDragEnter as EventListener);
+      listen(ui.workspaceSurface, "dragover", onWorkspaceDragOver as EventListener);
+      listen(ui.workspaceSurface, "dragleave", onWorkspaceDragLeave as EventListener);
+      listen(ui.workspaceSurface, "drop", onWorkspaceDrop as unknown as EventListener);
     }
-    ui.contextMenu.addEventListener("pointerdown", (event: Event) => {
+    listen(ui.contextMenu, "pointerdown", (event: Event) => {
       event.stopPropagation();
     });
-    ui.bringToFrontButton.addEventListener("click", () => {
+    listen(ui.bringToFrontButton, "click", () => {
       documentController.bringSelectionToFront(runtime.contextMenu.editorId);
       hideContextMenu();
     });
-    ui.sendToBackButton.addEventListener("click", () => {
+    listen(ui.sendToBackButton, "click", () => {
       documentController.sendSelectionToBack(runtime.contextMenu.editorId);
       hideContextMenu();
     });
     if (bindWindowEvents) {
-      window.addEventListener("pointermove", onWindowPointerMove);
-      window.addEventListener("pointerup", onWindowPointerUp);
-      window.addEventListener("pointercancel", onWindowPointerCancel);
-      window.addEventListener("resize", onWindowResize);
-      window.addEventListener("dragend", onWindowDragEnd);
-      window.addEventListener("drop", onWindowDrop);
-      window.addEventListener("pointerdown", onWindowPointerDown);
-      window.addEventListener("keydown", onWindowKeyDown);
+      listen(window, "pointermove", onWindowPointerMove as EventListener);
+      listen(window, "pointerup", onWindowPointerUp as EventListener);
+      listen(window, "pointercancel", onWindowPointerCancel as EventListener);
+      listen(window, "resize", onWindowResize as EventListener);
+      listen(window, "dragend", onWindowDragEnd as EventListener);
+      listen(window, "drop", onWindowDrop as EventListener);
+      listen(window, "pointerdown", onWindowPointerDown as EventListener);
+      listen(window, "keydown", onWindowKeyDown as EventListener);
     }
+
+    return () => {
+      [...disposers].reverse().forEach((dispose) => dispose());
+    };
   }
 
   return {

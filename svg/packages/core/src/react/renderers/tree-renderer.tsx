@@ -1,7 +1,9 @@
-import { Fragment, type CSSProperties } from "react";
+import { Fragment, useLayoutEffect, type CSSProperties } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { useRuntimeVersion } from "./use-runtime-version";
 
 interface TreeRendererDeps {
+  store: any;
   state: any;
   ui: any;
   model: any;
@@ -106,7 +108,7 @@ function TreeNodeRow({ actions, depth, model, node, state }: TreeNodeRowProps) {
   );
 }
 
-function TreePanel({ actions, model, state }: Omit<TreeRendererDeps, "ui">) {
+function TreePanel({ actions, model, state }: Pick<TreeRendererDeps, "actions" | "model" | "state">) {
   if (!state.svgRoot) {
     return null;
   }
@@ -122,23 +124,42 @@ function TreePanel({ actions, model, state }: Omit<TreeRendererDeps, "ui">) {
   );
 }
 
-export function createReactTreeRenderer({ state, ui, model, actions }: TreeRendererDeps) {
-  const root: Root = createRoot(ui.treePanel);
+function TreeRendererRoot({ actions, model, store, ui }: TreeRendererDeps) {
+  const version = useRuntimeVersion(store);
+  const state = store.getState();
 
-  function renderTree() {
+  useLayoutEffect(() => {
     if (state.svgRoot) {
       ui.nodeCountBadge.textContent = `${state.svgRoot.querySelectorAll("*").length + 1} nodes`;
-    } else {
-      ui.nodeCountBadge.textContent = "0 nodes";
+      return;
     }
 
-    root.render(
-      <TreePanel
-        actions={actions}
-        model={model}
-        state={state}
-      />
-    );
+    ui.nodeCountBadge.textContent = "0 nodes";
+  }, [state.svgRoot, ui, version]);
+
+  return (
+    <TreePanel
+      actions={actions}
+      model={model}
+      state={state}
+    />
+  );
+}
+
+export function createReactTreeRenderer({ store, state, ui, model, actions }: TreeRendererDeps) {
+  const root: Root = createRoot(ui.treePanel);
+  root.render(
+    <TreeRendererRoot
+      actions={actions}
+      model={model}
+      state={state}
+      store={store}
+      ui={ui}
+    />
+  );
+
+  function renderTree() {
+    store.invalidate();
   }
 
   return {

@@ -107,66 +107,142 @@ export function createSvgRuntimeState() {
 
 export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
   const state: any = initialState;
+  const listeners = new Set<() => void>();
+  let version = 0;
+  let batchDepth = 0;
+  let pendingNotify = false;
+
+  function emit() {
+    version += 1;
+    listeners.forEach((listener) => listener());
+  }
+
+  function notify() {
+    if (batchDepth > 0) {
+      pendingNotify = true;
+      return;
+    }
+
+    emit();
+  }
+
+  function commit<T>(fn: () => T) {
+    const result = fn();
+    notify();
+    return result;
+  }
+
+  function batch<T>(fn: () => T) {
+    batchDepth += 1;
+    try {
+      return fn();
+    } finally {
+      batchDepth -= 1;
+      if (batchDepth === 0 && pendingNotify) {
+        pendingNotify = false;
+        emit();
+      }
+    }
+  }
 
   return {
     state,
     getState() {
       return state;
     },
+    getSnapshot() {
+      return version;
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    invalidate() {
+      notify();
+    },
+    batch,
     chrome: {
       setGridSnapEnabled(enabled: unknown) {
-        state.gridSnapEnabled = Boolean(enabled);
+        commit(() => {
+          state.gridSnapEnabled = Boolean(enabled);
+        });
       },
       setGridSnapSize(size: unknown) {
-        state.gridSnapSize = normalizeGridSnapSize(size);
-        return state.gridSnapSize;
+        return commit(() => {
+          state.gridSnapSize = normalizeGridSnapSize(size);
+          return state.gridSnapSize;
+        });
       },
       setLeftPanelHidden(hidden: unknown) {
-        state.leftPanelHidden = Boolean(hidden);
+        commit(() => {
+          state.leftPanelHidden = Boolean(hidden);
+        });
       },
       setLeftPanelView(view: string) {
-        state.leftPanelView = view === "layers" ? "layers" : "insert";
-        return state.leftPanelView;
+        return commit(() => {
+          state.leftPanelView = view === "layers" ? "layers" : "insert";
+          return state.leftPanelView;
+        });
       },
       setRightPanelHidden(hidden: unknown) {
-        state.rightPanelHidden = Boolean(hidden);
+        commit(() => {
+          state.rightPanelHidden = Boolean(hidden);
+        });
       },
       setSourceVisible(visible: unknown) {
-        state.sourceVisible = Boolean(visible);
+        commit(() => {
+          state.sourceVisible = Boolean(visible);
+        });
       },
       setTopbarCollapsed(collapsed: unknown) {
-        state.topbarCollapsed = Boolean(collapsed);
+        commit(() => {
+          state.topbarCollapsed = Boolean(collapsed);
+        });
       }
     },
     contextMenu: {
       hide() {
-        state.contextMenu = createContextMenuState();
+        commit(() => {
+          state.contextMenu = createContextMenuState();
+        });
       },
       show({ editorId = null, x = 0, y = 0 }: Partial<{ editorId: string | null; x: number; y: number }> = {}) {
-        state.contextMenu = createContextMenuState({
-          editorId,
-          visible: true,
-          x,
-          y
+        commit(() => {
+          state.contextMenu = createContextMenuState({
+            editorId,
+            visible: true,
+            x,
+            y
+          });
         });
       }
     },
     document: {
       setCurrentFileBinding(fileHandle: any = null, fileName = "") {
-        state.currentFileHandle = fileHandle || null;
-        state.currentFileName = fileName || fileHandle?.name || "";
+        commit(() => {
+          state.currentFileHandle = fileHandle || null;
+          state.currentFileName = fileName || fileHandle?.name || "";
+        });
       },
       setSvgRoot(svgRoot: SVGSVGElement | null) {
-        state.svgRoot = svgRoot;
+        commit(() => {
+          state.svgRoot = svgRoot;
+        });
       }
     },
     history: {
       replace(entries: unknown, historyIndex: number) {
-        state.history = Array.isArray(entries) ? entries : [];
-        state.historyIndex = Number.isInteger(historyIndex) ? historyIndex : -1;
+        commit(() => {
+          state.history = Array.isArray(entries) ? entries : [];
+          state.historyIndex = Number.isInteger(historyIndex) ? historyIndex : -1;
+        });
       },
       setRestoring(restoring: unknown) {
-        state.restoring = Boolean(restoring);
+        commit(() => {
+          state.restoring = Boolean(restoring);
+        });
       }
     },
     inspector: {
@@ -175,73 +251,108 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
           return;
         }
 
-        state.inspectorSectionStates.set(key, Boolean(open));
+        commit(() => {
+          state.inspectorSectionStates.set(key, Boolean(open));
+        });
       }
     },
     interaction: {
       clearDrag() {
-        const previousDrag = state.drag;
-        state.drag = null;
-        return previousDrag;
+        return commit(() => {
+          const previousDrag = state.drag;
+          state.drag = null;
+          return previousDrag;
+        });
       },
       clearDropDepth() {
-        state.dropDepth = 0;
+        commit(() => {
+          state.dropDepth = 0;
+        });
       },
       clearSelectionBox() {
-        state.selectionBox = null;
+        commit(() => {
+          state.selectionBox = null;
+        });
       },
       setDrag(drag: unknown) {
-        state.drag = drag;
+        commit(() => {
+          state.drag = drag;
+        });
       },
       setDropDepth(depth: number) {
-        state.dropDepth = Math.max(0, depth);
+        commit(() => {
+          state.dropDepth = Math.max(0, depth);
+        });
       },
       setSelectionBox(box: unknown) {
-        state.selectionBox = box;
+        commit(() => {
+          state.selectionBox = box;
+        });
       },
       setSuppressNextContextMenu(value: unknown) {
-        state.suppressNextContextMenu = Boolean(value);
+        commit(() => {
+          state.suppressNextContextMenu = Boolean(value);
+        });
       },
       setSuppressNextSvgClick(value: unknown) {
-        state.suppressNextSvgClick = Boolean(value);
+        commit(() => {
+          state.suppressNextSvgClick = Boolean(value);
+        });
       }
     },
     selection: {
       resetEditorState() {
-        this.restoreEditorState(null);
-        state.selectedId = null;
-        state.selectedIds = new Set();
-        state.selectionBox = null;
+        commit(() => {
+          state.selectedNodeKey = null;
+          state.selectedNodeKeys = new Set();
+          state.collapsedNodeKeys = new Set();
+          state.lockedNodeKeys = new Set();
+          state.selectedId = null;
+          state.selectedIds = new Set();
+          state.selectionBox = null;
+        });
       },
       restoreEditorState(snapshot: any) {
-        state.selectedNodeKey = snapshot?.selectedNodeKey || null;
-        state.selectedNodeKeys = cloneSet(snapshot?.selectedNodeKeys);
-        state.collapsedNodeKeys = cloneSet(snapshot?.collapsedNodeKeys);
-        state.lockedNodeKeys = cloneSet(snapshot?.lockedNodeKeys);
+        commit(() => {
+          state.selectedNodeKey = snapshot?.selectedNodeKey || null;
+          state.selectedNodeKeys = cloneSet(snapshot?.selectedNodeKeys);
+          state.collapsedNodeKeys = cloneSet(snapshot?.collapsedNodeKeys);
+          state.lockedNodeKeys = cloneSet(snapshot?.lockedNodeKeys);
+        });
       },
       setSelection(editorIds: Iterable<string> | null | undefined, primaryId: string | null, selectedNodeKey: string | null, selectedNodeKeys: Iterable<string> | null | undefined) {
-        state.selectedIds = cloneSet(editorIds);
-        state.selectedId = primaryId || null;
-        state.selectedNodeKey = selectedNodeKey || null;
-        state.selectedNodeKeys = cloneSet(selectedNodeKeys);
+        commit(() => {
+          state.selectedIds = cloneSet(editorIds);
+          state.selectedId = primaryId || null;
+          state.selectedNodeKey = selectedNodeKey || null;
+          state.selectedNodeKeys = cloneSet(selectedNodeKeys);
+        });
       }
     },
     viewport: {
       resetPan() {
-        state.panX = 0;
-        state.panY = 0;
+        commit(() => {
+          state.panX = 0;
+          state.panY = 0;
+        });
       },
       setPan(panX: number, panY: number) {
-        state.panX = panX;
-        state.panY = panY;
+        commit(() => {
+          state.panX = panX;
+          state.panY = panY;
+        });
       },
       setTransform({ panX = state.panX, panY = state.panY, zoom = state.zoom }: Partial<{ panX: number; panY: number; zoom: number }> = {}) {
-        state.panX = panX;
-        state.panY = panY;
-        state.zoom = zoom;
+        commit(() => {
+          state.panX = panX;
+          state.panY = panY;
+          state.zoom = zoom;
+        });
       },
       setZoom(zoom: number) {
-        state.zoom = zoom;
+        commit(() => {
+          state.zoom = zoom;
+        });
       }
     }
   };

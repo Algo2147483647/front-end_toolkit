@@ -39,8 +39,8 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
     updatePolylinePointCount: editor.updatePolylinePointCount
   });
 
-  editor.bindEvents({
-    bindWindowEvents: false,
+  const unbindEvents = editor.bindEvents({
+    bindWindowEvents: true,
     bindWorkspaceEvents: false
   });
   renderer.syncChrome();
@@ -49,6 +49,7 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
 
   return {
     dispose() {
+      unbindEvents?.();
       renderer.dispose?.();
     },
     editor,

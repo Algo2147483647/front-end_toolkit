@@ -169,9 +169,10 @@ export function createRenderer({ store, state, ui, model, actions }: RendererDep
 
   const inspectorRenderer = createReactInspectorRenderer({ store, state: runtime, ui, model, actions });
   const { renderInspector } = inspectorRenderer;
-  const treeRenderer = createReactTreeRenderer({ state: runtime, ui, model, actions });
+  const treeRenderer = createReactTreeRenderer({ store, state: runtime, ui, model, actions });
   const { renderTree } = treeRenderer;
   const workspaceRenderer = createReactWorkspaceRenderer({
+    store,
     state: runtime,
     ui,
     model,
@@ -198,18 +199,8 @@ export function createRenderer({ store, state, ui, model, actions }: RendererDep
       overlay = false
     } = options;
 
-    if (workspace) {
-      renderWorkspace();
-    } else if (overlay) {
-      renderOverlay();
-    }
-
-    if (tree) {
-      renderTree();
-    }
-
-    if (inspector) {
-      renderInspector();
+    if (workspace || tree || inspector || overlay) {
+      store.invalidate();
     }
 
     if (source) {

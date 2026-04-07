@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { useRuntimeVersion } from "./use-runtime-version";
 
 const PPT_OVERLAY = {
   accent: "#4f81bd",
@@ -12,6 +13,7 @@ const PPT_OVERLAY = {
 };
 
 interface WorkspaceDeps {
+  store: any;
   state: any;
   ui: any;
   model: any;
@@ -64,18 +66,22 @@ function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface
   const preserveAspectRatio = state.svgRoot?.getAttribute("preserveAspectRatio") || "xMidYMid meet";
 
   useLayoutEffect(() => {
-    if (!svgSlotRef.current || !state.svgRoot) {
+    if (!svgSlotRef.current) {
       return;
     }
 
     const slot = svgSlotRef.current;
-    slot.innerHTML = "";
+    if (!state.svgRoot) {
+      if (slot.childNodes.length > 0) {
+        slot.replaceChildren();
+      }
+      return;
+    }
+
     state.svgRoot.classList.add("workspace-svg");
-    state.svgRoot.removeEventListener("click", actions.onSvgClick);
-    state.svgRoot.removeEventListener("pointerdown", actions.onSvgPointerDown);
-    state.svgRoot.addEventListener("click", actions.onSvgClick);
-    state.svgRoot.addEventListener("pointerdown", actions.onSvgPointerDown);
-    slot.append(state.svgRoot);
+    if (slot.firstChild !== state.svgRoot || slot.childNodes.length !== 1) {
+      slot.replaceChildren(state.svgRoot);
+    }
 
     updateGridSurface();
     applyZoom();
@@ -251,7 +257,12 @@ function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface
 
   return (
     <>
-      <div className="workspace-svg-slot" ref={svgSlotRef}></div>
+      <div
+        className="workspace-svg-slot"
+        ref={svgSlotRef}
+        onClick={(event) => actions.onSvgClick?.(event.nativeEvent)}
+        onPointerDown={(event) => actions.onSvgPointerDown?.(event.nativeEvent)}
+      ></div>
       {state.svgRoot ? (
         <svg
           className="selection-overlay"
@@ -266,27 +277,42 @@ function WorkspaceRoot({ actions, applyZoom, model, state, ui, updateGridSurface
   );
 }
 
-export function createReactWorkspaceRenderer({ state, ui, model, actions, applyZoom, updateGridSurface }: WorkspaceDeps) {
+function WorkspaceRendererRoot({ store, ...deps }: WorkspaceDeps) {
+  useRuntimeVersion(store);
+  const state = store.getState();
+
+  return (
+    <WorkspaceRoot
+      {...deps}
+      state={state}
+      store={store}
+    />
+  );
+}
+
+export function createReactWorkspaceRenderer({ store, state, ui, model, actions, applyZoom, updateGridSurface }: WorkspaceDeps) {
   const host = document.createElement("div");
   host.className = "workspace-react-root";
   ui.svgHost.append(host);
   const root: Root = createRoot(host);
+  root.render(
+    <WorkspaceRendererRoot
+      actions={actions}
+      applyZoom={applyZoom}
+      model={model}
+      state={state}
+      store={store}
+      ui={ui}
+      updateGridSurface={updateGridSurface}
+    />
+  );
 
   function renderWorkspace() {
-    root.render(
-      <WorkspaceRoot
-        actions={actions}
-        applyZoom={applyZoom}
-        model={model}
-        state={state}
-        ui={ui}
-        updateGridSurface={updateGridSurface}
-      />
-    );
+    store.invalidate();
   }
 
   function renderOverlay() {
-    renderWorkspace();
+    store.invalidate();
   }
 
   return {

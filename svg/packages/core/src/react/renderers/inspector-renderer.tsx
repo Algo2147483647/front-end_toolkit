@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { useRuntimeVersion } from "./use-runtime-version";
 import {
   COLOR_FIELDS,
   COMMON_FONT_OPTIONS,
@@ -690,22 +691,40 @@ function InspectorPanel({ actions, model, state, store }: Omit<InspectorDeps, "u
   return <SingleNodeInspector actions={actions} model={model} node={node} state={state} store={store} />;
 }
 
-export function createReactInspectorRenderer({ store, state, ui, model, actions }: InspectorDeps) {
-  const root: Root = createRoot(ui.propertyForm);
+function InspectorRendererRoot({ actions, model, store, ui }: InspectorDeps) {
+  const version = useRuntimeVersion(store);
+  const state = store.getState();
+  const hasSelection = [...state.selectedIds].some((editorId) => state.nodeMap.get(editorId));
 
-  function renderInspector() {
-    const hasSelection = [...state.selectedIds].some((editorId) => state.nodeMap.get(editorId));
+  useLayoutEffect(() => {
     ui.inspectorEmpty.classList.toggle("hidden", hasSelection);
     ui.propertyForm.classList.toggle("hidden", !hasSelection);
+  }, [hasSelection, ui, version]);
 
-    root.render(
-      <InspectorPanel
-        actions={actions}
-        model={model}
-        state={state}
-        store={store}
-      />
-    );
+  return (
+    <InspectorPanel
+      actions={actions}
+      model={model}
+      state={state}
+      store={store}
+    />
+  );
+}
+
+export function createReactInspectorRenderer({ store, state, ui, model, actions }: InspectorDeps) {
+  const root: Root = createRoot(ui.propertyForm);
+  root.render(
+    <InspectorRendererRoot
+      actions={actions}
+      model={model}
+      state={state}
+      store={store}
+      ui={ui}
+    />
+  );
+
+  function renderInspector() {
+    store.invalidate();
   }
 
   return {

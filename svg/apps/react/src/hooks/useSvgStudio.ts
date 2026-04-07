@@ -215,39 +215,9 @@ export function useSvgStudio(): SvgStudioBindings {
 
   useEffect(() => {
     studioRef.current = mountReactSvgStudio(toUiRefs(refs)) as MountedStudio;
-    const studio = studioRef.current;
-    if (!studio) {
-      return;
-    }
-
-    const onPointerMove = (event: PointerEvent) => studio.editor.onWindowPointerMove(event);
-    const onPointerUp = () => studio.editor.onWindowPointerUp();
-    const onPointerCancel = () => studio.editor.onWindowPointerCancel();
-    const onResize = () => studio.editor.onWindowResize();
-    const onDragEnd = () => studio.editor.onWindowDragEnd();
-    const onDrop = () => studio.editor.onWindowDrop();
-    const onPointerDown = (event: PointerEvent) => studio.editor.onWindowPointerDown(event);
-    const onKeyDown = (event: KeyboardEvent) => studio.editor.onWindowKeyDown(event);
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerCancel);
-    window.addEventListener("resize", onResize);
-    window.addEventListener("dragend", onDragEnd);
-    window.addEventListener("drop", onDrop);
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerCancel);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("dragend", onDragEnd);
-      window.removeEventListener("drop", onDrop);
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-      studio.dispose?.();
+      studioRef.current?.dispose?.();
       studioRef.current = null;
     };
   }, []);
