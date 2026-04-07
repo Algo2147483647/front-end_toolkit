@@ -1,4 +1,18 @@
-export function createSelectionController({ store, state, model, renderer }: any) {
+import type { EditorStateSnapshot, SelectionController, SvgRenderer } from "../controller-types";
+import type { EditorSvgElement, SvgModel } from "../model/types";
+import type { SvgRuntimeState, SvgRuntimeStore } from "../runtime-store";
+
+interface SelectionControllerDeps {
+  store: SvgRuntimeStore;
+  state: SvgRuntimeState;
+  model: Pick<
+    SvgModel,
+    "getEditorIdByNodeKey" | "getNodeKey" | "getNodeKeyByEditorId" | "resolveSelectionEditorId"
+  >;
+  renderer: Pick<SvgRenderer, "refresh">;
+}
+
+export function createSelectionController({ store, state, model, renderer }: SelectionControllerDeps): SelectionController {
   const runtime = store?.getState?.() || state;
 
   function refreshSelectionState() {
@@ -10,7 +24,7 @@ export function createSelectionController({ store, state, model, renderer }: any
     });
   }
 
-  function snapshotEditorState() {
+  function snapshotEditorState(): EditorStateSnapshot {
     return {
       selectedNodeKey: runtime.selectedNodeKey,
       selectedNodeKeys: [...runtime.selectedNodeKeys],
@@ -19,7 +33,7 @@ export function createSelectionController({ store, state, model, renderer }: any
     };
   }
 
-  function restoreEditorState(snapshot: any) {
+  function restoreEditorState(snapshot: EditorStateSnapshot | null) {
     store.selection.restoreEditorState(snapshot);
   }
 
@@ -77,12 +91,13 @@ export function createSelectionController({ store, state, model, renderer }: any
       editorIds
         .filter((editorId) => runtime.nodeMap.has(editorId))
         .map((editorId) => model.resolveSelectionEditorId?.(editorId) || editorId)
+        .filter((editorId): editorId is string => Boolean(editorId))
         .filter((editorId) => runtime.nodeMap.has(editorId))
     )];
     const resolvedPrimaryId = primaryId && runtime.nodeMap.has(primaryId)
       ? (model.resolveSelectionEditorId?.(primaryId) || primaryId)
       : primaryId;
-    const nextPrimaryId = validIds.includes(resolvedPrimaryId)
+    const nextPrimaryId = resolvedPrimaryId && validIds.includes(resolvedPrimaryId)
       ? resolvedPrimaryId
       : (validIds[0] || null);
     const selectedNodeKey = nextPrimaryId
@@ -90,7 +105,7 @@ export function createSelectionController({ store, state, model, renderer }: any
       : null;
     const selectedNodeKeys = validIds
       .map((editorId) => model.getNodeKeyByEditorId(editorId))
-      .filter(Boolean);
+      .filter((nodeKey): nodeKey is string => Boolean(nodeKey));
 
     store.selection.setSelection(validIds, nextPrimaryId, selectedNodeKey, selectedNodeKeys);
 
@@ -102,7 +117,7 @@ export function createSelectionController({ store, state, model, renderer }: any
   function resolveLiveSelection(fallbackEditorId = runtime.svgRoot?.dataset.editorId || null) {
     const resolvedEditorIds = [...runtime.selectedNodeKeys]
       .map((nodeKey) => model.getEditorIdByNodeKey(nodeKey))
-      .filter(Boolean);
+      .filter((editorId): editorId is string => Boolean(editorId));
     const resolvedEditorId = runtime.selectedNodeKey
       ? model.getEditorIdByNodeKey(runtime.selectedNodeKey)
       : null;
@@ -116,7 +131,7 @@ export function createSelectionController({ store, state, model, renderer }: any
     });
   }
 
-  function getSelectedEditorIds() {
+  function getSelectedEditorIds(): string[] {
     return [...runtime.selectedIds].filter((editorId) => runtime.nodeMap.has(editorId));
   }
 
@@ -172,11 +187,12 @@ export function createSelectionController({ store, state, model, renderer }: any
 
     return getSelectedEditorIds()
       .map((editorId) => runtime.nodeMap.get(editorId))
-      .filter((node) => node && node !== runtime.svgRoot && node.parentNode)
+      .filter((node): node is EditorSvgElement => Boolean(node && node !== runtime.svgRoot && node.parentNode))
       .filter((node) => {
         let parent = node.parentElement;
         while (parent) {
-          if (selectedIds.has(parent.dataset?.editorId)) {
+          const parentEditorId = parent.dataset?.editorId;
+          if (parentEditorId && selectedIds.has(parentEditorId)) {
             return false;
           }
           parent = parent.parentElement;

@@ -3,16 +3,19 @@ import { createReactInspectorRenderer } from "../react/renderers/inspector-rende
 import { createReactTreeRenderer } from "../react/renderers/tree-renderer";
 import { createReactWorkspaceRenderer } from "../react/renderers/workspace-renderer";
 import type { SvgStudioUiRefs } from "../react/types";
+import type { SvgActionMap, SvgRenderer } from "./controller-types";
+import type { SvgModel } from "./model/types";
+import type { SvgRuntimeState, SvgRuntimeStore } from "./runtime-store";
 
 interface RendererDeps {
-  store: any;
-  state: any;
+  store: SvgRuntimeStore;
+  state: SvgRuntimeState;
   ui: SvgStudioUiRefs;
-  model: any;
-  actions: Record<string, (...args: unknown[]) => unknown>;
+  model: SvgModel;
+  actions: SvgActionMap;
 }
 
-export function createRenderer({ store, state, ui, model, actions }: RendererDeps) {
+export function createRenderer({ store, state, ui, model, actions }: RendererDeps): SvgRenderer {
   const runtime = store?.getState?.() || state;
 
   function updateSource() {

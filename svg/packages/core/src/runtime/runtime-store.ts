@@ -4,6 +4,76 @@ import {
   GRID_SNAP_SIZE_STORAGE_KEY,
   GRID_SNAP_STORAGE_KEY
 } from "./constants";
+import type { EditorSvgElement, NodeKey, SerializedSvgElementNode } from "./model/types";
+
+export interface SvgHistoryEntry {
+  reason: string;
+  snapshot: string;
+}
+
+export interface SvgEditorStateSnapshot {
+  selectedNodeKey: string | null;
+  selectedNodeKeys: Iterable<string> | null | undefined;
+  collapsedNodeKeys: Iterable<string> | null | undefined;
+  lockedNodeKeys: Iterable<string> | null | undefined;
+}
+
+export interface FileSystemWritableLike {
+  write(data: string): Promise<void>;
+  close(): Promise<void>;
+}
+
+export interface FileSystemHandleLike {
+  name?: string;
+  createWritable?: () => Promise<FileSystemWritableLike>;
+  queryPermission?: (options: { mode: "readwrite" }) => Promise<"granted" | "denied" | "prompt">;
+  requestPermission?: (options: { mode: "readwrite" }) => Promise<"granted" | "denied" | "prompt">;
+}
+
+export interface SvgRuntimeState {
+  svgRoot: SVGSVGElement | null;
+  documentSnapshot: SerializedSvgElementNode | null;
+  documentRevision: number;
+  nodeMap: Map<string, EditorSvgElement>;
+  selectedId: string | null;
+  selectedIds: Set<string>;
+  selectedNodeKey: string | null;
+  selectedNodeKeys: Set<string>;
+  nextId: number;
+  zoom: number;
+  panX: number;
+  panY: number;
+  gridSnapEnabled: boolean;
+  gridSnapSize: number;
+  topbarCollapsed: boolean;
+  leftPanelHidden: boolean;
+  leftPanelView: "insert" | "layers";
+  rightPanelHidden: boolean;
+  sourceVisible: boolean;
+  history: SvgHistoryEntry[];
+  historyIndex: number;
+  restoring: boolean;
+  drag: unknown;
+  selectionBox: unknown;
+  contextMenu: {
+    editorId: string | null;
+    visible: boolean;
+    x: number;
+    y: number;
+  };
+  suppressNextContextMenu: boolean;
+  suppressNextSvgClick: boolean;
+  dropDepth: number;
+  warnings: string[];
+  currentFileHandle: FileSystemHandleLike | null;
+  currentFileName: string;
+  collapsedNodeKeys: Set<NodeKey>;
+  inspectorSectionStates: Map<string, boolean>;
+  lockedNodeKeys: Set<NodeKey>;
+  nodeKeyByEditorId: Map<string, NodeKey>;
+  editorIdByNodeKey: Map<NodeKey, string>;
+  nodeKeyByNode: WeakMap<Element, NodeKey>;
+}
 
 function readStoredBoolean(key: string, fallback = false) {
   try {
@@ -63,16 +133,16 @@ function createContextMenuState(overrides: Partial<{
   };
 }
 
-export function createSvgRuntimeState() {
+export function createSvgRuntimeState(): SvgRuntimeState {
   return {
     svgRoot: null,
     documentSnapshot: null,
     documentRevision: 0,
-    nodeMap: new Map(),
+    nodeMap: new Map<string, EditorSvgElement>(),
     selectedId: null,
-    selectedIds: new Set(),
+    selectedIds: new Set<string>(),
     selectedNodeKey: null,
-    selectedNodeKeys: new Set(),
+    selectedNodeKeys: new Set<string>(),
     nextId: 0,
     zoom: 1,
     panX: 0,
@@ -98,17 +168,17 @@ export function createSvgRuntimeState() {
     warnings: [],
     currentFileHandle: null,
     currentFileName: "",
-    collapsedNodeKeys: new Set(),
-    inspectorSectionStates: new Map(),
-    lockedNodeKeys: new Set(),
-    nodeKeyByEditorId: new Map(),
-    editorIdByNodeKey: new Map(),
-    nodeKeyByNode: new WeakMap()
+    collapsedNodeKeys: new Set<NodeKey>(),
+    inspectorSectionStates: new Map<string, boolean>(),
+    lockedNodeKeys: new Set<NodeKey>(),
+    nodeKeyByEditorId: new Map<string, NodeKey>(),
+    editorIdByNodeKey: new Map<NodeKey, string>(),
+    nodeKeyByNode: new WeakMap<Element, NodeKey>()
   };
 }
 
 export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
-  const state: any = initialState;
+  const state = initialState;
   const listeners = new Set<() => void>();
   let version = 0;
   let batchDepth = 0;
@@ -225,13 +295,13 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
       bindMountedSvgRoot(svgRoot: SVGSVGElement | null) {
         state.svgRoot = svgRoot;
       },
-      setCurrentFileBinding(fileHandle: any = null, fileName = "") {
+      setCurrentFileBinding(fileHandle: FileSystemHandleLike | null = null, fileName = "") {
         commit(() => {
           state.currentFileHandle = fileHandle || null;
           state.currentFileName = fileName || fileHandle?.name || "";
         });
       },
-      setDocumentSnapshot(snapshot: unknown) {
+      setDocumentSnapshot(snapshot: SerializedSvgElementNode | null) {
         commit(() => {
           state.documentSnapshot = snapshot || null;
           state.documentRevision += 1;
@@ -244,9 +314,9 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
       }
     },
     history: {
-      replace(entries: unknown, historyIndex: number) {
+      replace(entries: SvgHistoryEntry[] | unknown, historyIndex: number) {
         commit(() => {
-          state.history = Array.isArray(entries) ? entries : [];
+          state.history = Array.isArray(entries) ? [...entries] : [];
           state.historyIndex = Number.isInteger(historyIndex) ? historyIndex : -1;
         });
       },
@@ -315,15 +385,15 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
       resetEditorState() {
         commit(() => {
           state.selectedNodeKey = null;
-          state.selectedNodeKeys = new Set();
-          state.collapsedNodeKeys = new Set();
-          state.lockedNodeKeys = new Set();
+          state.selectedNodeKeys = new Set<string>();
+          state.collapsedNodeKeys = new Set<NodeKey>();
+          state.lockedNodeKeys = new Set<NodeKey>();
           state.selectedId = null;
-          state.selectedIds = new Set();
+          state.selectedIds = new Set<string>();
           state.selectionBox = null;
         });
       },
-      restoreEditorState(snapshot: any) {
+      restoreEditorState(snapshot: SvgEditorStateSnapshot | null) {
         commit(() => {
           state.selectedNodeKey = snapshot?.selectedNodeKey || null;
           state.selectedNodeKeys = cloneSet(snapshot?.selectedNodeKeys);
@@ -368,3 +438,4 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
     }
   };
 }
+export type SvgRuntimeStore = ReturnType<typeof createSvgRuntimeStore>;

@@ -1,8 +1,19 @@
-export function createHistoryController({ store, state, model, renderer }: any) {
-  const runtime = store?.getState?.() || state;
-  let loadDocument: ((source: string, options?: any) => void) | null = null;
+import type { HistoryController, HistoryLoadDocument, HistoryLoadDocumentOptions, SvgRenderer } from "../controller-types";
+import type { SvgModel } from "../model/types";
+import type { SvgRuntimeState, SvgRuntimeStore } from "../runtime-store";
 
-  function setLoadDocument(fn: (source: string, options?: any) => void) {
+interface HistoryControllerDeps {
+  store: SvgRuntimeStore;
+  state: SvgRuntimeState;
+  model: Pick<SvgModel, "serialize">;
+  renderer: Pick<SvgRenderer, "refresh">;
+}
+
+export function createHistoryController({ store, state, model, renderer }: HistoryControllerDeps): HistoryController {
+  const runtime = store?.getState?.() || state;
+  let loadDocument: HistoryLoadDocument | null = null;
+
+  function setLoadDocument(fn: HistoryLoadDocument) {
     loadDocument = fn;
   }
 
@@ -34,7 +45,11 @@ export function createHistoryController({ store, state, model, renderer }: any) 
     }
 
     store.history.setRestoring(true);
-    loadDocument(entry.snapshot, { pushHistory: false, preserveEditorState: true });
+    const restoreOptions: HistoryLoadDocumentOptions = {
+      preserveEditorState: true,
+      pushHistory: false
+    };
+    loadDocument(entry.snapshot, restoreOptions);
     store.history.replace(runtime.history, index);
     store.history.setRestoring(false);
     renderer.refresh({ actions: true });

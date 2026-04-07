@@ -6,6 +6,8 @@
     "start": "node start-dev.mjs",
     "dev": "vite --config vite.react.config.ts",
     "build": "vite build --config vite.react.config.ts",
+    "lint": "node scripts/lint.mjs",
+    "test": "node scripts/run-tests.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

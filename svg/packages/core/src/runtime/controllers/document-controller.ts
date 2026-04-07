@@ -496,8 +496,6 @@ export function createDocumentController({
       store.viewport.resetPan();
     }
     model.rebuildNodeMap();
-    model.normalizeManagedTextNodes(root);
-    model.rebuildNodeMap();
     if (preservedEditorState) {
       selectionController.restoreEditorState(preservedEditorState);
     } else {

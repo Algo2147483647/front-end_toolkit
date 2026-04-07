@@ -2,10 +2,18 @@ import { createDocumentController } from "./controllers/document-controller";
 import { createHistoryController } from "./controllers/history-controller";
 import { createInteractionController } from "./controllers/interaction-controller";
 import { createSelectionController } from "./controllers/selection-controller";
+import type {
+  DocumentController,
+  HistoryController,
+  InteractionController,
+  RuntimeControllerDeps,
+  SelectionController,
+  SvgEditor
+} from "./controller-types";
 
-export function createEditor({ store, state, ui, model, renderer, emptySvg }: any) {
-  const selectionController = createSelectionController({ store, state, model, renderer });
-  const historyController = createHistoryController({ store, state, model, renderer });
+export function createEditor({ store, state, ui, model, renderer, emptySvg }: RuntimeControllerDeps): SvgEditor {
+  const selectionController: SelectionController = createSelectionController({ store, state, model, renderer });
+  const historyController: HistoryController = createHistoryController({ store, state, model, renderer });
   const documentController = createDocumentController({
     store,
     state,
@@ -15,7 +23,7 @@ export function createEditor({ store, state, ui, model, renderer, emptySvg }: an
     emptySvg,
     selectionController,
     historyController
-  });
+  }) as DocumentController;
   const interactionController = createInteractionController({
     store,
     state,
@@ -26,7 +34,7 @@ export function createEditor({ store, state, ui, model, renderer, emptySvg }: an
     selectionController,
     historyController,
     documentController
-  });
+  }) as InteractionController;
 
   historyController.setLoadDocument(documentController.loadDocument);
 
