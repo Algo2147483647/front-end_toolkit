@@ -1,346 +1,217 @@
 [
   {
-    "key": "jesus_crucifixion_resurrection",
-    "time": ["30"],
-    "space": ["Judea"],
+    "key": "writing_systems",
+    "time": ["3200 BCE"],
+    "space": ["Mesopotamia", "Nile Valley"],
     "data": {
-      "persons": ["Jesus Christ"],
-      "event": "Crucifixion and Resurrection",
-      "significance": "Foundational event of Christian faith, forming the core of salvation belief."
+      "event": "Birth of Writing Systems",
+      "theme": "Civilization Memory",
+      "significance": "Transforms knowledge from oral tradition into durable records."
     },
     "parents": [],
-    "kids": ["pentecost", "early_church"]
+    "kids": ["legal_codes", "knowledge_exchange", "engineering_craft"]
   },
   {
-    "key": "pentecost",
-    "time": ["30"],
-    "space": ["Jerusalem"],
+    "key": "legal_codes",
+    "time": ["1754 BCE"],
+    "space": ["Babylon"],
     "data": {
-      "event": "Descent of the Holy Spirit",
-      "significance": "Birth of the Christian Church, empowering apostles for mission."
+      "event": "Codified Law Traditions",
+      "representative": "Code of Hammurabi",
+      "significance": "Establishes rule structures that can be referenced, taught, and challenged."
     },
-    "parents": ["jesus_crucifixion_resurrection"],
-    "kids": ["pauline_missions", "jerusalem_council"]
+    "parents": ["writing_systems"],
+    "kids": ["civic_governance"]
   },
   {
-    "key": "pauline_missions",
-    "time": ["45", "60"],
-    "space": ["Asia Minor", "Greece", "Rome"],
+    "key": "civic_governance",
+    "time": ["509 BCE", "27 BCE"],
+    "space": ["Rome"],
     "data": {
-      "persons": ["Paul the Apostle"],
-      "event": "Missionary Journeys",
-      "significance": "Spread Christianity to the Gentile world, shaping its universal character."
+      "event": "Republican Civic Governance",
+      "theme": "Institutions and Citizenship",
+      "significance": "Expands ideas of public office, legal procedure, and civic participation."
     },
-    "parents": ["pentecost"],
-    "kids": ["new_testament_canon"]
+    "parents": ["legal_codes"],
+    "kids": ["constitutional_era"]
   },
   {
-    "key": "jerusalem_council",
-    "time": ["50"],
-    "space": ["Jerusalem"],
+    "key": "constitutional_era",
+    "time": ["1215", "1789"],
+    "space": ["England", "France", "North America"],
     "data": {
-      "event": "Jerusalem Council",
-      "decision": "Gentile converts exempt from full Mosaic Law.",
-      "significance": "Confirmed Christianity's independence from Judaism."
+      "event": "Constitutional Milestones",
+      "markers": ["Magna Carta", "US Constitution", "Rights Declarations"],
+      "significance": "Converts political ideals into enforceable constitutional frameworks."
     },
-    "parents": ["pentecost"],
+    "parents": ["civic_governance"],
+    "kids": ["human_rights"]
+  },
+  {
+    "key": "human_rights",
+    "time": ["1948"],
+    "space": ["United Nations"],
+    "data": {
+      "event": "Universal Rights Framework",
+      "document": "Universal Declaration of Human Rights",
+      "significance": "Defines a global ethical baseline for dignity, equality, and justice."
+    },
+    "parents": ["constitutional_era"],
     "kids": []
   },
   {
-    "key": "new_testament_canon",
-    "time": ["2nd century", "4th century"],
-    "space": ["Mediterranean Region"],
+    "key": "knowledge_exchange",
+    "time": ["200 BCE", "900"],
+    "space": ["Silk Road", "Indian Ocean"],
     "data": {
-      "event": "Formation of New Testament Canon",
-      "significance": "Established authoritative scriptures, defining Christian doctrine."
+      "event": "Long-Distance Knowledge Exchange",
+      "theme": "Trade and Ideas",
+      "significance": "Connects science, mathematics, medicine, and philosophy across regions."
     },
-    "parents": ["pauline_missions", "early_church"],
-    "kids": ["nicene_council"]
+    "parents": ["writing_systems"],
+    "kids": ["paper_invention"]
   },
   {
-    "key": "great_persecutions",
-    "time": ["64", "303"],
-    "space": ["Roman Empire"],
+    "key": "paper_invention",
+    "time": ["105"],
+    "space": ["China"],
     "data": {
-      "persons": ["Nero", "Diocletian"],
-      "event": "Roman Persecutions",
-      "significance": "Solidified martyr tradition and tested the faith of early communities."
+      "event": "Paper-Making Breakthrough",
+      "significance": "Lowers the cost of recording and distributing knowledge at scale."
     },
-    "parents": [],
-    "kids": ["edict_of_milan"]
+    "parents": ["knowledge_exchange"],
+    "kids": ["printing_press"]
   },
   {
-    "key": "edict_of_milan",
-    "time": ["313"],
-    "space": ["Roman Empire"],
+    "key": "printing_press",
+    "time": ["1450"],
+    "space": ["Mainz"],
     "data": {
-      "persons": ["Constantine I"],
-      "event": "Edict of Milan",
-      "significance": "Legalized Christianity, ending state-sponsored persecution."
+      "event": "Movable-Type Printing Revolution",
+      "person": "Johannes Gutenberg",
+      "significance": "Accelerates literacy, debate, and reproducible scholarship."
     },
-    "parents": ["great_persecutions"],
-    "kids": ["nicene_council", "state_religion"]
+    "parents": ["paper_invention"],
+    "kids": ["scientific_method"]
   },
   {
-    "key": "nicene_council",
-    "time": ["325"],
-    "space": ["Nicaea"],
+    "key": "scientific_method",
+    "time": ["1543", "1687"],
+    "space": ["Europe"],
     "data": {
-      "event": "First Council of Nicaea",
-      "creed": "Nicene Creed",
-      "significance": "Defined orthodox Christology against Arianism, affirming Jesus as homoousios (consubstantial) with the Father."
+      "event": "Scientific Method Consolidation",
+      "persons": ["Copernicus", "Galileo", "Newton"],
+      "significance": "Standardizes experimentation, measurement, and falsifiable reasoning."
     },
-    "parents": ["edict_of_milan", "new_testament_canon"],
-    "kids": ["chalcedon_council"]
+    "parents": ["printing_press"],
+    "kids": ["industrial_revolution"]
   },
   {
-    "key": "state_religion",
-    "time": ["380"],
-    "space": ["Roman Empire"],
+    "key": "industrial_revolution",
+    "time": ["1760", "1914"],
+    "space": ["Britain", "Europe", "North America"],
     "data": {
-      "persons": ["Theodosius I"],
-      "event": "Christianity as State Religion",
-      "decree": "Edict of Thessalonica",
-      "significance": "Established Nicene Christianity as the sole legitimate religion of the Roman Empire."
+      "event": "Industrial Revolution",
+      "theme": "Machines and Mass Production",
+      "significance": "Reconfigures labor, cities, transport, and global economic structures."
     },
-    "parents": ["edict_of_milan"],
-    "kids": ["augustine_city_of_god"]
+    "parents": ["scientific_method"],
+    "kids": ["electrification"]
   },
   {
-    "key": "augustine_city_of_god",
-    "time": ["426"],
-    "space": ["Hippo Regius"],
+    "key": "electrification",
+    "time": ["1880", "1930"],
+    "space": ["Global Cities"],
     "data": {
-      "persons": ["Augustine of Hippo"],
-      "work": "The City of God",
-      "significance": "Profoundly influenced Western Christian theology and philosophy of history."
+      "event": "Electrified Infrastructure",
+      "systems": ["Power grids", "Telecommunications", "Urban transit"],
+      "significance": "Creates always-on industrial and social systems."
     },
-    "parents": ["state_religion"],
-    "kids": ["benedict_rule"]
+    "parents": ["industrial_revolution"],
+    "kids": ["digital_network"]
   },
   {
-    "key": "chalcedon_council",
-    "time": ["451"],
-    "space": ["Chalcedon"],
+    "key": "digital_network",
+    "time": ["1969", "2007"],
+    "space": ["United States", "Global"],
     "data": {
-      "event": "Council of Chalcedon",
-      "definition": "Christ as one person in two natures (divine and human).",
-      "significance": "Defined orthodox Christology; led to schism with Oriental Orthodox Churches."
+      "event": "Networked Computing Era",
+      "milestones": ["ARPANET", "Web", "Mobile Internet"],
+      "significance": "Connects people, institutions, and markets in real time."
     },
-    "parents": ["nicene_council"],
-    "kids": ["east_west_schism"]
+    "parents": ["electrification"],
+    "kids": ["ai_era"]
   },
   {
-    "key": "benedict_rule",
-    "time": ["529"],
-    "space": ["Monte Cassino"],
-    "data": {
-      "persons": ["Benedict of Nursia"],
-      "work": "Rule of Saint Benedict",
-      "significance": "Founded Western monasticism, shaping medieval spiritual and cultural life."
-    },
-    "parents": ["augustine_city_of_god"],
-    "kids": ["cluniac_reform"]
-  },
-  {
-    "key": "east_west_schism",
-    "time": ["1054"],
-    "space": ["Rome", "Constantinople"],
-    "data": {
-      "persons": ["Pope Leo IX", "Patriarch Michael I"],
-      "event": "Great Schism",
-      "significance": "Permanent split between the Roman Catholic Church and the Eastern Orthodox Church."
-    },
-    "parents": ["chalcedon_council"],
-    "kids": ["crusades"]
-  },
-  {
-    "key": "cluniac_reform",
-    "time": ["10th century", "11th century"],
-    "space": ["France"],
-    "data": {
-      "event": "Cluniac Reform",
-      "goals": ["Church independence from secular control", "Clerical celibacy"],
-      "significance": "Revived monastic discipline and papal authority."
-    },
-    "parents": ["benedict_rule"],
-    "kids": ["gregorian_reform"]
-  },
-  {
-    "key": "crusades",
-    "time": ["1096", "1291"],
-    "space": ["Europe", "Near East"],
-    "data": {
-      "event": "The Crusades",
-      "call": "By Pope Urban II",
-      "significance": "Military campaigns to reclaim Holy Land; deepened East-West divide and stimulated cultural exchange."
-    },
-    "parents": ["east_west_schism"],
-    "kids": []
-  },
-  {
-    "key": "scholasticism",
-    "time": ["12th century", "13th century"],
-    "space": ["France", "England"],
-    "data": {
-      "persons": ["Thomas Aquinas"],
-      "work": "Summa Theologica",
-      "significance": "Synthesis of Aristotelian philosophy and Christian theology, forming systematic doctrine."
-    },
-    "parents": [],
-    "kids": ["western_schism"]
-  },
-  {
-    "key": "western_schism",
-    "time": ["1378", "1417"],
-    "space": ["Avignon", "Rome"],
-    "data": {
-      "event": "Western Schism (Papal Schism)",
-      "significance": "Period with multiple rival popes, damaging papal prestige; resolved by Council of Constance."
-    },
-    "parents": ["scholasticism"],
-    "kids": ["protestant_reformation"]
-  },
-  {
-    "key": "protestant_reformation",
-    "time": ["1517"],
-    "space": ["Germany"],
-    "data": {
-      "persons": ["Martin Luther"],
-      "event": "Ninety-five Theses",
-      "significance": "Triggered the Reformation, leading to the birth of Protestantism."
-    },
-    "parents": ["western_schism"],
-    "kids": ["counter_reformation", "peace_of_augsburg"]
-  },
-  {
-    "key": "counter_reformation",
-    "time": ["1545", "1563"],
-    "space": ["Trent"],
-    "data": {
-      "event": "Council of Trent",
-      "significance": "Catholic Church's comprehensive response to Reformation, clarifying doctrine and enacting internal reforms."
-    },
-    "parents": ["protestant_reformation"],
-    "kids": []
-  },
-  {
-    "key": "peace_of_augsburg",
-    "time": ["1555"],
-    "space": ["Germany"],
-    "data": {
-      "event": "Peace of Augsburg",
-      "principle": "Cuius regio, eius religio (Whose realm, their religion)",
-      "significance": "First legal recognition of Lutheranism within the Holy Roman Empire."
-    },
-    "parents": ["protestant_reformation"],
-    "kids": ["thirty_years_war"]
-  },
-  {
-    "key": "thirty_years_war",
-    "time": ["1618", "1648"],
-    "space": ["Central Europe"],
-    "data": {
-      "event": "Thirty Years' War",
-      "significance": "Devastating religious war; ended with Peace of Westphalia, establishing modern state sovereignty."
-    },
-    "parents": ["peace_of_augsburg"],
-    "kids": ["pietism"]
-  },
-  {
-    "key": "pietism",
-    "time": ["17th century", "18th century"],
-    "space": ["Germany"],
-    "data": {
-      "persons": ["Philipp Spener"],
-      "event": "Pietist Movement",
-      "emphasis": ["Personal faith experience", "Devotional life"],
-      "significance": Influenced later evangelical and Methodist movements.
-    },
-    "parents": ["thirty_years_war"],
-    "kids": ["great_awakening"]
-  },
-  {
-    "key": "great_awakening",
-    "time": ["18th century"],
-    "space": ["Britain", "American Colonies"],
-    "data": {
-      "persons": ["John Wesley", "George Whitefield"],
-      "event": "Evangelical Revivals",
-      "significance": "Spread evangelical Protestantism, emphasized conversion, and fueled missionary movements."
-    },
-    "parents": ["pietism"],
-    "kids": ["second_vatican_council", "ecumenical_movement"]
-  },
-  {
-    "key": "vatican_i",
-    "time": ["1869", "1870"],
-    "space": ["Vatican"],
-    "data": {
-      "event": "First Vatican Council",
-      "dogma": "Papal Infallibility",
-      "significance": "Defined the pope's supreme teaching authority under specific conditions."
-    },
-    "parents": [],
-    "kids": ["modernism_condemnation"]
-  },
-  {
-    "key": "ecumenical_movement",
-    "time": ["1910"],
-    "space": ["Edinburgh"],
-    "data": {
-      "event": "Edinburgh Missionary Conference",
-      "significance": "Catalyst for the modern ecumenical movement, leading to the World Council of Churches (1948)."
-    },
-    "parents": ["great_awakening"],
-    "kids": ["second_vatican_council"]
-  },
-  {
-    "key": "second_vatican_council",
-    "time": ["1962", "1965"],
-    "space": ["Vatican"],
-    "data": {
-      "event": "Second Vatican Council",
-      "key themes": ["Aggiornamento (updating)", "Ecumenism", "Liturgical reform"],
-      "significance": "Modernized Catholic Church practices and opened dialogue with other Christians and the modern world."
-    },
-    "parents": ["great_awakening", "ecumenical_movement"],
-    "kids": ["liberation_theology", "charismatic_movement"]
-  },
-  {
-    "key": "liberation_theology",
-    "time": ["1960s", "1970s"],
-    "space": ["Latin America"],
-    "data": {
-      "persons": ["Gustavo Gutiérrez"],
-      "emphasis": ["Preferential option for the poor", "Social justice"],
-      "significance": "Theological movement integrating Christian faith with socio-economic analysis."
-    },
-    "parents": ["second_vatican_council"],
-    "kids": []
-  },
-  {
-    "key": "charismatic_movement",
-    "time": ["1960s"],
+    "key": "ai_era",
+    "time": ["2012", "2026"],
     "space": ["Global"],
     "data": {
-      "event": "Charismatic Renewal",
-      "emphasis": ["Gifts of the Holy Spirit (e.g., speaking in tongues, healing)"],
-      "significance": "Cross-denominational movement emphasizing experiential faith, impacting both Protestant and Catholic churches."
+      "event": "Modern AI Acceleration",
+      "theme": "Foundation Models and Automation",
+      "significance": "Shifts software from explicit instructions to learned capabilities."
     },
-    "parents": ["second_vatican_council"],
+    "parents": ["digital_network"],
     "kids": []
   },
   {
-    "key": "lgbtq_debates",
-    "time": ["21st century"],
+    "key": "engineering_craft",
+    "time": ["2600 BCE", "500 BCE"],
+    "space": ["Egypt", "Greece", "China"],
+    "data": {
+      "event": "Ancient Engineering Traditions",
+      "examples": ["Monumental architecture", "Hydraulic systems", "Road building"],
+      "significance": "Demonstrates large-scale project planning and technical specialization."
+    },
+    "parents": ["writing_systems"],
+    "kids": ["maritime_navigation"]
+  },
+  {
+    "key": "maritime_navigation",
+    "time": ["1400", "1600"],
+    "space": ["Atlantic", "Indian Ocean"],
+    "data": {
+      "event": "Oceanic Navigation Breakthroughs",
+      "technologies": ["Improved cartography", "Celestial navigation", "Ship design"],
+      "significance": "Expands long-distance exchange and strategic mobility."
+    },
+    "parents": ["engineering_craft"],
+    "kids": ["global_trade"]
+  },
+  {
+    "key": "global_trade",
+    "time": ["1600", "1914"],
     "space": ["Global"],
     "data": {
-      "event": "Debates on Sexuality and Marriage",
-      "issues": ["Same-sex marriage", "Ordination of LGBTQ+ clergy"],
-      "significance": "Major source of division within many Christian denominations."
+      "event": "Integrated Global Trade Networks",
+      "theme": "Interdependence",
+      "significance": "Links production, finance, and consumption across continents."
     },
-    "parents": [],
+    "parents": ["maritime_navigation"],
+    "kids": ["public_health"]
+  },
+  {
+    "key": "public_health",
+    "time": ["1854", "2020"],
+    "space": ["London", "Global"],
+    "data": {
+      "event": "Public Health Systems",
+      "markers": ["Epidemiology", "Vaccination programs", "Sanitation infrastructure"],
+      "significance": "Turns population health into a measurable and governable public system."
+    },
+    "parents": ["global_trade"],
+    "kids": ["green_transition"]
+  },
+  {
+    "key": "green_transition",
+    "time": ["2015", "2040"],
+    "space": ["Global"],
+    "data": {
+      "event": "Low-Carbon Transition",
+      "drivers": ["Renewable energy", "Storage", "Electrified transport"],
+      "significance": "Reorients industrial development toward climate resilience."
+    },
+    "parents": ["public_health"],
     "kids": []
   }
 ]
