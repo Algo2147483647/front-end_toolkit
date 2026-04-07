@@ -125,7 +125,7 @@ function TreePanel({ actions, model, state }: Pick<TreeRendererDeps, "actions" |
 }
 
 function TreeRendererRoot({ actions, model, store, ui }: TreeRendererDeps) {
-  const version = useRuntimeVersion(store);
+  const version = useRuntimeVersion(store, "tree");
   const state = store.getState();
 
   useLayoutEffect(() => {
@@ -159,7 +159,7 @@ export function createReactTreeRenderer({ store, state, ui, model, actions }: Tr
   );
 
   function renderTree() {
-    store.invalidate();
+    store.invalidate("tree");
   }
 
   return {

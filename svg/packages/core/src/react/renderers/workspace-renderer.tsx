@@ -82,15 +82,12 @@ function serializeSnapshotChild(node: SerializedSvgChild): string {
   return `<${node.tagName}${attributes}>${children}</${node.tagName}>`;
 }
 
-function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGridSurface }: WorkspaceDeps) {
+function WorkspaceSvgPane({ actions, applyZoom, model, store, ui, updateGridSurface }: WorkspaceDeps) {
+  useRuntimeVersion(store, "workspace");
+  const state = store.getState();
   const mountedSvgRef = useRef<SVGSVGElement | null>(null);
   const boundRevisionRef = useRef(-1);
   const svgSlotRef = useRef<HTMLDivElement | null>(null);
-  const selectedNodes = [...state.selectedIds]
-    .map((editorId) => state.nodeMap.get(editorId))
-    .filter(Boolean);
-  const viewBox = state.svgRoot ? model.viewBoxFor(state.svgRoot) : undefined;
-  const preserveAspectRatio = state.svgRoot?.getAttribute("preserveAspectRatio") || "xMidYMid meet";
   const snapshotMarkup = state.documentSnapshot
     ? serializeSnapshotChild(state.documentSnapshot)
     : "";
@@ -117,19 +114,33 @@ function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGrid
       model.rebuildNodeMap();
       model.syncEditorMetadata();
       boundRevisionRef.current = state.documentRevision;
-      store.invalidate();
+      store.invalidate(["overlay", "tree", "inspector"]);
     }
 
+    ui.svgHost.style.aspectRatio = `${model.getViewBoxRect().width} / ${model.getViewBoxRect().height}`;
     updateGridSurface();
     applyZoom();
   }, [applyZoom, model, state.documentRevision, state.documentSnapshot, state.svgRoot, store, updateGridSurface]);
+  return (
+    <div
+      className="workspace-svg-slot"
+      ref={svgSlotRef}
+      onClick={(event) => actions.onSvgClick?.(event.nativeEvent)}
+      onPointerDown={(event) => actions.onSvgPointerDown?.(event.nativeEvent)}
+      dangerouslySetInnerHTML={snapshotMarkup ? { __html: snapshotMarkup } : undefined}
+    >
+    </div>
+  );
+}
 
-  useLayoutEffect(() => {
-    ui.svgHost.style.aspectRatio = state.svgRoot
-      ? `${model.getViewBoxRect().width} / ${model.getViewBoxRect().height}`
-      : "";
-  }, [model, state.documentRevision, state.svgRoot, ui.svgHost]);
-
+function WorkspaceOverlayPane({ actions, model, store, ui }: WorkspaceDeps) {
+  useRuntimeVersion(store, "overlay");
+  const state = store.getState();
+  const selectedNodes = [...state.selectedIds]
+    .map((editorId) => state.nodeMap.get(editorId))
+    .filter(Boolean);
+  const viewBox = state.svgRoot ? model.viewBoxFor(state.svgRoot) : undefined;
+  const preserveAspectRatio = state.svgRoot?.getAttribute("preserveAspectRatio") || "xMidYMid meet";
   const overlayElements = useMemo(() => {
     if (!state.svgRoot) {
       return null;
@@ -292,40 +303,29 @@ function WorkspaceRoot({ actions, applyZoom, model, state, store, ui, updateGrid
     return elements;
   }, [actions, model, selectedNodes, state, ui]);
 
+  if (!state.svgRoot) {
+    return null;
+  }
+
   return (
-    <>
-      <div
-        className="workspace-svg-slot"
-        ref={svgSlotRef}
-        onClick={(event) => actions.onSvgClick?.(event.nativeEvent)}
-        onPointerDown={(event) => actions.onSvgPointerDown?.(event.nativeEvent)}
-        dangerouslySetInnerHTML={snapshotMarkup ? { __html: snapshotMarkup } : undefined}
-      >
-      </div>
-      {state.svgRoot ? (
-        <svg
-          className="selection-overlay"
-          viewBox={viewBox}
-          preserveAspectRatio={preserveAspectRatio}
-          aria-hidden="true"
-        >
-          {overlayElements}
-        </svg>
-      ) : null}
-    </>
+    <svg
+      className="selection-overlay"
+      viewBox={viewBox}
+      preserveAspectRatio={preserveAspectRatio}
+      aria-hidden="true"
+    >
+      {overlayElements}
+    </svg>
   );
 }
 
 function WorkspaceRendererRoot({ store, ...deps }: WorkspaceDeps) {
-  useRuntimeVersion(store);
-  const state = store.getState();
 
   return (
-    <WorkspaceRoot
-      {...deps}
-      state={state}
-      store={store}
-    />
+    <>
+      <WorkspaceSvgPane {...deps} store={store} />
+      <WorkspaceOverlayPane {...deps} store={store} />
+    </>
   );
 }
 
@@ -347,11 +347,11 @@ export function createReactWorkspaceRenderer({ store, state, ui, model, actions,
   );
 
   function renderWorkspace() {
-    store.invalidate();
+    store.invalidate("workspace");
   }
 
   function renderOverlay() {
-    store.invalidate();
+    store.invalidate("overlay");
   }
 
   return {

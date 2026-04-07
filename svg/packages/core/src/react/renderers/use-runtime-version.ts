@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from "react";
+import type { SvgRenderChannel } from "../../runtime/runtime-store";
 
 export function useRuntimeVersion(store: {
-  getSnapshot: () => number;
-  subscribe: (listener: () => void) => () => void;
-}) {
+  getSnapshot: (channel?: SvgRenderChannel) => number;
+  subscribe: (listener: () => void, channel?: SvgRenderChannel) => () => void;
+}, channel: SvgRenderChannel = "global") {
   return useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    store.getSnapshot
+    (listener) => store.subscribe(listener, channel),
+    () => store.getSnapshot(channel),
+    () => store.getSnapshot(channel)
   );
 }

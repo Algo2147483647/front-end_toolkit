@@ -692,7 +692,7 @@ function InspectorPanel({ actions, model, state, store }: Omit<InspectorDeps, "u
 }
 
 function InspectorRendererRoot({ actions, model, store, ui }: InspectorDeps) {
-  const version = useRuntimeVersion(store);
+  const version = useRuntimeVersion(store, "inspector");
   const state = store.getState();
   const hasSelection = [...state.selectedIds].some((editorId) => state.nodeMap.get(editorId));
 
@@ -724,7 +724,7 @@ export function createReactInspectorRenderer({ store, state, ui, model, actions 
   );
 
   function renderInspector() {
-    store.invalidate();
+    store.invalidate("inspector");
   }
 
   return {

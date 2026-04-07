@@ -6,6 +6,8 @@ import {
 } from "./constants";
 import type { EditorSvgElement, NodeKey, SerializedSvgElementNode } from "./model/types";
 
+export type SvgRenderChannel = "global" | "workspace" | "overlay" | "tree" | "inspector";
+
 export interface SvgHistoryEntry {
   reason: string;
   snapshot: string;
@@ -74,6 +76,9 @@ export interface SvgRuntimeState {
   editorIdByNodeKey: Map<NodeKey, string>;
   nodeKeyByNode: WeakMap<Element, NodeKey>;
 }
+
+type RenderVersionMap = Record<SvgRenderChannel, number>;
+type RenderListenerMap = Record<SvgRenderChannel, Set<() => void>>;
 
 function readStoredBoolean(key: string, fallback = false) {
   try {
@@ -179,23 +184,66 @@ export function createSvgRuntimeState(): SvgRuntimeState {
 
 export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
   const state = initialState;
-  const listeners = new Set<() => void>();
-  let version = 0;
+  const listeners: RenderListenerMap = {
+    global: new Set<() => void>(),
+    inspector: new Set<() => void>(),
+    overlay: new Set<() => void>(),
+    tree: new Set<() => void>(),
+    workspace: new Set<() => void>()
+  };
+  const versions: RenderVersionMap = {
+    global: 0,
+    inspector: 0,
+    overlay: 0,
+    tree: 0,
+    workspace: 0
+  };
   let batchDepth = 0;
-  let pendingNotify = false;
+  const pendingChannels = new Set<SvgRenderChannel>();
 
-  function emit() {
-    version += 1;
-    listeners.forEach((listener) => listener());
+  function normalizeChannels(channels: SvgRenderChannel | SvgRenderChannel[] | undefined): SvgRenderChannel[] {
+    const input = Array.isArray(channels) ? channels : [channels || "global"];
+    const normalized = new Set<SvgRenderChannel>();
+
+    input.forEach((channel) => {
+      if (channel) {
+        normalized.add(channel);
+      }
+    });
+
+    if (!normalized.size) {
+      normalized.add("global");
+    }
+
+    if ([...normalized].some((channel) => channel !== "global")) {
+      normalized.add("global");
+    }
+
+    return [...normalized];
   }
 
-  function notify() {
+  function emit(channels: SvgRenderChannel | SvgRenderChannel[] = "global") {
+    const nextChannels = normalizeChannels(channels);
+    const nextListeners = new Set<() => void>();
+
+    nextChannels.forEach((channel) => {
+      versions[channel] += 1;
+      listeners[channel].forEach((listener) => {
+        nextListeners.add(listener);
+      });
+    });
+
+    nextListeners.forEach((listener) => listener());
+  }
+
+  function notify(channels: SvgRenderChannel | SvgRenderChannel[] = "global") {
+    const nextChannels = normalizeChannels(channels);
     if (batchDepth > 0) {
-      pendingNotify = true;
+      nextChannels.forEach((channel) => pendingChannels.add(channel));
       return;
     }
 
-    emit();
+    emit(nextChannels);
   }
 
   function commit<T>(fn: () => T) {
@@ -210,9 +258,10 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
       return fn();
     } finally {
       batchDepth -= 1;
-      if (batchDepth === 0 && pendingNotify) {
-        pendingNotify = false;
-        emit();
+      if (batchDepth === 0 && pendingChannels.size) {
+        const nextChannels = [...pendingChannels];
+        pendingChannels.clear();
+        emit(nextChannels);
       }
     }
   }
@@ -222,17 +271,17 @@ export function createSvgRuntimeStore(initialState = createSvgRuntimeState()) {
     getState() {
       return state;
     },
-    getSnapshot() {
-      return version;
+    getSnapshot(channel: SvgRenderChannel = "global") {
+      return versions[channel];
     },
-    subscribe(listener: () => void) {
-      listeners.add(listener);
+    subscribe(listener: () => void, channel: SvgRenderChannel = "global") {
+      listeners[channel].add(listener);
       return () => {
-        listeners.delete(listener);
+        listeners[channel].delete(listener);
       };
     },
-    invalidate() {
-      notify();
+    invalidate(channels: SvgRenderChannel | SvgRenderChannel[] = "global") {
+      notify(channels);
     },
     batch,
     chrome: {

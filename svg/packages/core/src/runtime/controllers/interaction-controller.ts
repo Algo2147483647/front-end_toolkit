@@ -472,12 +472,7 @@ export function createInteractionController({
       runtime.drag.moved = box.width > 1 || box.height > 1;
       store.interaction.setSelectionBox(box);
       selectionController.setSelection(collectSelectionBoxMatches(box), { render: false });
-      renderer.refresh({
-        tree: true,
-        inspector: true,
-        overlay: true,
-        actions: true
-      });
+      renderer.refresh({ overlay: true });
       return;
     }
 

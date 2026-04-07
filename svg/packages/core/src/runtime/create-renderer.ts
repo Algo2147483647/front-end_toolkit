@@ -5,7 +5,7 @@ import { createReactWorkspaceRenderer } from "../react/renderers/workspace-rende
 import type { SvgStudioUiRefs } from "../react/types";
 import type { SvgActionMap, SvgRenderer } from "./controller-types";
 import type { SvgModel } from "./model/types";
-import type { SvgRuntimeState, SvgRuntimeStore } from "./runtime-store";
+import type { SvgRenderChannel, SvgRuntimeState, SvgRuntimeStore } from "./runtime-store";
 
 interface RendererDeps {
   store: SvgRuntimeStore;
@@ -202,8 +202,24 @@ export function createRenderer({ store, state, ui, model, actions }: RendererDep
       overlay = false
     } = options;
 
-    if (workspace || tree || inspector || overlay) {
-      store.invalidate();
+    const channels = new Set<SvgRenderChannel>();
+    if (workspace) {
+      channels.add("workspace");
+      channels.add("overlay");
+    }
+    if (tree) {
+      channels.add("tree");
+    }
+    if (inspector) {
+      channels.add("inspector");
+      channels.add("overlay");
+    }
+    if (overlay) {
+      channels.add("overlay");
+    }
+
+    if (channels.size) {
+      store.invalidate([...channels]);
     }
 
     if (source) {
