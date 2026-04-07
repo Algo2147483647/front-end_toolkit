@@ -51,4 +51,14 @@ export interface SvgStudioUiRefs {
   sourceEditor: HTMLTextAreaElement;
   propertyForm: HTMLFormElement;
   inspectorEmpty: HTMLDivElement;
+  feedbackStack: HTMLDivElement;
+  confirmDialogBackdrop: HTMLDivElement;
+  confirmDialogTitle: HTMLHeadingElement;
+  confirmDialogMessage: HTMLParagraphElement;
+  confirmDialogCancelButton: HTMLButtonElement;
+  confirmDialogConfirmButton: HTMLButtonElement;
+  sanitizeWarningsPanel: HTMLDivElement;
+  sanitizeWarningsCount: HTMLSpanElement;
+  sanitizeWarningsList: HTMLUListElement;
+  sanitizeWarningsDismissButton: HTMLButtonElement;
 }

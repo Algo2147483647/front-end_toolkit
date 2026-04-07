@@ -161,6 +161,31 @@ export function createInteractionController({
     ui.contextMenu.classList.add("hidden");
   }
 
+  function showToast(message: string, tone: "info" | "error" = "info") {
+    const text = String(message || "").trim();
+    if (!text) {
+      return;
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `feedback-toast${tone === "error" ? " is-error" : ""}`;
+    toast.textContent = text;
+    ui.feedbackStack.append(toast);
+    const remove = () => {
+      toast.classList.add("is-leaving");
+      setTimeout(() => {
+        toast.remove();
+      }, 180);
+    };
+    setTimeout(remove, tone === "error" ? 5600 : 3600);
+  }
+
+  function reportError(error: any, fallback = "Operation failed.") {
+    const message = String(error?.message || fallback);
+    ui.statusPill.textContent = message;
+    showToast(message, "error");
+  }
+
   function showContextMenu(editorId: string | null, clientX: number, clientY: number) {
     const menuHost = ui.contextMenu.offsetParent || ui.contextMenu.parentElement || document.body;
     const hostRect = menuHost.getBoundingClientRect();
@@ -792,7 +817,7 @@ export function createInteractionController({
     try {
       await handleWorkspaceFiles(event.dataTransfer?.files || []);
     } catch (error: any) {
-      alert(error.message);
+      reportError(error, "Failed to handle dropped files.");
     }
   }
 
@@ -845,7 +870,7 @@ export function createInteractionController({
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
       documentController.saveToSourceFile().catch((error: any) => {
-        alert(error.message);
+        reportError(error, "Save failed.");
       });
       return;
     }
@@ -895,8 +920,11 @@ export function createInteractionController({
         if (error?.name === "AbortError") {
           return;
         }
-        alert(error.message);
+        reportError(error, "Import failed.");
       }
+    });
+    listen(ui.sanitizeWarningsDismissButton, "click", () => {
+      ui.sanitizeWarningsPanel.classList.add("hidden");
     });
     listen(ui.gridSnapButton, "click", () => setGridSnapEnabled(!runtime.gridSnapEnabled));
 
@@ -943,14 +971,14 @@ export function createInteractionController({
       try {
         documentController.loadDocument(ui.sourceEditor.value, { preserveEditorState: true });
       } catch (error: any) {
-        alert(error.message);
+        reportError(error, "Failed to apply source.");
       }
     });
     listen(ui.saveButton, "click", async () => {
       try {
         await documentController.saveToSourceFile();
       } catch (error: any) {
-        alert(error.message);
+        reportError(error, "Save failed.");
       }
     });
     listen(ui.exportButton, "click", documentController.downloadSvg);
@@ -968,7 +996,7 @@ export function createInteractionController({
         });
         (event.target as HTMLInputElement).value = "";
       } catch (error: any) {
-        alert(error.message);
+        reportError(error, "Import failed.");
       }
     });
     listen(ui.imageInput, "change", async (event: Event) => {
@@ -980,7 +1008,7 @@ export function createInteractionController({
         await documentController.insertImageFile(file);
         (event.target as HTMLInputElement).value = "";
       } catch (error: any) {
-        alert(error.message);
+        reportError(error, "Image insert failed.");
       }
     });
     listen(ui.insertGrid, "click", (event: Event) => {

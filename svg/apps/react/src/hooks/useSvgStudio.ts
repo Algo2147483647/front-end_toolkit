@@ -64,6 +64,16 @@ export interface SvgStudioDomRefs {
   sourceEditorRef: RefObject<HTMLTextAreaElement>;
   propertyFormRef: RefObject<HTMLFormElement>;
   inspectorEmptyRef: RefObject<HTMLDivElement>;
+  feedbackStackRef: RefObject<HTMLDivElement>;
+  confirmDialogBackdropRef: RefObject<HTMLDivElement>;
+  confirmDialogTitleRef: RefObject<HTMLHeadingElement>;
+  confirmDialogMessageRef: RefObject<HTMLParagraphElement>;
+  confirmDialogCancelButtonRef: RefObject<HTMLButtonElement>;
+  confirmDialogConfirmButtonRef: RefObject<HTMLButtonElement>;
+  sanitizeWarningsPanelRef: RefObject<HTMLDivElement>;
+  sanitizeWarningsCountRef: RefObject<HTMLSpanElement>;
+  sanitizeWarningsListRef: RefObject<HTMLUListElement>;
+  sanitizeWarningsDismissButtonRef: RefObject<HTMLButtonElement>;
 }
 
 interface MountedStudio {
@@ -151,7 +161,17 @@ function toUiRefs(refs: SvgStudioDomRefs): SvgStudioUiRefs {
     sourcePane: assertRef("sourcePane", refs.sourcePaneRef.current),
     sourceEditor: assertRef("sourceEditor", refs.sourceEditorRef.current),
     propertyForm: assertRef("propertyForm", refs.propertyFormRef.current),
-    inspectorEmpty: assertRef("inspectorEmpty", refs.inspectorEmptyRef.current)
+    inspectorEmpty: assertRef("inspectorEmpty", refs.inspectorEmptyRef.current),
+    feedbackStack: assertRef("feedbackStack", refs.feedbackStackRef.current),
+    confirmDialogBackdrop: assertRef("confirmDialogBackdrop", refs.confirmDialogBackdropRef.current),
+    confirmDialogTitle: assertRef("confirmDialogTitle", refs.confirmDialogTitleRef.current),
+    confirmDialogMessage: assertRef("confirmDialogMessage", refs.confirmDialogMessageRef.current),
+    confirmDialogCancelButton: assertRef("confirmDialogCancelButton", refs.confirmDialogCancelButtonRef.current),
+    confirmDialogConfirmButton: assertRef("confirmDialogConfirmButton", refs.confirmDialogConfirmButtonRef.current),
+    sanitizeWarningsPanel: assertRef("sanitizeWarningsPanel", refs.sanitizeWarningsPanelRef.current),
+    sanitizeWarningsCount: assertRef("sanitizeWarningsCount", refs.sanitizeWarningsCountRef.current),
+    sanitizeWarningsList: assertRef("sanitizeWarningsList", refs.sanitizeWarningsListRef.current),
+    sanitizeWarningsDismissButton: assertRef("sanitizeWarningsDismissButton", refs.sanitizeWarningsDismissButtonRef.current)
   };
 }
 
@@ -208,7 +228,17 @@ export function useSvgStudio(): SvgStudioBindings {
     sourcePaneRef: useRef<HTMLElement>(null),
     sourceEditorRef: useRef<HTMLTextAreaElement>(null),
     propertyFormRef: useRef<HTMLFormElement>(null),
-    inspectorEmptyRef: useRef<HTMLDivElement>(null)
+    inspectorEmptyRef: useRef<HTMLDivElement>(null),
+    feedbackStackRef: useRef<HTMLDivElement>(null),
+    confirmDialogBackdropRef: useRef<HTMLDivElement>(null),
+    confirmDialogTitleRef: useRef<HTMLHeadingElement>(null),
+    confirmDialogMessageRef: useRef<HTMLParagraphElement>(null),
+    confirmDialogCancelButtonRef: useRef<HTMLButtonElement>(null),
+    confirmDialogConfirmButtonRef: useRef<HTMLButtonElement>(null),
+    sanitizeWarningsPanelRef: useRef<HTMLDivElement>(null),
+    sanitizeWarningsCountRef: useRef<HTMLSpanElement>(null),
+    sanitizeWarningsListRef: useRef<HTMLUListElement>(null),
+    sanitizeWarningsDismissButtonRef: useRef<HTMLButtonElement>(null)
   };
 
   const studioRef = useRef<MountedStudio | null>(null);

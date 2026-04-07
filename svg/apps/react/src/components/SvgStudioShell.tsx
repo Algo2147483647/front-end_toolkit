@@ -261,11 +261,45 @@ function Workspace({ refs, workspaceSurfaceProps }: ShellProps) {
         </section>
       </section>
 
+      <section className="sanitize-warnings hidden" id="sanitizeWarningsPanel" ref={refs.sanitizeWarningsPanelRef} aria-live="polite">
+        <div className="sanitize-warnings-header">
+          <strong>Import safety cleanup</strong>
+          <span className="sanitize-warnings-count" id="sanitizeWarningsCount" ref={refs.sanitizeWarningsCountRef}>0 changes</span>
+        </div>
+        <ul className="sanitize-warnings-list" id="sanitizeWarningsList" ref={refs.sanitizeWarningsListRef}></ul>
+        <button
+          className="tool-button compact sanitize-warnings-dismiss"
+          id="sanitizeWarningsDismissButton"
+          type="button"
+          ref={refs.sanitizeWarningsDismissButtonRef}
+        >
+          Dismiss
+        </button>
+      </section>
+
       <div className="context-menu hidden" id="contextMenu" role="menu" aria-label="Canvas actions" ref={refs.contextMenuRef}>
         <button className="context-menu-item" id="bringToFrontButton" type="button" role="menuitem" ref={refs.bringToFrontButtonRef}>Bring To Front</button>
         <button className="context-menu-item" id="sendToBackButton" type="button" role="menuitem" ref={refs.sendToBackButtonRef}>Send To Back</button>
       </div>
     </main>
+  );
+}
+
+function FeedbackLayer({ refs }: ShellProps) {
+  return (
+    <>
+      <div className="feedback-stack" id="feedbackStack" ref={refs.feedbackStackRef} aria-live="polite" aria-atomic="false"></div>
+      <div className="confirm-dialog-backdrop hidden" id="confirmDialogBackdrop" ref={refs.confirmDialogBackdropRef}>
+        <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmDialogTitle">
+          <h3 id="confirmDialogTitle" ref={refs.confirmDialogTitleRef}>Confirm action</h3>
+          <p id="confirmDialogMessage" ref={refs.confirmDialogMessageRef}></p>
+          <div className="confirm-dialog-actions">
+            <button className="tool-button" id="confirmDialogCancelButton" type="button" ref={refs.confirmDialogCancelButtonRef}>Cancel</button>
+            <button className="tool-button is-accent" id="confirmDialogConfirmButton" type="button" ref={refs.confirmDialogConfirmButtonRef}>Confirm</button>
+          </div>
+        </section>
+      </div>
+    </>
   );
 }
 
@@ -294,6 +328,7 @@ export function SvgStudioShell({ refs, workspaceSurfaceProps }: ShellProps) {
       <LeftPanel refs={refs} />
       <Workspace refs={refs} workspaceSurfaceProps={workspaceSurfaceProps} />
       <Inspector refs={refs} />
+      <FeedbackLayer refs={refs} />
     </div>
   );
 }

@@ -9,6 +9,124 @@ export function createDocumentController({
   historyController
 }: any) {
   const runtime = store?.getState?.() || state;
+  let dismissDialogListeners: (() => void) | null = null;
+
+  function hasSanitizeWarningsUi() {
+    return Boolean(ui.sanitizeWarningsList && ui.sanitizeWarningsCount && ui.sanitizeWarningsPanel);
+  }
+
+  function hideSanitizeWarnings() {
+    if (!hasSanitizeWarningsUi()) {
+      return;
+    }
+    ui.sanitizeWarningsList.replaceChildren();
+    ui.sanitizeWarningsCount.textContent = "0 changes";
+    ui.sanitizeWarningsPanel.classList.add("hidden");
+  }
+
+  function renderSanitizeWarnings() {
+    const warningEntries: unknown[] = Array.isArray(runtime.warnings) ? runtime.warnings : [];
+    const normalizedWarnings: string[] = warningEntries
+      .map((entry: unknown) => String(entry || "").trim())
+      .filter((entry: string) => entry.length > 0);
+    const warnings = [...new Set(normalizedWarnings)];
+    if (!warnings.length) {
+      hideSanitizeWarnings();
+      return;
+    }
+    if (!hasSanitizeWarningsUi()) {
+      return;
+    }
+
+    const maxVisible = 8;
+    const fragment = document.createDocumentFragment();
+    warnings.slice(0, maxVisible).forEach((warning) => {
+      const item = document.createElement("li");
+      item.textContent = warning;
+      fragment.append(item);
+    });
+    if (warnings.length > maxVisible) {
+      const overflowItem = document.createElement("li");
+      overflowItem.textContent = `...and ${warnings.length - maxVisible} more`;
+      fragment.append(overflowItem);
+    }
+
+    ui.sanitizeWarningsList.replaceChildren(fragment);
+    ui.sanitizeWarningsCount.textContent = `${warnings.length} change${warnings.length > 1 ? "s" : ""}`;
+    ui.sanitizeWarningsPanel.classList.remove("hidden");
+    ui.statusPill.textContent = `Imported with ${warnings.length} safety cleanup change${warnings.length > 1 ? "s" : ""}`;
+  }
+
+  function promptConfirmation({
+    title,
+    message,
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel"
+  }: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+  }): Promise<boolean> {
+    if (!(
+      ui.confirmDialogBackdrop
+      && ui.confirmDialogTitle
+      && ui.confirmDialogMessage
+      && ui.confirmDialogConfirmButton
+      && ui.confirmDialogCancelButton
+    )) {
+      return Promise.resolve(globalThis.confirm?.(message) ?? false);
+    }
+
+    if (dismissDialogListeners) {
+      dismissDialogListeners();
+      dismissDialogListeners = null;
+    }
+
+    ui.confirmDialogTitle.textContent = title;
+    ui.confirmDialogMessage.textContent = message;
+    ui.confirmDialogConfirmButton.textContent = confirmLabel;
+    ui.confirmDialogCancelButton.textContent = cancelLabel;
+    ui.confirmDialogBackdrop.classList.remove("hidden");
+    ui.confirmDialogConfirmButton.focus();
+
+    return new Promise((resolve) => {
+      const close = (result: boolean) => {
+        ui.confirmDialogBackdrop.classList.add("hidden");
+        if (dismissDialogListeners) {
+          dismissDialogListeners();
+          dismissDialogListeners = null;
+        }
+        resolve(result);
+      };
+
+      const onConfirm = () => close(true);
+      const onCancel = () => close(false);
+      const onBackdropPointerDown = (event: PointerEvent) => {
+        if (event.target === ui.confirmDialogBackdrop) {
+          close(false);
+        }
+      };
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          close(false);
+        }
+      };
+
+      ui.confirmDialogConfirmButton.addEventListener("click", onConfirm);
+      ui.confirmDialogCancelButton.addEventListener("click", onCancel);
+      ui.confirmDialogBackdrop.addEventListener("pointerdown", onBackdropPointerDown);
+      window.addEventListener("keydown", onKeyDown);
+
+      dismissDialogListeners = () => {
+        ui.confirmDialogConfirmButton.removeEventListener("click", onConfirm);
+        ui.confirmDialogCancelButton.removeEventListener("click", onCancel);
+        ui.confirmDialogBackdrop.removeEventListener("pointerdown", onBackdropPointerDown);
+        window.removeEventListener("keydown", onKeyDown);
+      };
+    });
+  }
 
   function syncDocumentSnapshot(root: Element | null = runtime.svgRoot) {
     store.document.setDocumentSnapshot(model.captureDocumentSnapshot(root));
@@ -455,8 +573,14 @@ export function createDocumentController({
     }
 
     const targetName = runtime.currentFileName || fileHandle.name || "current SVG";
-    const shouldOverwrite = globalThis.confirm?.(`Overwrite "${targetName}"?`) ?? false;
+    const shouldOverwrite = await promptConfirmation({
+      title: "Overwrite source SVG?",
+      message: `This will overwrite "${targetName}" on disk.`,
+      confirmLabel: "Overwrite",
+      cancelLabel: "Cancel"
+    });
     if (!shouldOverwrite) {
+      ui.statusPill.textContent = "Save cancelled";
       return false;
     }
 
@@ -506,6 +630,7 @@ export function createDocumentController({
     }
     model.syncEditorMetadata();
     selectionController.resolveLiveSelection(root.dataset.editorId);
+    renderSanitizeWarnings();
     renderer.refresh({
       workspace: true,
       tree: true,
