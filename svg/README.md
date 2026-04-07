@@ -16,7 +16,7 @@ Current migration status:
 
 - `React shell`: the app shell, layer tree, inspector, and workspace canvas/overlay are now rendered through React-managed layers
 - `React events`: workspace surface events and window-level pointer/keyboard listeners are now attached from the React hook/component side
-- `Shared editing core`: drag, resize, selection, geometry, and document mutation logic are still reused from the existing controller/model layer while the legacy host layer has been removed
+- `Typed editing core`: drag, resize, selection, geometry, and document mutation logic now run from `packages/core/src/runtime/` with a TypeScript model/runtime boundary
 
 Typical use cases include:
 
@@ -250,37 +250,23 @@ The current version is useful for day-to-day SVG editing and structural adjustme
 ```text
 svg/
 |-- apps/
-|   `-- react/                    # React + TypeScript host
-|-- architecture-diagram.svg      # Project diagram
-|-- package.json                  # Modern workspace scripts
+|   `-- react/                         # React + TypeScript app shell
+|-- architecture-diagram.svg          # Project diagram
+|-- package.json                      # Workspace scripts
 |-- packages/
-|   `-- core/                     # Shared React host + editing runtime bridge
-|-- README.md                     # Current documentation
-|-- styles.css                    # App styles
-`-- scripts/
-    |-- constants.js              # Constants, field config, sample SVG
-    |-- editor.js                 # Main editor composition
-    |-- renderer.js               # Render coordinator
-    |-- svg-model.js              # Model aggregation entry
-    |-- controllers/
-    |   |-- document-controller.js     # Document operations, import/export, field updates
-    |   |-- history-controller.js      # Undo and redo
-    |   |-- interaction-controller.js  # Mouse interaction, dragging, zoom, shortcuts
-    |   `-- selection-controller.js    # Selection, locking, collapse state
-    |-- model/
-    |   |-- svg-document.js            # SVG parsing, sanitizing, serialization
-    |   |-- svg-geometry.js            # Geometry helpers
-    |   |-- svg-metadata.js            # Node identity, editability, field visibility
-    |   `-- geometry/
-    |       |-- drag-resize.js
-    |       |-- path-tools.js
-    |       |-- shape-factory.js
-    |       |-- snap-tools.js
-    |       `-- viewport-coords.js
-    `-- renderer/
-        |-- inspector-renderer.js      # Right-side inspector
-        |-- tree-renderer.js           # Left-side layer tree
-        `-- workspace-renderer.js      # Canvas and overlay rendering
+|   `-- core/
+|       `-- src/
+|           |-- react/                # Host bridge, mount, React renderers
+|           `-- runtime/
+|               |-- constants.ts      # Sample SVG, field config, runtime constants
+|               |-- runtime-store.ts  # Shared editor state store
+|               |-- create-editor.ts  # Editor composition
+|               |-- create-renderer.ts
+|               |-- create-svg-model.ts
+|               |-- controllers/      # Document, history, interaction, selection
+|               `-- model/            # Typed SVG document/geometry/model helpers
+|-- README.md                         # Current documentation
+`-- styles.css                        # App styles
 ```
 
 ## Refactor Strategy
@@ -290,7 +276,7 @@ The current refactor is now centered on a single host:
 - `apps/react/` renders the shell with actual React components and mounts the editor through `packages/core/src/react/`
 - `packages/core/src/react/` owns the host bridge, injected renderers, and runtime cleanup hooks
 
-That means the project has already crossed the migration boundary away from the legacy bootstrap host, while the editing controllers and renderers are still being reused underneath.
+That means the project has already crossed the migration boundary away from the legacy bootstrap host, and the editing runtime now lives entirely inside `packages/core/src/runtime/`.
 
 ## Next Refactor Roadmap
 

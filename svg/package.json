@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "node start-dev.mjs",
     "dev": "vite --config vite.react.config.ts",
     "build": "vite build --config vite.react.config.ts",
     "typecheck": "tsc --noEmit"
