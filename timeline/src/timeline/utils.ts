@@ -1,9 +1,23 @@
-function truncateText(text, maxLength) {
-  if (!text) {
+import type { TimelineEvent, TimelineNodeInput, TimelinePalette, TimelineTimeValue } from './types';
+
+export function normalizeTimelinePayload(data: unknown): TimelineNodeInput[] {
+  if (Array.isArray(data)) {
+    return data as TimelineNodeInput[];
+  }
+
+  if (data && typeof data === 'object' && Array.isArray((data as { nodes?: unknown[] }).nodes)) {
+    return (data as { nodes: TimelineNodeInput[] }).nodes;
+  }
+
+  return [];
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  const normalized = String(text || '').trim();
+  if (!normalized) {
     return '';
   }
 
-  const normalized = String(text).trim();
   if (normalized.length <= maxLength) {
     return normalized;
   }
@@ -11,45 +25,36 @@ function truncateText(text, maxLength) {
   return `${normalized.slice(0, Math.max(maxLength - 1, 1))}...`;
 }
 
-function clamp(value, min, max) {
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function sanitizeEventLabel(text) {
+function sanitizeEventLabel(text: string): string {
   return String(text || '')
     .split('\\')
-    .pop()
+    .pop()!
     .split('/')
-    .pop()
+    .pop()!
     .replace(/\.[^.]+$/, '')
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function getEventTitle(event) {
-  if (event && event.data && event.data.event) {
+export function getEventTitle(event: TimelineNodeInput): string {
+  if (event.data && typeof event.data.event === 'string') {
     return String(event.data.event).trim();
   }
 
-  if (event && event.label) {
+  if (event.label) {
     return String(event.label).trim();
   }
 
-  return sanitizeEventLabel(event && event.key ? event.key : 'Untitled event');
+  return sanitizeEventLabel(event.key || 'Untitled event');
 }
 
-function formatTimeRange(time) {
-  if (!time || !time.length) {
+export function formatTimeRange(time: TimelineTimeValue[]): string {
+  if (!time.length) {
     return 'Unknown time';
   }
 
@@ -60,15 +65,15 @@ function formatTimeRange(time) {
   return `${time[0]} - ${time[1]}`;
 }
 
-function formatEventLocation(space) {
-  if (!space || !space.length) {
+export function formatEventLocation(space: string[]): string {
+  if (!space.length) {
     return 'Unknown location';
   }
 
   return space.join(', ');
 }
 
-function parseTimelineYear(value, position = 'start') {
+export function parseTimelineYear(value: TimelineTimeValue | undefined, position: 'start' | 'end' = 'start'): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
@@ -98,13 +103,14 @@ function parseTimelineYear(value, position = 'start') {
 
   const yearMatch = normalized.match(/-?\d+/);
   if (yearMatch) {
-    return parseInt(yearMatch[0], 10);
+    const parsed = parseInt(yearMatch[0], 10);
+    return isBce && parsed > 0 ? -parsed : parsed;
   }
 
   return 0;
 }
 
-function formatYearLabel(year) {
+export function formatYearLabel(year: number): string {
   if (year < 0) {
     return `${Math.abs(year)} BCE`;
   }
@@ -112,13 +118,13 @@ function formatYearLabel(year) {
   return String(year);
 }
 
-function getAdaptiveYearInterval(range) {
+export function getAdaptiveYearInterval(range: number): number {
   const intervals = [10, 25, 50, 100, 200, 250, 500, 1000];
   const target = Math.max(range / 10, 1);
   return intervals.find(interval => interval >= target) || intervals[intervals.length - 1];
 }
 
-function getBranchColor(index, sharedCount = 1) {
+export function getBranchColor(index: number, sharedCount = 1): TimelinePalette {
   const hue = (index * 67 + 18) % 360;
   const saturation = sharedCount > 1 ? 74 : 68;
 
@@ -132,20 +138,8 @@ function getBranchColor(index, sharedCount = 1) {
   };
 }
 
-function getEventPalette(event) {
-  const branchIndex = event && Number.isFinite(event.primaryBranchIndex) ? event.primaryBranchIndex : 0;
-  const sharedCount = event && event.branchRoots && event.branchRoots.length ? event.branchRoots.length : 1;
+export function getEventPalette(event: TimelineEvent): TimelinePalette {
+  const branchIndex = Number.isFinite(event.primaryBranchIndex) ? event.primaryBranchIndex : 0;
+  const sharedCount = event.branchRoots.length || 1;
   return getBranchColor(branchIndex, sharedCount);
-}
-
-function createSvgElement(tagName, attributes = {}) {
-  const element = document.createElementNS('http://www.w3.org/2000/svg', tagName);
-
-  Object.entries(attributes).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      element.setAttribute(key, String(value));
-    }
-  });
-
-  return element;
 }

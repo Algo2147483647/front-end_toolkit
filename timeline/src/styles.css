@@ -604,3 +604,8 @@ body::before {
     grid-template-columns: 1fr;
   }
 }
+
+#root {
+  width: 100%;
+  height: 100%;
+}

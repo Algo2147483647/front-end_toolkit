@@ -1,98 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Timeline Atlas</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Timeline DAG</p>
-        <h1>Timeline Atlas</h1>
-        <p class="topbar-copy">
-          Explore historical branches as a time-aware DAG with visible lineage, stable color families, and event labels that stay readable even before hover.
-        </p>
-      </div>
-      <div class="topbar-meta">
-        <div class="zoom-pill">Zoom <span id="zoom-value">100%</span></div>
-        <p id="timeline-summary" class="timeline-summary">Loading timeline data...</p>
-      </div>
-    </header>
-
-    <main class="workspace">
-      <div id="timeline-container">
-        <svg id="timeline-svg" width="1400" height="900" role="img" aria-label="Timeline graph"></svg>
-      </div>
-    </main>
-  </div>
-
-  <div id="event-card" class="event-card" style="display: none;"></div>
-
-  <div class="control-card">
-    <div class="control-card__header">
-      <div>
-        <p class="control-card__title">View Controls</p>
-        <p class="control-card__subtitle">Tune density, export the canvas, or zoom the stage.</p>
-      </div>
-      <button id="settings-btn" class="settings-toggle-btn" type="button">Controls</button>
-    </div>
-
-    <div id="settings-panel" class="settings-panel settings-panel-visible">
-      <div class="setting-item">
-        <label for="json-path">
-          <span>JSON path</span>
-          <span>Same-origin URL</span>
-        </label>
-        <div class="path-input-row">
-          <input type="text" id="json-path" value="example.json" placeholder="example.json">
-          <button id="load-path-btn" class="ghost-btn" type="button">Load</button>
-        </div>
-      </div>
-
-      <label class="file-input-label" for="json-file">
-        <input type="file" id="json-file" accept=".json,application/json">
-        <span class="file-input-text">Open a local JSON file</span>
-      </label>
-
-      <div class="setting-item">
-        <label for="horizontal-scale">
-          <span>Branch width</span>
-          <span><span id="horizontal-scale-value">24</span> px</span>
-        </label>
-        <input type="range" id="horizontal-scale" min="12" max="56" value="24">
-      </div>
-
-      <div class="setting-item">
-        <label for="vertical-scale">
-          <span>Year spacing</span>
-          <span><span id="vertical-scale-value">20</span> px</span>
-        </label>
-        <input type="range" id="vertical-scale" min="6" max="30" value="20">
-      </div>
-
-      <div class="setting-buttons">
-        <button id="download-btn" class="primary-btn" type="button">Export SVG</button>
-        <button id="zoom-in" class="ghost-btn" type="button">Zoom In</button>
-        <button id="zoom-out" class="ghost-btn" type="button">Zoom Out</button>
-      </div>
-    </div>
-
-    <p class="control-hint">
-      Hover an event to trace its upstream and downstream lineage. Color families stay stable per root branch, so the same storyline keeps the same hue.
-    </p>
-  </div>
-
-  <script src="scripts/app.js"></script>
-  <script src="scripts/coordination.js"></script>
-  <script src="scripts/event.js"></script>
-  <script src="scripts/time_line.js"></script>
-  <script src="scripts/utils.js"></script>
-  <script src="scripts/svg_render.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timeline Atlas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
