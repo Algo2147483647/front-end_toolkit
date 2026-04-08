@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { useRuntimeVersion } from "./use-runtime-version";
 import {
@@ -305,6 +305,165 @@ function ActionField({ buttons, hint }: any) {
       </div>
       <p className="inspector-geometry-note">{hint}</p>
     </div>
+  );
+}
+
+function ArrangeIconFrame({ children }: { children: ReactNode }) {
+  return (
+    <svg className="inspector-arrange-icon" viewBox="0 0 32 32" aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
+
+function AlignLeftIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M8 5v22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="10.5" y="8" width="8" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="10.5" y="19" width="13" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function AlignCenterIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M16 5v22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="8" y="8" width="16" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="11" y="19" width="10" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function AlignRightIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M24 5v22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="13.5" y="8" width="8" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="8.5" y="19" width="13" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function AlignTopIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M5 8h22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="8" y="10.5" width="5" height="8" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="19" y="10.5" width="5" height="13" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function AlignMiddleIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M5 16h22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="8" y="8" width="5" height="16" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="19" y="11" width="5" height="10" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function AlignBottomIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M5 24h22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="8" y="13.5" width="5" height="8" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="19" y="8.5" width="5" height="13" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </ArrangeIconFrame>
+  );
+}
+
+function DistributeHorizontalIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M6 8v16M26 8v16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="8.5" y="11" width="4" height="10" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="18" y="11" width="5.5" height="10" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M14.5 16h2M16.5 16h2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </ArrangeIconFrame>
+  );
+}
+
+function DistributeVerticalIcon() {
+  return (
+    <ArrangeIconFrame>
+      <path d="M8 6h16M8 26h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="11" y="8.5" width="10" height="4" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="11" y="18" width="10" height="5.5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M16 14.5v2M16 16.5v2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </ArrangeIconFrame>
+  );
+}
+
+function ArrangeButton({ disabled = false, icon, label, onClick }: any) {
+  return (
+    <button
+      type="button"
+      className="inspector-arrange-button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function MultiSelectionArrangeCard({ actions, model, selectedNodes, state }: any) {
+  const movableCount = selectedNodes.filter((node: Element) => node !== state.svgRoot && model.canDragNode(node)).length;
+  const canAlign = movableCount >= 2;
+  const canDistribute = movableCount >= 3;
+  const pairs = [
+    [
+      { disabled: !canAlign, icon: <AlignLeftIcon />, label: "Align left", onClick: () => actions.alignSelection("left") },
+      { disabled: !canAlign, icon: <AlignTopIcon />, label: "Align top", onClick: () => actions.alignSelection("top") }
+    ],
+    [
+      { disabled: !canAlign, icon: <AlignCenterIcon />, label: "Align center", onClick: () => actions.alignSelection("center") },
+      { disabled: !canAlign, icon: <AlignMiddleIcon />, label: "Align middle", onClick: () => actions.alignSelection("middle") }
+    ],
+    [
+      { disabled: !canAlign, icon: <AlignRightIcon />, label: "Align right", onClick: () => actions.alignSelection("right") },
+      { disabled: !canAlign, icon: <AlignBottomIcon />, label: "Align bottom", onClick: () => actions.alignSelection("bottom") }
+    ],
+    [
+      { disabled: !canDistribute, icon: <DistributeHorizontalIcon />, label: "Distribute horizontally", onClick: () => actions.distributeSelection("horizontal") },
+      { disabled: !canDistribute, icon: <DistributeVerticalIcon />, label: "Distribute vertically", onClick: () => actions.distributeSelection("vertical") }
+    ]
+  ];
+
+  return (
+    <section className="inspector-card inspector-arrange-card">
+      <div className="inspector-card-header">
+        <div>
+          <p className="inspector-card-kicker">Arrange</p>
+          <strong className="inspector-card-title">Align and distribute</strong>
+        </div>
+        <span className="inspector-type-chip">{`${selectedNodes.length} items`}</span>
+      </div>
+      <div className="inspector-arrange-grid" role="group" aria-label="Selection arrangement controls">
+        {pairs.map((pair, index) => (
+          <div className="inspector-arrange-pair" key={index}>
+            {pair.map((button) => (
+              <ArrangeButton
+                key={button.label}
+                disabled={button.disabled}
+                icon={button.icon}
+                label={button.label}
+                onClick={button.onClick}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="inspector-note">
+        Drag still moves the group together. Distribution keeps the first and last movable items anchored.
+      </p>
+    </section>
   );
 }
 
@@ -669,22 +828,30 @@ function InspectorPanel({ actions, model, state, store }: Omit<InspectorDeps, "u
 
   if (selectedNodes.length > 1) {
     return (
-      <section className="inspector-card inspector-object-card">
-        <div className="inspector-object-top">
-          <span className="inspector-type-chip">multi</span>
-          <strong className="inspector-object-name">{`${selectedNodes.length} objects selected`}</strong>
-        </div>
-        <div className="inspector-object-meta">
-          {selectedNodes.slice(0, 4).map((selectedNode, index) => (
-            <Fragment key={selectedNode.dataset.editorId || index}>
-              <span>{`${selectedNode.tagName.toLowerCase()} ${model.labelFor(selectedNode)}`}</span>
-            </Fragment>
-          ))}
-        </div>
-        <p className="inspector-note">
-          Drag any selected object to move the group. Attribute editing is available after reducing the selection to one object.
-        </p>
-      </section>
+      <>
+        <section className="inspector-card inspector-object-card">
+          <div className="inspector-object-top">
+            <span className="inspector-type-chip">multi</span>
+            <strong className="inspector-object-name">{`${selectedNodes.length} objects selected`}</strong>
+          </div>
+          <div className="inspector-object-meta">
+            {selectedNodes.slice(0, 4).map((selectedNode, index) => (
+              <Fragment key={selectedNode.dataset.editorId || index}>
+                <span>{`${selectedNode.tagName.toLowerCase()} ${model.labelFor(selectedNode)}`}</span>
+              </Fragment>
+            ))}
+          </div>
+          <p className="inspector-note">
+            Drag any selected object to move the group. Reduce the selection to one object to edit individual attributes.
+          </p>
+        </section>
+        <MultiSelectionArrangeCard
+          actions={actions}
+          model={model}
+          selectedNodes={selectedNodes}
+          state={state}
+        />
+      </>
     );
   }
 

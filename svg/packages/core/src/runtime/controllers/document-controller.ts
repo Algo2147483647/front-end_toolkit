@@ -10,6 +10,18 @@ export function createDocumentController({
 }: any) {
   const runtime = store?.getState?.() || state;
   let dismissDialogListeners: (() => void) | null = null;
+  const ALIGN_LABELS: Record<string, string> = {
+    bottom: "bottom",
+    center: "center",
+    left: "left",
+    middle: "middle",
+    right: "right",
+    top: "top"
+  };
+  const DISTRIBUTE_LABELS: Record<string, string> = {
+    horizontal: "horizontally",
+    vertical: "vertically"
+  };
 
   function hasSanitizeWarningsUi() {
     return Boolean(ui.sanitizeWarningsList && ui.sanitizeWarningsCount && ui.sanitizeWarningsPanel);
@@ -130,6 +142,175 @@ export function createDocumentController({
 
   function syncDocumentSnapshot(root: Element | null = runtime.svgRoot) {
     store.document.setDocumentSnapshot(model.captureDocumentSnapshot(root));
+  }
+
+  function toLocalDelta(referenceNode: any, dx: number, dy: number) {
+    if ((!dx && !dy) || !runtime.svgRoot?.createSVGPoint) {
+      return { dx, dy };
+    }
+
+    const matrix = referenceNode?.getCTM?.();
+    const inverse = matrix?.inverse?.();
+    if (!inverse) {
+      return { dx, dy };
+    }
+
+    try {
+      const origin = runtime.svgRoot.createSVGPoint();
+      origin.x = 0;
+      origin.y = 0;
+      const originLocal = origin.matrixTransform(inverse);
+
+      const delta = runtime.svgRoot.createSVGPoint();
+      delta.x = dx;
+      delta.y = dy;
+      const deltaLocal = delta.matrixTransform(inverse);
+
+      return {
+        dx: deltaLocal.x - originLocal.x,
+        dy: deltaLocal.y - originLocal.y
+      };
+    } catch {
+      return { dx, dy };
+    }
+  }
+
+  function getArrangeTargets() {
+    return selectionController.getSelectionTargets()
+      .filter((node: any) => node && model.canDragNode(node) && !model.isNodeLocked(node))
+      .map((node: any) => {
+        const bounds = model.getNodeVisualBounds(node);
+        if (!bounds) {
+          return null;
+        }
+
+        return {
+          bounds,
+          descriptor: model.getDragDescriptor(node),
+          node,
+          referenceNode: node.parentElement || runtime.svgRoot
+        };
+      })
+      .filter((entry: any) => Boolean(entry));
+  }
+
+  function finishArrangement(reason: string, status: string) {
+    model.syncEditorMetadata();
+    syncDocumentSnapshot();
+    renderer.refresh({
+      workspace: true,
+      tree: true,
+      inspector: true,
+      source: true,
+      overlay: true,
+      actions: true
+    });
+    ui.statusPill.textContent = status;
+    historyController.recordHistory(reason);
+  }
+
+  function alignSelection(direction: "left" | "center" | "right" | "top" | "middle" | "bottom") {
+    const targets = getArrangeTargets();
+    if (targets.length < 2) {
+      return;
+    }
+
+    const selectionBounds = targets.slice(1).reduce((acc: any, target: any) => ({
+      x: Math.min(acc.x, target.bounds.x),
+      y: Math.min(acc.y, target.bounds.y),
+      width: Math.max(acc.x + acc.width, target.bounds.x + target.bounds.width) - Math.min(acc.x, target.bounds.x),
+      height: Math.max(acc.y + acc.height, target.bounds.y + target.bounds.height) - Math.min(acc.y, target.bounds.y)
+    }), { ...targets[0].bounds });
+
+    let moved = false;
+    targets.forEach((target: any) => {
+      const { bounds } = target;
+      let dx = 0;
+      let dy = 0;
+
+      if (direction === "left") {
+        dx = selectionBounds.x - bounds.x;
+      } else if (direction === "center") {
+        dx = (selectionBounds.x + (selectionBounds.width / 2)) - (bounds.x + (bounds.width / 2));
+      } else if (direction === "right") {
+        dx = (selectionBounds.x + selectionBounds.width) - (bounds.x + bounds.width);
+      } else if (direction === "top") {
+        dy = selectionBounds.y - bounds.y;
+      } else if (direction === "middle") {
+        dy = (selectionBounds.y + (selectionBounds.height / 2)) - (bounds.y + (bounds.height / 2));
+      } else if (direction === "bottom") {
+        dy = (selectionBounds.y + selectionBounds.height) - (bounds.y + bounds.height);
+      }
+
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+        return;
+      }
+
+      const localDelta = toLocalDelta(target.referenceNode, dx, dy);
+      if (Math.abs(localDelta.dx) < 0.01 && Math.abs(localDelta.dy) < 0.01) {
+        return;
+      }
+
+      model.applyDrag(target.node, target.descriptor, localDelta.dx, localDelta.dy);
+      moved = true;
+    });
+
+    if (!moved) {
+      return;
+    }
+
+    finishArrangement(`align:${direction}`, `Aligned ${ALIGN_LABELS[direction]}`);
+  }
+
+  function distributeSelection(direction: "horizontal" | "vertical") {
+    const targets = getArrangeTargets();
+    if (targets.length < 3) {
+      return;
+    }
+
+    const axisKey = direction === "horizontal" ? "x" : "y";
+    const sizeKey = direction === "horizontal" ? "width" : "height";
+    const sortedTargets = [...targets].sort((left: any, right: any) => {
+      const delta = left.bounds[axisKey] - right.bounds[axisKey];
+      if (Math.abs(delta) > 0.01) {
+        return delta;
+      }
+
+      return left.bounds[sizeKey] - right.bounds[sizeKey];
+    });
+
+    const firstTarget = sortedTargets[0];
+    const lastTarget = sortedTargets[sortedTargets.length - 1];
+    const start = firstTarget.bounds[axisKey];
+    const end = lastTarget.bounds[axisKey] + lastTarget.bounds[sizeKey];
+    const occupied = sortedTargets.reduce((sum: number, target: any) => sum + target.bounds[sizeKey], 0);
+    const gap = (end - start - occupied) / (sortedTargets.length - 1);
+    let cursor = start + firstTarget.bounds[sizeKey] + gap;
+    let moved = false;
+
+    sortedTargets.slice(1, -1).forEach((target: any) => {
+      const delta = cursor - target.bounds[axisKey];
+      cursor += target.bounds[sizeKey] + gap;
+      if (Math.abs(delta) < 0.01) {
+        return;
+      }
+
+      const rootDx = direction === "horizontal" ? delta : 0;
+      const rootDy = direction === "vertical" ? delta : 0;
+      const localDelta = toLocalDelta(target.referenceNode, rootDx, rootDy);
+      if (Math.abs(localDelta.dx) < 0.01 && Math.abs(localDelta.dy) < 0.01) {
+        return;
+      }
+
+      model.applyDrag(target.node, target.descriptor, localDelta.dx, localDelta.dy);
+      moved = true;
+    });
+
+    if (!moved) {
+      return;
+    }
+
+    finishArrangement(`distribute:${direction}`, `Distributed ${DISTRIBUTE_LABELS[direction]}`);
   }
 
   function setCurrentFileBinding(fileHandle: any = null, fileName = "") {
@@ -656,9 +837,11 @@ export function createDocumentController({
   }
 
   return {
+    alignSelection,
     deleteSelection,
     downloadSvg,
     bringSelectionToFront,
+    distributeSelection,
     insertElement,
     insertImageFile,
     loadDocument,

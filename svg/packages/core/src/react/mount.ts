@@ -22,6 +22,8 @@ export function mountReactSvgStudio(ui: SvgStudioUiRefs) {
   const editor = createEditor({ store, state, ui, model, renderer, emptySvg: EMPTY_SVG });
 
   Object.assign(actions, {
+    alignSelection: editor.alignSelection,
+    distributeSelection: editor.distributeSelection,
     onPointHandlePointerDown: editor.onPointHandlePointerDown,
     onPathBezierHandlePointerDown: editor.onPathBezierHandlePointerDown,
     onResizeHandlePointerDown: editor.onResizeHandlePointerDown,

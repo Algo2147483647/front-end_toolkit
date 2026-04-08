@@ -39,7 +39,9 @@ export function createEditor({ store, state, ui, model, renderer, emptySvg }: Ru
   historyController.setLoadDocument(documentController.loadDocument);
 
   return {
+    alignSelection: documentController.alignSelection,
     bindEvents: interactionController.bindEvents,
+    distributeSelection: documentController.distributeSelection,
     fitToView: interactionController.fitToView,
     loadDocument: documentController.loadDocument,
     onPointHandlePointerDown: interactionController.onPointHandlePointerDown,

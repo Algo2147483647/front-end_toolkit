@@ -70,8 +70,10 @@ export interface HistoryController {
 }
 
 export interface DocumentController {
+  alignSelection: (direction: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
   bringSelectionToFront: (editorId?: string | null) => void;
   deleteSelection: () => void;
+  distributeSelection: (direction: "horizontal" | "vertical") => void;
   downloadSvg: () => void;
   duplicateSelection: () => void;
   insertElement: (kind: string) => void;
@@ -121,7 +123,9 @@ export interface InteractionController {
 }
 
 export interface SvgEditor {
+  alignSelection: DocumentController["alignSelection"];
   bindEvents: InteractionController["bindEvents"];
+  distributeSelection: DocumentController["distributeSelection"];
   fitToView: () => void;
   loadDocument: HistoryLoadDocument;
   onPointHandlePointerDown: InteractionController["onPointHandlePointerDown"];
