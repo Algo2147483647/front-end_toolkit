@@ -782,7 +782,7 @@
         contextMenu.style.left = `${Math.max(8, safeX)}px`;
         contextMenu.style.top = `${Math.max(8, safeY)}px`;
 
-        const requiresNode = ["rename-node", "delete-node", "edit-parents", "edit-kids"];
+        const requiresNode = ["rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-kids"];
         contextMenu.querySelectorAll(".context-menu-item").forEach(button => {
             const action = button.getAttribute("data-action") || "";
             const disabled = requiresNode.includes(action) && !nodeKey;
@@ -825,6 +825,10 @@
         }
         if (action === "delete-node" && nodeKey) {
             deleteNode(nodeKey);
+            return;
+        }
+        if (action === "delete-subtree" && nodeKey) {
+            deleteSubtree(nodeKey);
             return;
         }
         if (action === "edit-parents" && nodeKey) {
@@ -915,17 +919,80 @@
             return;
         }
 
-        delete dag[nodeKey];
+        removeNodesByKeys([nodeKey], `Deleted node ${nodeKey}.`);
+    }
 
-        Object.keys(dag).forEach(otherKey => {
-            GraphApp.normalize.removeRelationKey(dag[otherKey], "parents", nodeKey);
-            GraphApp.normalize.removeRelationKey(dag[otherKey], "kids", nodeKey);
+    function deleteSubtree(nodeKey) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag || !dag[nodeKey]) {
+            return;
+        }
+
+        const subtreeNodeKeys = collectSubtreeNodeKeys(nodeKey);
+        const totalNodes = Object.keys(dag).length;
+        if (subtreeNodeKeys.length >= totalNodes) {
+            window.alert("Deleting this subtree would remove all nodes. At least one node must remain.");
+            return;
+        }
+
+        const confirmed = window.confirm(`Delete subtree rooted at "${nodeKey}" (${subtreeNodeKeys.length} nodes)?`);
+        if (!confirmed) {
+            return;
+        }
+
+        removeNodesByKeys(subtreeNodeKeys, `Deleted subtree rooted at ${nodeKey}.`);
+    }
+
+    function collectSubtreeNodeKeys(rootKey) {
+        const dag = GraphApp.state.data.normalizedDag;
+        if (!dag || !dag[rootKey]) {
+            return [];
+        }
+
+        const visited = new Set();
+        const stack = [rootKey];
+
+        while (stack.length) {
+            const currentKey = stack.pop();
+            if (visited.has(currentKey) || !dag[currentKey]) {
+                continue;
+            }
+
+            visited.add(currentKey);
+            const childKeys = GraphApp.normalize.getRelationKeys(dag[currentKey].kids);
+            childKeys.forEach(childKey => stack.push(childKey));
+        }
+
+        return Array.from(visited);
+    }
+
+    function removeNodesByKeys(nodeKeys, statusMessage) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag) {
+            return;
+        }
+
+        const deleteSet = new Set((nodeKeys || []).filter(nodeKey => Boolean(nodeKey) && Boolean(dag[nodeKey])));
+        if (!deleteSet.size) {
+            return;
+        }
+
+        deleteSet.forEach(nodeKey => {
+            delete dag[nodeKey];
         });
 
-        data.history = data.history.filter(item => item !== nodeKey);
+        Object.keys(dag).forEach(otherKey => {
+            deleteSet.forEach(deletedKey => {
+                GraphApp.normalize.removeRelationKey(dag[otherKey], "parents", deletedKey);
+                GraphApp.normalize.removeRelationKey(dag[otherKey], "kids", deletedKey);
+            });
+        });
 
-        const preferredRoot = data.currentRoot === nodeKey ? resolveInitialRoot(dag) : data.currentRoot;
-        commitDagUpdate(preferredRoot, `Deleted node ${nodeKey}.`);
+        data.history = data.history.filter(item => !deleteSet.has(item));
+        const preferredRoot = deleteSet.has(data.currentRoot) ? resolveInitialRoot(dag) : data.currentRoot;
+        commitDagUpdate(preferredRoot, statusMessage);
     }
 
     function addNode(referenceNodeKey) {
