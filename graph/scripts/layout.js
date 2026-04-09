@@ -25,7 +25,7 @@
             dag[root] = {
                 key: root,
                 label: "All roots",
-                kids: roots.length ? roots : Object.keys(dag),
+                kids: roots.length ? roots : Object.keys(dag).filter(key => key !== root),
                 synthetic: true,
             };
         }

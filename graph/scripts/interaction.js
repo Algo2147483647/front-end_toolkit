@@ -46,6 +46,11 @@
         hoveredNodeKey: null,
         focusedNodeKey: null,
     };
+    const relationEditorState = {
+        isOpen: false,
+        nodeKey: null,
+        fieldName: null,
+    };
 
     function init() {
         const stateModule = GraphApp.state;
@@ -58,8 +63,10 @@
         }
 
         bindEvents();
+        updateModeButtons();
         updateZoomControls();
         stateModule.data.isInitialized = true;
+        loadDefaultDag();
     }
 
     function bindEvents() {
@@ -70,6 +77,12 @@
         }
         if (dom.settingsButton) {
             dom.settingsButton.addEventListener("click", toggleSettingsPanel);
+        }
+        if (dom.previewModeButton) {
+            dom.previewModeButton.addEventListener("click", () => setViewMode("preview"));
+        }
+        if (dom.editModeButton) {
+            dom.editModeButton.addEventListener("click", () => setViewMode("edit"));
         }
         if (dom.zoomInButton) {
             dom.zoomInButton.addEventListener("click", zoomGraphIn);
@@ -88,6 +101,9 @@
         if (dom.exportButton) {
             dom.exportButton.addEventListener("click", exportCurrentSvg);
         }
+        if (dom.saveJsonButton) {
+            dom.saveJsonButton.addEventListener("click", saveCurrentJson);
+        }
         if (dom.backButton) {
             dom.backButton.addEventListener("click", navigateBack);
         }
@@ -100,6 +116,23 @@
             dom.mainContent.addEventListener("focusout", handleNodeFocusOut);
             dom.mainContent.addEventListener("keydown", handleNodeKeydown);
             dom.mainContent.addEventListener("click", handleNodeClick);
+            dom.mainContent.addEventListener("scroll", hideContextMenu);
+        }
+        if (dom.contextMenu) {
+            dom.contextMenu.addEventListener("click", handleContextMenuClick);
+        }
+        if (dom.relationEditorSaveButton) {
+            dom.relationEditorSaveButton.addEventListener("click", saveRelationEditor);
+        }
+        if (dom.relationEditorCancelButton) {
+            dom.relationEditorCancelButton.addEventListener("click", closeRelationEditor);
+        }
+        if (dom.relationEditorModal) {
+            dom.relationEditorModal.addEventListener("click", event => {
+                if (event.target === dom.relationEditorModal) {
+                    closeRelationEditor();
+                }
+            });
         }
 
         document.addEventListener("mousemove", handlePanMove);
@@ -110,14 +143,67 @@
         window.addEventListener("resize", handleWindowResize);
     }
 
-    function loadDagData(input) {
+    async function loadDefaultDag() {
+        const defaultFileName = "example.json";
+        updateFileInputText(defaultFileName);
+
+        try {
+            const response = await fetch(defaultFileName, { cache: "no-store" });
+            if (!response.ok) {
+                throw new Error(`Failed to load ${defaultFileName} (${response.status}).`);
+            }
+
+            const payload = await response.json();
+            loadDagData(payload, { sourceFileName: defaultFileName });
+        } catch (error) {
+            GraphApp.svgRender.clearStage();
+            setGraphMessage("Unable to load example.json automatically. Please choose a JSON file.");
+            const { emptyStateMessage, emptyState } = GraphApp.state.getDom();
+            if (emptyStateMessage) {
+                emptyStateMessage.textContent = "Unable to load example.json automatically. Please choose a JSON file.";
+            }
+            if (emptyState) {
+                emptyState.classList.remove("is-hidden");
+            }
+            console.error(error);
+        }
+    }
+
+    function loadDagData(input, options) {
         const { data, resetGraphData } = GraphApp.state;
-        data.rawData = input;
+        const request = options || {};
+
+        data.sourceFileName = request.sourceFileName || data.sourceFileName || "graph.json";
         data.normalizedDag = GraphApp.normalize.normalizeDagInput(input);
+        GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
+        syncRawDataFromNormalized();
         resetGraphData();
 
         const initialRoot = resolveInitialRoot(data.normalizedDag);
         renderFromRoot(initialRoot, false);
+    }
+
+    function syncRawDataFromNormalized() {
+        const data = GraphApp.state.data;
+        data.rawData = buildSerializableDag(data.normalizedDag || {});
+    }
+
+    function buildSerializableDag(dag) {
+        const clone = {};
+
+        Object.entries(dag || {}).forEach(([key, value]) => {
+            if (!value || typeof value !== "object") {
+                return;
+            }
+
+            const nodeValue = GraphApp.state.utils.structuredCloneValue(value);
+            if (nodeValue.key === key) {
+                delete nodeValue.key;
+            }
+            clone[key] = nodeValue;
+        });
+
+        return clone;
     }
 
     function navigateBack() {
@@ -154,6 +240,22 @@
         refreshGraphZoom(false);
     }
 
+    function commitDagUpdate(preferredRoot, statusMessage) {
+        const data = GraphApp.state.data;
+        GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
+        syncRawDataFromNormalized();
+
+        const fallbackRoot = resolveInitialRoot(data.normalizedDag);
+        const nextRoot = preferredRoot && data.normalizedDag[preferredRoot]
+            ? preferredRoot
+            : (data.currentRoot && data.normalizedDag[data.currentRoot] ? data.currentRoot : fallbackRoot);
+
+        renderFromRoot(nextRoot, false);
+        if (statusMessage) {
+            setGraphMessage(statusMessage);
+        }
+    }
+
     function setGraphMessage(message) {
         const { graphSummary } = GraphApp.state.getDom();
         if (graphSummary) {
@@ -181,6 +283,58 @@
         downloadLink.download = GraphApp.state.constants.defaultExportFileName;
         downloadLink.click();
         URL.revokeObjectURL(url);
+    }
+
+    function saveCurrentJson() {
+        const data = GraphApp.state.data;
+        if (!data.normalizedDag) {
+            setGraphMessage("Load or render a graph before saving JSON.");
+            return;
+        }
+
+        const sourceFileName = data.sourceFileName || "graph.json";
+        const saveAsNew = window.confirm("Save as a new file? Click OK for New (default) or Cancel for Overwrite.");
+        const outputFileName = saveAsNew
+            ? buildTimestampFileName(sourceFileName)
+            : ensureJsonExtension(sourceFileName);
+
+        syncRawDataFromNormalized();
+        const content = JSON.stringify(data.rawData || {}, null, 2);
+        downloadJsonFile(content, outputFileName);
+        setGraphMessage(`Saved JSON as ${outputFileName}.`);
+    }
+
+    function downloadJsonFile(content, fileName) {
+        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = fileName;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function ensureJsonExtension(fileName) {
+        const name = String(fileName || "graph").trim() || "graph";
+        return /\.json$/i.test(name) ? name : `${name}.json`;
+    }
+
+    function buildTimestampFileName(fileName) {
+        const normalizedName = ensureJsonExtension(fileName || "graph.json");
+        const match = normalizedName.match(/^(.*?)(\.json)$/i);
+        const baseName = match ? match[1] : normalizedName;
+        const extension = match ? match[2] : ".json";
+        return `${baseName}-${formatTimestamp(new Date())}${extension}`;
+    }
+
+    function formatTimestamp(date) {
+        const year = String(date.getFullYear());
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hour = String(date.getHours()).padStart(2, "0");
+        const minute = String(date.getMinutes()).padStart(2, "0");
+        const second = String(date.getSeconds()).padStart(2, "0");
+        return `${year}${month}${day}-${hour}${minute}${second}`;
     }
 
     function buildExportSvg(sourceSvg) {
@@ -255,6 +409,33 @@
                 path.style.setProperty("fill", edgeStroke);
             }
         });
+    }
+
+    function setViewMode(mode) {
+        GraphApp.state.data.viewMode = mode === "edit" ? "edit" : "preview";
+        updateModeButtons();
+        hideContextMenu();
+        stopGraphPan();
+
+        const stageData = GraphApp.state.data.stageData;
+        if (stageData) {
+            const focusLabel = getDisplayLabel(stageData.root, stageData.dag[stageData.root]);
+            setGraphMessage(`Mode: ${GraphApp.state.data.viewMode === "edit" ? "Edit" : "Preview"}. Focused on ${focusLabel}.`);
+        }
+    }
+
+    function updateModeButtons() {
+        const { previewModeButton, editModeButton } = GraphApp.state.getDom();
+        const isEditMode = GraphApp.state.data.viewMode === "edit";
+
+        if (previewModeButton) {
+            previewModeButton.classList.toggle("is-active", !isEditMode);
+            previewModeButton.setAttribute("aria-pressed", String(!isEditMode));
+        }
+        if (editModeButton) {
+            editModeButton.classList.toggle("is-active", isEditMode);
+            editModeButton.setAttribute("aria-pressed", String(isEditMode));
+        }
     }
 
     function zoomGraphIn() {
@@ -395,15 +576,16 @@
         const edgeCount = stageData.edges.length;
         const nodeCount = stageData.nodes.length;
         const focusLabel = getDisplayLabel(stageData.root, stageData.dag[stageData.root]);
+        const modeLabel = GraphApp.state.data.viewMode === "edit" ? "Edit" : "Preview";
 
         if (dom.graphSummary) {
-            dom.graphSummary.textContent = `Focused on ${focusLabel}. ${nodeCount} nodes and ${edgeCount} links are visible in this branch map.`;
+            dom.graphSummary.textContent = `${modeLabel} mode. Focused on ${focusLabel}. ${nodeCount} nodes and ${edgeCount} links are visible.`;
         }
         if (dom.backButton) {
             dom.backButton.disabled = GraphApp.state.data.history.length === 0;
         }
         if (dom.emptyStateMessage) {
-            dom.emptyStateMessage.textContent = "Import a JSON file to render a focused DAG view with drill-down navigation.";
+            dom.emptyStateMessage.textContent = "Loading graph data...";
         }
     }
 
@@ -437,7 +619,7 @@
         const reader = new FileReader();
         reader.onload = loadEvent => {
             try {
-                loadDagData(JSON.parse(loadEvent.target.result));
+                loadDagData(JSON.parse(loadEvent.target.result), { sourceFileName: file.name });
             } catch (error) {
                 setGraphMessage("The selected file could not be parsed as JSON.");
                 const { emptyStateMessage } = GraphApp.state.getDom();
@@ -497,27 +679,35 @@
     }
 
     function handleDocumentClick(event) {
-        const { controls } = GraphApp.state.getDom();
-        if (!controls || controls.contains(event.target)) {
-            return;
+        const dom = GraphApp.state.getDom();
+        const target = event.target;
+
+        if (dom.controls && !dom.controls.contains(target)) {
+            setSettingsPanelVisibility(false);
         }
 
-        setSettingsPanelVisibility(false);
+        if (dom.contextMenu && !dom.contextMenu.contains(target)) {
+            hideContextMenu();
+        }
     }
 
     function handleDocumentKeydown(event) {
         if (event.key === "Escape") {
             setSettingsPanelVisibility(false);
+            hideContextMenu();
+            closeRelationEditor();
         }
     }
 
     function handleWindowResize() {
         refreshGraphZoom(true);
+        hideContextMenu();
     }
 
     function handlePanStart(event) {
         const { mainContent } = GraphApp.state.getDom();
-        if (!mainContent || event.button !== 2 || !mainContent.classList.contains("is-ready")) {
+        const isEditMode = GraphApp.state.data.viewMode === "edit";
+        if (!mainContent || event.button !== 2 || !mainContent.classList.contains("is-ready") || isEditMode) {
             return;
         }
 
@@ -559,9 +749,405 @@
 
     function handleGraphContextMenu(event) {
         const { mainContent } = GraphApp.state.getDom();
-        if (mainContent && mainContent.classList.contains("is-ready")) {
-            event.preventDefault();
+        if (!mainContent || !mainContent.classList.contains("is-ready")) {
+            return;
         }
+
+        event.preventDefault();
+
+        if (GraphApp.state.data.viewMode !== "edit") {
+            hideContextMenu();
+            return;
+        }
+
+        const node = getNodeElement(event.target);
+        const nodeKey = node ? node.dataset.nodeKey : null;
+        openContextMenu(event.clientX, event.clientY, nodeKey || null);
+    }
+
+    function openContextMenu(x, y, nodeKey) {
+        const { contextMenu } = GraphApp.state.getDom();
+        if (!contextMenu) {
+            return;
+        }
+
+        GraphApp.state.data.contextMenuNodeKey = nodeKey || null;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        contextMenu.classList.add("is-visible");
+        contextMenu.setAttribute("aria-hidden", "false");
+
+        const menuRect = contextMenu.getBoundingClientRect();
+        const safeX = Math.min(x, viewportWidth - menuRect.width - 8);
+        const safeY = Math.min(y, viewportHeight - menuRect.height - 8);
+
+        contextMenu.style.left = `${Math.max(8, safeX)}px`;
+        contextMenu.style.top = `${Math.max(8, safeY)}px`;
+
+        const requiresNode = ["rename-node", "delete-node", "edit-parents", "edit-kids"];
+        contextMenu.querySelectorAll(".context-menu-item").forEach(button => {
+            const action = button.getAttribute("data-action") || "";
+            const disabled = requiresNode.includes(action) && !nodeKey;
+            button.disabled = disabled;
+            button.style.opacity = disabled ? "0.45" : "1";
+        });
+    }
+
+    function hideContextMenu() {
+        const { contextMenu } = GraphApp.state.getDom();
+        if (!contextMenu) {
+            return;
+        }
+
+        contextMenu.classList.remove("is-visible");
+        contextMenu.setAttribute("aria-hidden", "true");
+        GraphApp.state.data.contextMenuNodeKey = null;
+    }
+
+    function handleContextMenuClick(event) {
+        const target = event.target instanceof Element ? event.target.closest(".context-menu-item") : null;
+        if (!target) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const action = target.getAttribute("data-action");
+        const nodeKey = GraphApp.state.data.contextMenuNodeKey;
+        hideContextMenu();
+
+        if (!action) {
+            return;
+        }
+
+        if (action === "rename-node" && nodeKey) {
+            promptRenameNodeKey(nodeKey);
+            return;
+        }
+        if (action === "delete-node" && nodeKey) {
+            deleteNode(nodeKey);
+            return;
+        }
+        if (action === "edit-parents" && nodeKey) {
+            openRelationEditor(nodeKey, "parents");
+            return;
+        }
+        if (action === "edit-kids" && nodeKey) {
+            openRelationEditor(nodeKey, "kids");
+            return;
+        }
+        if (action === "add-node") {
+            addNode(nodeKey || null);
+        }
+    }
+
+    function promptRenameNodeKey(nodeKey) {
+        const dag = GraphApp.state.data.normalizedDag;
+        if (!dag || !dag[nodeKey]) {
+            return;
+        }
+
+        const input = window.prompt("Enter a new unique node key:", nodeKey);
+        if (input === null) {
+            return;
+        }
+
+        const nextKey = String(input || "").trim();
+        if (!nextKey) {
+            window.alert("Node key cannot be empty.");
+            return;
+        }
+
+        if (nextKey.includes("\n") || nextKey.includes(",")) {
+            window.alert("Node key cannot contain commas or line breaks.");
+            return;
+        }
+
+        if (nextKey === nodeKey) {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(dag, nextKey)) {
+            window.alert(`Node key "${nextKey}" already exists.`);
+            return;
+        }
+
+        renameNodeKey(nodeKey, nextKey);
+    }
+
+    function renameNodeKey(oldKey, newKey) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        const nodeValue = dag[oldKey];
+        if (!nodeValue) {
+            return;
+        }
+
+        delete dag[oldKey];
+        dag[newKey] = nodeValue;
+        dag[newKey].key = newKey;
+
+        Object.keys(dag).forEach(nodeKey => {
+            GraphApp.normalize.renameRelationKey(dag[nodeKey], "parents", oldKey, newKey);
+            GraphApp.normalize.renameRelationKey(dag[nodeKey], "kids", oldKey, newKey);
+        });
+
+        data.history = data.history.map(item => (item === oldKey ? newKey : item));
+
+        const preferredRoot = data.currentRoot === oldKey ? newKey : data.currentRoot;
+        commitDagUpdate(preferredRoot, `Renamed node key from ${oldKey} to ${newKey}.`);
+    }
+
+    function deleteNode(nodeKey) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag || !dag[nodeKey]) {
+            return;
+        }
+
+        const totalNodes = Object.keys(dag).length;
+        if (totalNodes <= 1) {
+            window.alert("At least one node must remain in the graph.");
+            return;
+        }
+
+        const confirmed = window.confirm(`Delete node "${nodeKey}" and remove all related parent/kid references?`);
+        if (!confirmed) {
+            return;
+        }
+
+        delete dag[nodeKey];
+
+        Object.keys(dag).forEach(otherKey => {
+            GraphApp.normalize.removeRelationKey(dag[otherKey], "parents", nodeKey);
+            GraphApp.normalize.removeRelationKey(dag[otherKey], "kids", nodeKey);
+        });
+
+        data.history = data.history.filter(item => item !== nodeKey);
+
+        const preferredRoot = data.currentRoot === nodeKey ? resolveInitialRoot(dag) : data.currentRoot;
+        commitDagUpdate(preferredRoot, `Deleted node ${nodeKey}.`);
+    }
+
+    function addNode(referenceNodeKey) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag) {
+            return;
+        }
+
+        const input = window.prompt("Enter a new unique node key:", "New_Node");
+        if (input === null) {
+            return;
+        }
+
+        const newKey = String(input || "").trim();
+        if (!newKey) {
+            window.alert("Node key cannot be empty.");
+            return;
+        }
+
+        if (newKey.includes("\n") || newKey.includes(",")) {
+            window.alert("Node key cannot contain commas or line breaks.");
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(dag, newKey)) {
+            window.alert(`Node key "${newKey}" already exists.`);
+            return;
+        }
+
+        dag[newKey] = {
+            key: newKey,
+            define: "",
+            properties: [],
+            parents: {},
+            kids: {},
+        };
+
+        if (referenceNodeKey && dag[referenceNodeKey]) {
+            const shouldLink = window.confirm(`Link "${newKey}" as a child of "${referenceNodeKey}"?`);
+            if (shouldLink) {
+                addKidReferences(referenceNodeKey, [newKey]);
+            }
+        }
+
+        commitDagUpdate(data.currentRoot || resolveInitialRoot(dag), `Added node ${newKey}.`);
+    }
+
+    function openRelationEditor(nodeKey, fieldName) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag || !dag[nodeKey]) {
+            return;
+        }
+
+        const dom = GraphApp.state.getDom();
+        const relationKeys = GraphApp.normalize.getRelationKeys(dag[nodeKey][fieldName]);
+
+        relationEditorState.isOpen = true;
+        relationEditorState.nodeKey = nodeKey;
+        relationEditorState.fieldName = fieldName;
+
+        if (dom.relationEditorTitle) {
+            dom.relationEditorTitle.textContent = fieldName === "parents" ? "Edit Parents" : "Edit Kids";
+        }
+        if (dom.relationEditorDescription) {
+            dom.relationEditorDescription.textContent = `Editing ${fieldName} for node ${nodeKey}.`;
+        }
+        if (dom.relationEditorInput) {
+            dom.relationEditorInput.value = relationKeys.join("\n");
+        }
+        if (dom.relationEditorModal) {
+            dom.relationEditorModal.classList.add("is-visible");
+            dom.relationEditorModal.setAttribute("aria-hidden", "false");
+        }
+
+        setTimeout(() => {
+            if (dom.relationEditorInput) {
+                dom.relationEditorInput.focus();
+                dom.relationEditorInput.setSelectionRange(0, dom.relationEditorInput.value.length);
+            }
+        }, 0);
+    }
+
+    function closeRelationEditor() {
+        if (!relationEditorState.isOpen) {
+            return;
+        }
+
+        relationEditorState.isOpen = false;
+        relationEditorState.nodeKey = null;
+        relationEditorState.fieldName = null;
+
+        const { relationEditorModal } = GraphApp.state.getDom();
+        if (relationEditorModal) {
+            relationEditorModal.classList.remove("is-visible");
+            relationEditorModal.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    function saveRelationEditor() {
+        const nodeKey = relationEditorState.nodeKey;
+        const fieldName = relationEditorState.fieldName;
+        const { relationEditorInput } = GraphApp.state.getDom();
+        if (!relationEditorState.isOpen || !nodeKey || !fieldName || !relationEditorInput) {
+            return;
+        }
+
+        const nextKeys = parseRelationInput(relationEditorInput.value);
+        if (nextKeys.includes(nodeKey)) {
+            window.alert("A node cannot reference itself.");
+            return;
+        }
+
+        if (fieldName === "parents") {
+            setParentReferences(nodeKey, nextKeys);
+        } else {
+            setKidReferences(nodeKey, nextKeys);
+        }
+
+        closeRelationEditor();
+        commitDagUpdate(GraphApp.state.data.currentRoot, `Updated ${fieldName} for ${nodeKey}.`);
+    }
+
+    function parseRelationInput(rawText) {
+        const keys = String(rawText || "")
+            .split(/[\n,]/)
+            .map(item => item.trim())
+            .filter(Boolean);
+
+        return GraphApp.normalize.uniqueKeys(keys);
+    }
+
+    function ensureNodeExists(nodeKey) {
+        const dag = GraphApp.state.data.normalizedDag;
+        if (!dag[nodeKey]) {
+            dag[nodeKey] = {
+                key: nodeKey,
+                define: "",
+                properties: [],
+                parents: {},
+                kids: {},
+            };
+        }
+    }
+
+    function setParentReferences(nodeKey, parentKeys) {
+        const dag = GraphApp.state.data.normalizedDag;
+        ensureNodeExists(nodeKey);
+
+        const node = dag[nodeKey];
+        const previousParents = GraphApp.normalize.getRelationKeys(node.parents);
+        const nextParents = GraphApp.normalize.uniqueKeys(parentKeys);
+
+        GraphApp.normalize.setRelationKeys(node, "parents", nextParents, GraphApp.state.constants.defaultRelationValue);
+
+        previousParents.forEach(parentKey => {
+            if (!nextParents.includes(parentKey) && dag[parentKey]) {
+                GraphApp.normalize.removeRelationKey(dag[parentKey], "kids", nodeKey);
+            }
+        });
+
+        nextParents.forEach(parentKey => {
+            ensureNodeExists(parentKey);
+            GraphApp.normalize.addRelationKey(
+                dag[parentKey],
+                "kids",
+                nodeKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+        });
+    }
+
+    function setKidReferences(nodeKey, kidKeys) {
+        const dag = GraphApp.state.data.normalizedDag;
+        ensureNodeExists(nodeKey);
+
+        const node = dag[nodeKey];
+        const previousKids = GraphApp.normalize.getRelationKeys(node.kids);
+        const nextKids = GraphApp.normalize.uniqueKeys(kidKeys);
+
+        GraphApp.normalize.setRelationKeys(node, "kids", nextKids, GraphApp.state.constants.defaultRelationValue);
+
+        previousKids.forEach(kidKey => {
+            if (!nextKids.includes(kidKey) && dag[kidKey]) {
+                GraphApp.normalize.removeRelationKey(dag[kidKey], "parents", nodeKey);
+            }
+        });
+
+        nextKids.forEach(kidKey => {
+            ensureNodeExists(kidKey);
+            GraphApp.normalize.addRelationKey(
+                dag[kidKey],
+                "parents",
+                nodeKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+        });
+    }
+
+    function addKidReferences(parentKey, kidKeys) {
+        const dag = GraphApp.state.data.normalizedDag;
+        ensureNodeExists(parentKey);
+
+        kidKeys.forEach(kidKey => {
+            ensureNodeExists(kidKey);
+            GraphApp.normalize.addRelationKey(
+                dag[parentKey],
+                "kids",
+                kidKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+            GraphApp.normalize.addRelationKey(
+                dag[kidKey],
+                "parents",
+                parentKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+        });
     }
 
     function handleNodeMouseOver(event) {

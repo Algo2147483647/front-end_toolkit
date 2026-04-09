@@ -26,34 +26,62 @@
           </label>
           <button id="zoom-in-btn" class="ghost-btn zoom-btn" type="button" disabled aria-label="Zoom in">+</button>
         </div>
-        <p id="graph-summary" class="graph-summary">Load a DAG JSON file to begin.</p>
+        <button id="save-json-btn" class="primary-btn topbar-save-btn" type="button">Save JSON</button>
+        <p id="graph-summary" class="graph-summary">Loading example.json...</p>
         <div id="floating-controls" class="control-dock">
           <button id="settings-btn" class="settings-toggle-btn" type="button" aria-expanded="false" aria-controls="settings-panel">
             Controls
           </button>
           <div id="settings-panel" class="settings-panel">
+            <p class="control-label">Mode</p>
+            <div class="mode-toggle" role="group" aria-label="Graph mode">
+              <button id="mode-preview-btn" class="mode-toggle-btn is-active" type="button" data-mode="preview">Preview</button>
+              <button id="mode-edit-btn" class="mode-toggle-btn" type="button" data-mode="edit">Edit</button>
+            </div>
+
             <p class="control-label">Workspace</p>
             <label for="fileInput" class="file-input-label">
               <span class="file-input-text">Choose DAG JSON</span>
               <input type="file" id="fileInput" accept=".json" />
             </label>
             <button id="export-btn" class="primary-btn" type="button">Export SVG</button>
-            <p class="control-hint">Tip: hover a node to inspect its local links, click a node to focus on its subtree.</p>
+            <p class="control-hint">Tip: in Edit mode, right click a node to edit graph JSON and rerender.</p>
           </div>
         </div>
       </div>
     </header>
 
     <main id="workspace" class="workspace">
-      <section id="empty-state" class="empty-state">
+      <section id="empty-state" class="empty-state is-hidden">
         <p class="empty-state__eyebrow">Visual dependency map</p>
         <h2>Inspect your graph with a clearer visual hierarchy</h2>
         <p id="empty-state-message" class="empty-state__message">
-          Import a JSON file to render a focused DAG view with drill-down navigation.
+          Loading graph data...
         </p>
       </section>
       <div id="main-content" aria-live="polite"></div>
     </main>
+  </div>
+
+  <div id="node-context-menu" class="node-context-menu" aria-hidden="true">
+    <button type="button" class="context-menu-item" data-action="rename-node">Rename Node Key</button>
+    <button type="button" class="context-menu-item" data-action="delete-node">Delete Node</button>
+    <button type="button" class="context-menu-item" data-action="edit-parents">Edit Parents</button>
+    <button type="button" class="context-menu-item" data-action="edit-kids">Edit Kids</button>
+    <button type="button" class="context-menu-item" data-action="add-node">Add Node</button>
+  </div>
+
+  <div id="relation-editor-modal" class="relation-editor-modal" aria-hidden="true">
+    <div class="relation-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="relation-editor-title">
+      <h3 id="relation-editor-title">Edit Relationships</h3>
+      <p id="relation-editor-description" class="relation-editor-description"></p>
+      <textarea id="relation-editor-input" rows="10" spellcheck="false"></textarea>
+      <p class="relation-editor-hint">Enter one key per line, or separate keys with commas.</p>
+      <div class="relation-editor-actions">
+        <button id="relation-editor-cancel" class="ghost-btn" type="button">Cancel</button>
+        <button id="relation-editor-save" class="primary-btn" type="button">Save</button>
+      </div>
+    </div>
   </div>
 
   <script src="scripts/state.js"></script>

@@ -11,6 +11,9 @@
         minZoomScale: 1,
         maxZoomScale: 2,
         isInitialized: false,
+        viewMode: "preview",
+        sourceFileName: "example.json",
+        contextMenuNodeKey: null,
     };
 
     const theme = {
@@ -27,6 +30,7 @@
         zoomStep: 0.1,
         minZoomFloor: 0.05,
         defaultExportFileName: "dag-graph.svg",
+        defaultRelationValue: "related_to",
     };
 
     let domCache = null;
@@ -46,10 +50,20 @@
                 controls: document.getElementById("floating-controls"),
                 settingsButton: document.getElementById("settings-btn"),
                 settingsPanel: document.getElementById("settings-panel"),
+                previewModeButton: document.getElementById("mode-preview-btn"),
+                editModeButton: document.getElementById("mode-edit-btn"),
                 fileInput: document.getElementById("fileInput"),
                 fileInputText: document.querySelector(".file-input-text"),
                 exportButton: document.getElementById("export-btn"),
+                saveJsonButton: document.getElementById("save-json-btn"),
                 topbar: document.querySelector(".topbar"),
+                contextMenu: document.getElementById("node-context-menu"),
+                relationEditorModal: document.getElementById("relation-editor-modal"),
+                relationEditorTitle: document.getElementById("relation-editor-title"),
+                relationEditorDescription: document.getElementById("relation-editor-description"),
+                relationEditorInput: document.getElementById("relation-editor-input"),
+                relationEditorSaveButton: document.getElementById("relation-editor-save"),
+                relationEditorCancelButton: document.getElementById("relation-editor-cancel"),
             };
         }
 

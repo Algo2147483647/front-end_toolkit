@@ -622,3 +622,141 @@ body::before {
     transform-origin: top left;
   }
 }
+.mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.mode-toggle-btn {
+  min-height: 38px;
+  border: 1px solid rgba(96, 118, 151, 0.18);
+  border-radius: 12px;
+  background: rgba(246, 249, 253, 0.9);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.mode-toggle-btn:hover {
+  background: rgba(240, 245, 252, 0.95);
+}
+
+.mode-toggle-btn.is-active {
+  border-color: rgba(40, 95, 223, 0.35);
+  background: rgba(40, 95, 223, 0.14);
+  color: var(--accent-strong);
+}
+
+.topbar-save-btn {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  box-shadow: 0 6px 12px rgba(40, 95, 223, 0.14);
+}
+
+.node-context-menu {
+  position: fixed;
+  z-index: 40;
+  display: none;
+  min-width: 184px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(66, 86, 119, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 22px rgba(26, 39, 63, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.node-context-menu.is-visible {
+  display: grid;
+  gap: 4px;
+}
+
+.context-menu-item {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--text-strong);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.context-menu-item:hover {
+  background: rgba(40, 95, 223, 0.1);
+}
+
+.relation-editor-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 28, 43, 0.28);
+}
+
+.relation-editor-modal.is-visible {
+  display: flex;
+}
+
+.relation-editor-dialog {
+  width: min(540px, calc(100vw - 32px));
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(66, 86, 119, 0.14);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 36px rgba(26, 39, 63, 0.18);
+}
+
+.relation-editor-dialog h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.relation-editor-description {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#relation-editor-input {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid rgba(96, 118, 151, 0.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+  resize: vertical;
+  font: 13px/1.5 "IBM Plex Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-strong);
+  background: #fff;
+  outline: none;
+}
+
+#relation-editor-input:focus {
+  border-color: rgba(40, 95, 223, 0.42);
+  box-shadow: 0 0 0 3px rgba(40, 95, 223, 0.12);
+}
+
+.relation-editor-hint {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.relation-editor-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
