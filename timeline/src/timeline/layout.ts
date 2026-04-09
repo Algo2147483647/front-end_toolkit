@@ -8,9 +8,12 @@ import type {
   TimelineEvent,
   TimelineModel,
   TimelineNodeInput,
+  TimelineSpaceNormalized,
+  TimelineTimeNormalized,
   YearTick,
 } from './types';
 import {
+  areTimelineValuesEqual,
   clamp,
   formatEventLocation,
   formatTimeRange,
@@ -18,6 +21,8 @@ import {
   getAdaptiveYearInterval,
   getEventPalette,
   getEventTitle,
+  normalizeSpaceInput,
+  normalizeTimeInput,
   parseTimelineYear,
 } from './utils';
 
@@ -25,8 +30,8 @@ const DEFAULT_MARGIN: Margin = { top: 84, right: 120, bottom: 84, left: 190 };
 
 type NormalizedNode = TimelineNodeInput & {
   key: string;
-  time: (string | number)[];
-  space: string[];
+  time: TimelineTimeNormalized;
+  space: TimelineSpaceNormalized;
   data: Record<string, unknown>;
   parents: string[];
   kids: string[];
@@ -50,8 +55,8 @@ function normalizeList(values: string[] | undefined): string[] {
 
 function normalizeNode(node: TimelineNodeInput, index: number): NormalizedNode {
   const key = String(node.key || '').trim() || `event_${index + 1}`;
-  const time = Array.isArray(node.time) && node.time.length ? node.time : [0];
-  const space = Array.isArray(node.space) ? node.space.map(item => String(item)) : [];
+  const time = normalizeTimeInput(node.time);
+  const space = normalizeSpaceInput(node.space);
   const data = node.data && typeof node.data === 'object' ? node.data : {};
 
   return {
@@ -77,14 +82,14 @@ function createYearScale(minYear: number, maxYear: number, margin: Margin, inner
 
 function processEvents(nodes: NormalizedNode[], yearScale: (year: number) => number): TimelineEvent[] {
   return nodes.map(node => {
-    const isTimeRange = node.time.length > 1;
-    const startTime = parseTimelineYear(node.time[0], 'start');
-    const endTime = isTimeRange ? parseTimelineYear(node.time[node.time.length - 1], 'end') : startTime;
+    const startTime = parseTimelineYear(node.time.start, 'start');
+    const endTime = parseTimelineYear(node.time.end, 'end');
+    const isTimeRange = !areTimelineValuesEqual(node.time.start, node.time.end);
 
     return {
       ...node,
       time: node.time,
-      space: node.space || [],
+      space: node.space,
       data: node.data || {},
       parents: [...(node.parents || [])],
       kids: [...(node.kids || [])],
@@ -95,7 +100,7 @@ function processEvents(nodes: NormalizedNode[], yearScale: (year: number) => num
       endY: yearScale(endTime),
       title: getEventTitle(node),
       timeLabel: formatTimeRange(node.time),
-      locationLabel: formatEventLocation(node.space || []),
+      locationLabel: formatEventLocation(node.space),
       width: 1,
       x: 0,
       branchRoots: [],
@@ -428,8 +433,8 @@ export function buildTimelineModel(nodes: TimelineNodeInput[], options: BuildMod
   }
 
   const years = normalized.flatMap(event => {
-    const start = parseTimelineYear(event.time[0], 'start');
-    const end = parseTimelineYear(event.time[event.time.length - 1], 'end');
+    const start = parseTimelineYear(event.time.start, 'start');
+    const end = parseTimelineYear(event.time.end, 'end');
     return [start, end];
   });
 

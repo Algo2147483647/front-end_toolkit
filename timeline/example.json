@@ -1,199 +1,515 @@
 {
-  "writing_systems": {
-    "time": ["3200 BCE"],
-    "space": ["Mesopotamia", "Nile Valley"],
-    "data": {
-      "event": "Birth of Writing Systems",
-      "theme": "Civilization Memory",
-      "significance": "Transforms knowledge from oral tradition into durable records."
+    "writing_systems": {
+        "time": {
+            "type": "year",
+            "start": "3200 BCE",
+            "end": "3200 BCE"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "Mesopotamia"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Nile Valley"
+                }
+            ]
+        },
+        "data": {
+            "event": "Birth of Writing Systems",
+            "theme": "Civilization Memory",
+            "significance": "Transforms knowledge from oral tradition into durable records."
+        },
+        "parents": [
+
+        ],
+        "kids": [
+            "legal_codes",
+            "knowledge_exchange",
+            "engineering_craft"
+        ]
     },
-    "parents": [],
-    "kids": ["legal_codes", "knowledge_exchange", "engineering_craft"]
-  },
-  "legal_codes": {
-    "time": ["1754 BCE"],
-    "space": ["Babylon"],
-    "data": {
-      "event": "Codified Law Traditions",
-      "representative": "Code of Hammurabi",
-      "significance": "Establishes rule structures that can be referenced, taught, and challenged."
+    "legal_codes": {
+        "time": {
+            "type": "year",
+            "start": "1754 BCE",
+            "end": "1754 BCE"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Babylon"
+        },
+        "data": {
+            "event": "Codified Law Traditions",
+            "representative": "Code of Hammurabi",
+            "significance": "Establishes rule structures that can be referenced, taught, and challenged."
+        },
+        "parents": [
+            "writing_systems"
+        ],
+        "kids": [
+            "civic_governance"
+        ]
     },
-    "parents": ["writing_systems"],
-    "kids": ["civic_governance"]
-  },
-  "civic_governance": {
-    "time": ["509 BCE", "27 BCE"],
-    "space": ["Rome"],
-    "data": {
-      "event": "Republican Civic Governance",
-      "theme": "Institutions and Citizenship",
-      "significance": "Expands ideas of public office, legal procedure, and civic participation."
+    "civic_governance": {
+        "time": {
+            "type": "year",
+            "start": "509 BCE",
+            "end": "27 BCE"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Rome"
+        },
+        "data": {
+            "event": "Republican Civic Governance",
+            "theme": "Institutions and Citizenship",
+            "significance": "Expands ideas of public office, legal procedure, and civic participation."
+        },
+        "parents": [
+            "legal_codes"
+        ],
+        "kids": [
+            "constitutional_era"
+        ]
     },
-    "parents": ["legal_codes"],
-    "kids": ["constitutional_era"]
-  },
-  "constitutional_era": {
-    "time": ["1215", "1789"],
-    "space": ["England", "France", "North America"],
-    "data": {
-      "event": "Constitutional Milestones",
-      "markers": ["Magna Carta", "US Constitution", "Rights Declarations"],
-      "significance": "Converts political ideals into enforceable constitutional frameworks."
+    "constitutional_era": {
+        "time": {
+            "type": "year",
+            "start": "1215",
+            "end": "1789"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "England"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "France"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "North America"
+                }
+            ]
+        },
+        "data": {
+            "event": "Constitutional Milestones",
+            "markers": [
+                "Magna Carta",
+                "US Constitution",
+                "Rights Declarations"
+            ],
+            "significance": "Converts political ideals into enforceable constitutional frameworks."
+        },
+        "parents": [
+            "civic_governance"
+        ],
+        "kids": [
+            "human_rights"
+        ]
     },
-    "parents": ["civic_governance"],
-    "kids": ["human_rights"]
-  },
-  "human_rights": {
-    "time": ["1948"],
-    "space": ["United Nations"],
-    "data": {
-      "event": "Universal Rights Framework",
-      "document": "Universal Declaration of Human Rights",
-      "significance": "Defines a global ethical baseline for dignity, equality, and justice."
+    "human_rights": {
+        "time": {
+            "type": "year",
+            "start": "1948",
+            "end": "1948"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "United Nations"
+        },
+        "data": {
+            "event": "Universal Rights Framework",
+            "document": "Universal Declaration of Human Rights",
+            "significance": "Defines a global ethical baseline for dignity, equality, and justice."
+        },
+        "parents": [
+            "constitutional_era"
+        ],
+        "kids": [
+
+        ]
     },
-    "parents": ["constitutional_era"],
-    "kids": []
-  },
-  "knowledge_exchange": {
-    "time": ["200 BCE", "900"],
-    "space": ["Silk Road", "Indian Ocean"],
-    "data": {
-      "event": "Long-Distance Knowledge Exchange",
-      "theme": "Trade and Ideas",
-      "significance": "Connects science, mathematics, medicine, and philosophy across regions."
+    "knowledge_exchange": {
+        "time": {
+            "type": "year",
+            "start": "200 BCE",
+            "end": "900"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "Silk Road"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Indian Ocean"
+                }
+            ]
+        },
+        "data": {
+            "event": "Long-Distance Knowledge Exchange",
+            "theme": "Trade and Ideas",
+            "significance": "Connects science, mathematics, medicine, and philosophy across regions."
+        },
+        "parents": [
+            "writing_systems"
+        ],
+        "kids": [
+            "paper_invention"
+        ]
     },
-    "parents": ["writing_systems"],
-    "kids": ["paper_invention"]
-  },
-  "paper_invention": {
-    "time": ["105"],
-    "space": ["China"],
-    "data": {
-      "event": "Paper-Making Breakthrough",
-      "significance": "Lowers the cost of recording and distributing knowledge at scale."
+    "paper_invention": {
+        "time": {
+            "type": "year",
+            "start": "105",
+            "end": "105"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "China"
+        },
+        "data": {
+            "event": "Paper-Making Breakthrough",
+            "significance": "Lowers the cost of recording and distributing knowledge at scale."
+        },
+        "parents": [
+            "knowledge_exchange"
+        ],
+        "kids": [
+            "printing_press"
+        ]
     },
-    "parents": ["knowledge_exchange"],
-    "kids": ["printing_press"]
-  },
-  "printing_press": {
-    "time": ["1450"],
-    "space": ["Mainz"],
-    "data": {
-      "event": "Movable-Type Printing Revolution",
-      "person": "Johannes Gutenberg",
-      "significance": "Accelerates literacy, debate, and reproducible scholarship."
+    "printing_press": {
+        "time": {
+            "type": "year",
+            "start": "1450",
+            "end": "1450"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Mainz"
+        },
+        "data": {
+            "event": "Movable-Type Printing Revolution",
+            "person": "Johannes Gutenberg",
+            "significance": "Accelerates literacy, debate, and reproducible scholarship."
+        },
+        "parents": [
+            "paper_invention"
+        ],
+        "kids": [
+            "scientific_method"
+        ]
     },
-    "parents": ["paper_invention"],
-    "kids": ["scientific_method"]
-  },
-  "scientific_method": {
-    "time": ["1543", "1687"],
-    "space": ["Europe"],
-    "data": {
-      "event": "Scientific Method Consolidation",
-      "persons": ["Copernicus", "Galileo", "Newton"],
-      "significance": "Standardizes experimentation, measurement, and falsifiable reasoning."
+    "scientific_method": {
+        "time": {
+            "type": "year",
+            "start": "1543",
+            "end": "1687"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Europe"
+        },
+        "data": {
+            "event": "Scientific Method Consolidation",
+            "persons": [
+                "Copernicus",
+                "Galileo",
+                "Newton"
+            ],
+            "significance": "Standardizes experimentation, measurement, and falsifiable reasoning."
+        },
+        "parents": [
+            "printing_press"
+        ],
+        "kids": [
+            "industrial_revolution"
+        ]
     },
-    "parents": ["printing_press"],
-    "kids": ["industrial_revolution"]
-  },
-  "industrial_revolution": {
-    "time": ["1760", "1914"],
-    "space": ["Britain", "Europe", "North America"],
-    "data": {
-      "event": "Industrial Revolution",
-      "theme": "Machines and Mass Production",
-      "significance": "Reconfigures labor, cities, transport, and global economic structures."
+    "industrial_revolution": {
+        "time": {
+            "type": "year",
+            "start": "1760",
+            "end": "1914"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "Britain"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Europe"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "North America"
+                }
+            ]
+        },
+        "data": {
+            "event": "Industrial Revolution",
+            "theme": "Machines and Mass Production",
+            "significance": "Reconfigures labor, cities, transport, and global economic structures."
+        },
+        "parents": [
+            "scientific_method"
+        ],
+        "kids": [
+            "electrification"
+        ]
     },
-    "parents": ["scientific_method"],
-    "kids": ["electrification"]
-  },
-  "electrification": {
-    "time": ["1880", "1930"],
-    "space": ["Global Cities"],
-    "data": {
-      "event": "Electrified Infrastructure",
-      "systems": ["Power grids", "Telecommunications", "Urban transit"],
-      "significance": "Creates always-on industrial and social systems."
+    "electrification": {
+        "time": {
+            "type": "year",
+            "start": "1880",
+            "end": "1930"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Global Cities"
+        },
+        "data": {
+            "event": "Electrified Infrastructure",
+            "systems": [
+                "Power grids",
+                "Telecommunications",
+                "Urban transit"
+            ],
+            "significance": "Creates always-on industrial and social systems."
+        },
+        "parents": [
+            "industrial_revolution"
+        ],
+        "kids": [
+            "digital_network"
+        ]
     },
-    "parents": ["industrial_revolution"],
-    "kids": ["digital_network"]
-  },
-  "digital_network": {
-    "time": ["1969", "2007"],
-    "space": ["United States", "Global"],
-    "data": {
-      "event": "Networked Computing Era",
-      "milestones": ["ARPANET", "Web", "Mobile Internet"],
-      "significance": "Connects people, institutions, and markets in real time."
+    "digital_network": {
+        "time": {
+            "type": "year",
+            "start": "1969",
+            "end": "2007"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "United States"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Global"
+                }
+            ]
+        },
+        "data": {
+            "event": "Networked Computing Era",
+            "milestones": [
+                "ARPANET",
+                "Web",
+                "Mobile Internet"
+            ],
+            "significance": "Connects people, institutions, and markets in real time."
+        },
+        "parents": [
+            "electrification"
+        ],
+        "kids": [
+            "ai_era"
+        ]
     },
-    "parents": ["electrification"],
-    "kids": ["ai_era"]
-  },
-  "ai_era": {
-    "time": ["2012", "2026"],
-    "space": ["Global"],
-    "data": {
-      "event": "Modern AI Acceleration",
-      "theme": "Foundation Models and Automation",
-      "significance": "Shifts software from explicit instructions to learned capabilities."
+    "ai_era": {
+        "time": {
+            "type": "year",
+            "start": "2012",
+            "end": "2026"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Global"
+        },
+        "data": {
+            "event": "Modern AI Acceleration",
+            "theme": "Foundation Models and Automation",
+            "significance": "Shifts software from explicit instructions to learned capabilities."
+        },
+        "parents": [
+            "digital_network"
+        ],
+        "kids": [
+
+        ]
     },
-    "parents": ["digital_network"],
-    "kids": []
-  },
-  "engineering_craft": {
-    "time": ["2600 BCE", "500 BCE"],
-    "space": ["Egypt", "Greece", "China"],
-    "data": {
-      "event": "Ancient Engineering Traditions",
-      "examples": ["Monumental architecture", "Hydraulic systems", "Road building"],
-      "significance": "Demonstrates large-scale project planning and technical specialization."
+    "engineering_craft": {
+        "time": {
+            "type": "year",
+            "start": "2600 BCE",
+            "end": "500 BCE"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "Egypt"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Greece"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "China"
+                }
+            ]
+        },
+        "data": {
+            "event": "Ancient Engineering Traditions",
+            "examples": [
+                "Monumental architecture",
+                "Hydraulic systems",
+                "Road building"
+            ],
+            "significance": "Demonstrates large-scale project planning and technical specialization."
+        },
+        "parents": [
+            "writing_systems"
+        ],
+        "kids": [
+            "maritime_navigation"
+        ]
     },
-    "parents": ["writing_systems"],
-    "kids": ["maritime_navigation"]
-  },
-  "maritime_navigation": {
-    "time": ["1400", "1600"],
-    "space": ["Atlantic", "Indian Ocean"],
-    "data": {
-      "event": "Oceanic Navigation Breakthroughs",
-      "technologies": ["Improved cartography", "Celestial navigation", "Ship design"],
-      "significance": "Expands long-distance exchange and strategic mobility."
+    "maritime_navigation": {
+        "time": {
+            "type": "year",
+            "start": "1400",
+            "end": "1600"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "Atlantic"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Indian Ocean"
+                }
+            ]
+        },
+        "data": {
+            "event": "Oceanic Navigation Breakthroughs",
+            "technologies": [
+                "Improved cartography",
+                "Celestial navigation",
+                "Ship design"
+            ],
+            "significance": "Expands long-distance exchange and strategic mobility."
+        },
+        "parents": [
+            "engineering_craft"
+        ],
+        "kids": [
+            "global_trade"
+        ]
     },
-    "parents": ["engineering_craft"],
-    "kids": ["global_trade"]
-  },
-  "global_trade": {
-    "time": ["1600", "1914"],
-    "space": ["Global"],
-    "data": {
-      "event": "Integrated Global Trade Networks",
-      "theme": "Interdependence",
-      "significance": "Links production, finance, and consumption across continents."
+    "global_trade": {
+        "time": {
+            "type": "year",
+            "start": "1600",
+            "end": "1914"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Global"
+        },
+        "data": {
+            "event": "Integrated Global Trade Networks",
+            "theme": "Interdependence",
+            "significance": "Links production, finance, and consumption across continents."
+        },
+        "parents": [
+            "maritime_navigation"
+        ],
+        "kids": [
+            "public_health"
+        ]
     },
-    "parents": ["maritime_navigation"],
-    "kids": ["public_health"]
-  },
-  "public_health": {
-    "time": ["1854", "2020"],
-    "space": ["London", "Global"],
-    "data": {
-      "event": "Public Health Systems",
-      "markers": ["Epidemiology", "Vaccination programs", "Sanitation infrastructure"],
-      "significance": "Turns population health into a measurable and governable public system."
+    "public_health": {
+        "time": {
+            "type": "year",
+            "start": "1854",
+            "end": "2020"
+        },
+        "space": {
+            "type": "multi_location",
+            "locations": [
+                {
+                    "type": "named_place",
+                    "named_place": "London"
+                },
+                {
+                    "type": "named_place",
+                    "named_place": "Global"
+                }
+            ]
+        },
+        "data": {
+            "event": "Public Health Systems",
+            "markers": [
+                "Epidemiology",
+                "Vaccination programs",
+                "Sanitation infrastructure"
+            ],
+            "significance": "Turns population health into a measurable and governable public system."
+        },
+        "parents": [
+            "global_trade"
+        ],
+        "kids": [
+            "green_transition"
+        ]
     },
-    "parents": ["global_trade"],
-    "kids": ["green_transition"]
-  },
-  "green_transition": {
-    "time": ["2015", "2040"],
-    "space": ["Global"],
-    "data": {
-      "event": "Low-Carbon Transition",
-      "drivers": ["Renewable energy", "Storage", "Electrified transport"],
-      "significance": "Reorients industrial development toward climate resilience."
-    },
-    "parents": ["public_health"],
-    "kids": []
-  }
+    "green_transition": {
+        "time": {
+            "type": "year",
+            "start": "2015",
+            "end": "2040"
+        },
+        "space": {
+            "type": "named_place",
+            "named_place": "Global"
+        },
+        "data": {
+            "event": "Low-Carbon Transition",
+            "drivers": [
+                "Renewable energy",
+                "Storage",
+                "Electrified transport"
+            ],
+            "significance": "Reorients industrial development toward climate resilience."
+        },
+        "parents": [
+            "public_health"
+        ],
+        "kids": [
+
+        ]
+    }
 }

@@ -2,7 +2,7 @@ import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useLayout
 import { buildTimelineModel, getPointGeometry, getRangeGeometry } from './timeline/layout';
 import { collectConnectedState, getNodeStateClass } from './timeline/hover';
 import type { TimelineEvent, TimelineNodeInput } from './timeline/types';
-import { formatTimeRange, formatYearLabel, getEventPalette, normalizeTimelinePayload, parseTimelineYear, truncateText } from './timeline/utils';
+import { formatTimeRange, formatYearLabel, getEventPalette, getTimelineBounds, normalizeTimelinePayload, parseTimelineYear, truncateText } from './timeline/utils';
 
 const DEFAULT_SOURCE = 'example.json';
 
@@ -102,9 +102,9 @@ function App() {
     let maxYear = Number.NEGATIVE_INFINITY;
 
     historyData.forEach(item => {
-      const start = parseTimelineYear(item.time?.[0], 'start');
-      const lastTime = item.time?.[item.time.length - 1];
-      const end = parseTimelineYear(lastTime, 'end');
+      const bounds = getTimelineBounds(item.time);
+      const start = parseTimelineYear(bounds.start, 'start');
+      const end = parseTimelineYear(bounds.end, 'end');
       minYear = Math.min(minYear, start, end);
       maxYear = Math.max(maxYear, start, end);
     });
@@ -142,7 +142,11 @@ function App() {
   const loadTimelineFromData = useCallback((data: unknown, nextSourceLabel: string) => {
     const normalized = normalizeTimelinePayload(data)
       .filter(item => item && typeof item.key === 'string')
-      .sort((a, b) => parseTimelineYear(a.time?.[0], 'start') - parseTimelineYear(b.time?.[0], 'start'));
+      .sort((a, b) => {
+        const aBounds = getTimelineBounds(a.time);
+        const bBounds = getTimelineBounds(b.time);
+        return parseTimelineYear(aBounds.start, 'start') - parseTimelineYear(bBounds.start, 'start');
+      });
 
     setSourceLabel(nextSourceLabel);
     setHoveredKey(null);

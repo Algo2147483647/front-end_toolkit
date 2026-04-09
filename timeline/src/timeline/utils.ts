@@ -1,4 +1,20 @@
-import type { TimelineEvent, TimelineNodeInput, TimelinePalette, TimelineTimeValue } from './types';
+import type {
+  TimelineEvent,
+  TimelineNodeInput,
+  TimelinePalette,
+  TimelineSpaceInput,
+  TimelineSpaceNormalized,
+  TimelineSpaceType,
+  TimelineSpaceValueInput,
+  TimelineTimeInput,
+  TimelineTimeNormalized,
+  TimelineTimeType,
+  TimelineTimeValue,
+  TimelineTimeValueInput,
+} from './types';
+
+const TIME_TYPE_SET = new Set<TimelineTimeType>(['year', 'year_month', 'date', 'datetime', 'text']);
+const SPACE_TYPE_SET = new Set<TimelineSpaceType>(['latitude_and_longitude', 'named_place', 'bounding_box', 'polygon', 'multi_location']);
 
 export function normalizeTimelinePayload(data: unknown): TimelineNodeInput[] {
   if (Array.isArray(data)) {
@@ -25,6 +41,238 @@ export function normalizeTimelinePayload(data: unknown): TimelineNodeInput[] {
   }
 
   return [];
+}
+
+function asNonEmptyString(value: unknown): string | null {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  const normalized = Number(String(value ?? '').trim());
+  return Number.isFinite(normalized) ? normalized : undefined;
+}
+
+function normalizeTimelineValue(value: unknown): TimelineTimeValue {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  const text = String(value ?? '').trim();
+  if (!text) {
+    return 0;
+  }
+
+  if (/^-?\d+(\.\d+)?$/.test(text)) {
+    const numberValue = Number(text);
+    if (Number.isFinite(numberValue)) {
+      return numberValue;
+    }
+  }
+
+  return text;
+}
+
+export function areTimelineValuesEqual(a: TimelineTimeValue, b: TimelineTimeValue): boolean {
+  if (typeof a === 'number' && typeof b === 'number') {
+    return a === b;
+  }
+
+  return String(a).trim() === String(b).trim();
+}
+
+export function normalizeTimeInput(time: TimelineTimeValueInput | undefined): TimelineTimeNormalized {
+  if (Array.isArray(time)) {
+    const start = normalizeTimelineValue(time[0]);
+    const end = normalizeTimelineValue(time[time.length - 1] ?? start);
+    return {
+      type: 'year',
+      start,
+      end,
+    };
+  }
+
+  if (time && typeof time === 'object') {
+    const timeObject = time as TimelineTimeInput;
+    const rawType = asNonEmptyString(timeObject.type)?.toLowerCase() || 'year';
+    const type = TIME_TYPE_SET.has(rawType as TimelineTimeType) ? (rawType as TimelineTimeType) : 'year';
+    const start = normalizeTimelineValue(timeObject.start);
+    const end = normalizeTimelineValue(timeObject.end ?? start);
+
+    return {
+      type,
+      start,
+      end,
+    };
+  }
+
+  return {
+    type: 'year',
+    start: 0,
+    end: 0,
+  };
+}
+
+function normalizeSpaceCoordinates(value: unknown): [number, number][] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const coordinates = value
+    .map(item => {
+      if (!Array.isArray(item) || item.length < 2) {
+        return null;
+      }
+
+      const lng = asNumber(item[0]);
+      const lat = asNumber(item[1]);
+      if (lng === undefined || lat === undefined) {
+        return null;
+      }
+
+      return [lng, lat] as [number, number];
+    })
+    .filter((item): item is [number, number] => item !== null);
+
+  return coordinates.length ? coordinates : undefined;
+}
+
+export function normalizeSpaceInput(space: TimelineSpaceValueInput | undefined, depth = 0): TimelineSpaceNormalized {
+  if (Array.isArray(space)) {
+    const namedPlaces = space
+      .map(item => asNonEmptyString(item))
+      .filter((item): item is string => Boolean(item));
+
+    if (namedPlaces.length <= 1) {
+      return {
+        type: 'named_place',
+        named_place: namedPlaces[0] || 'Unknown location',
+      };
+    }
+
+    return {
+      type: 'multi_location',
+      locations: namedPlaces.map(namedPlace => ({
+        type: 'named_place',
+        named_place: namedPlace,
+      })),
+    };
+  }
+
+  if (space && typeof space === 'object') {
+    const spaceObject = space as TimelineSpaceInput;
+    const rawType = asNonEmptyString(spaceObject.type)?.toLowerCase();
+    const inferredType =
+      (rawType && SPACE_TYPE_SET.has(rawType as TimelineSpaceType) && (rawType as TimelineSpaceType)) ||
+      (asNumber(spaceObject.latitude) !== undefined && asNumber(spaceObject.longitude) !== undefined
+        ? 'latitude_and_longitude'
+        : Array.isArray(spaceObject.locations)
+          ? 'multi_location'
+          : asNumber(spaceObject.north) !== undefined &&
+              asNumber(spaceObject.south) !== undefined &&
+              asNumber(spaceObject.east) !== undefined &&
+              asNumber(spaceObject.west) !== undefined
+            ? 'bounding_box'
+            : Array.isArray(spaceObject.coordinates)
+              ? 'polygon'
+              : 'named_place');
+
+    const namedPlace =
+      asNonEmptyString(spaceObject.named_place) ||
+      asNonEmptyString(spaceObject.location) ||
+      asNonEmptyString(spaceObject.site) ||
+      asNonEmptyString(spaceObject.city) ||
+      asNonEmptyString(spaceObject.country) ||
+      undefined;
+
+    if (inferredType === 'latitude_and_longitude') {
+      return {
+        type: 'latitude_and_longitude',
+        named_place: namedPlace,
+        latitude: asNumber(spaceObject.latitude),
+        longitude: asNumber(spaceObject.longitude),
+        altitude: asNumber(spaceObject.altitude),
+        radius_km: asNumber(spaceObject.radius_km),
+      };
+    }
+
+    if (inferredType === 'bounding_box') {
+      return {
+        type: 'bounding_box',
+        named_place: namedPlace,
+        north: asNumber(spaceObject.north),
+        south: asNumber(spaceObject.south),
+        east: asNumber(spaceObject.east),
+        west: asNumber(spaceObject.west),
+      };
+    }
+
+    if (inferredType === 'polygon') {
+      return {
+        type: 'polygon',
+        named_place: namedPlace,
+        coordinates: normalizeSpaceCoordinates(spaceObject.coordinates),
+      };
+    }
+
+    if (inferredType === 'multi_location') {
+      const rawLocations = Array.isArray(spaceObject.locations) ? spaceObject.locations : [];
+      const locations =
+        depth < 4
+          ? rawLocations
+              .map(item => {
+                if (typeof item === 'string') {
+                  return normalizeSpaceInput([item], depth + 1);
+                }
+                if (item && typeof item === 'object') {
+                  return normalizeSpaceInput(item as TimelineSpaceInput, depth + 1);
+                }
+                return null;
+              })
+              .filter((item): item is TimelineSpaceNormalized => item !== null)
+          : [];
+
+      if (!locations.length && namedPlace) {
+        return {
+          type: 'named_place',
+          named_place: namedPlace,
+        };
+      }
+
+      return {
+        type: 'multi_location',
+        named_place: namedPlace,
+        locations,
+      };
+    }
+
+    return {
+      type: 'named_place',
+      named_place: namedPlace || 'Unknown location',
+      country: asNonEmptyString(spaceObject.country) || undefined,
+      admin1: asNonEmptyString(spaceObject.admin1) || undefined,
+      admin2: asNonEmptyString(spaceObject.admin2) || undefined,
+      city: asNonEmptyString(spaceObject.city) || undefined,
+      site: asNonEmptyString(spaceObject.site) || undefined,
+    };
+  }
+
+  return {
+    type: 'named_place',
+    named_place: 'Unknown location',
+  };
+}
+
+export function getTimelineBounds(time: TimelineTimeValueInput | undefined): { start: TimelineTimeValue; end: TimelineTimeValue } {
+  const normalized = normalizeTimeInput(time);
+  return {
+    start: normalized.start,
+    end: normalized.end,
+  };
 }
 
 export function truncateText(text: string, maxLength: number): string {
@@ -68,24 +316,60 @@ export function getEventTitle(event: TimelineNodeInput): string {
   return sanitizeEventLabel(event.key || 'Untitled event');
 }
 
-export function formatTimeRange(time: TimelineTimeValue[]): string {
-  if (!time.length) {
-    return 'Unknown time';
+export function formatTimeRange(time: TimelineTimeValueInput | undefined): string {
+  const normalized = normalizeTimeInput(time);
+  if (areTimelineValuesEqual(normalized.start, normalized.end)) {
+    return String(normalized.start);
   }
 
-  if (time.length === 1 || time[0] === time[1]) {
-    return String(time[0]);
-  }
-
-  return `${time[0]} - ${time[1]}`;
+  return `${normalized.start} - ${normalized.end}`;
 }
 
-export function formatEventLocation(space: string[]): string {
-  if (!space.length) {
+function formatSingleSpaceLabel(space: TimelineSpaceNormalized): string {
+  if (space.type === 'named_place') {
+    const labels = [space.named_place, space.site, space.city, space.admin2, space.admin1, space.country]
+      .map(item => asNonEmptyString(item))
+      .filter((item): item is string => Boolean(item));
+    const uniqueLabels = [...new Set(labels)];
+    return uniqueLabels[0] || 'Unknown location';
+  }
+
+  if (space.type === 'latitude_and_longitude') {
+    if (space.named_place) {
+      return space.named_place;
+    }
+    if (space.latitude !== undefined && space.longitude !== undefined) {
+      return `${space.latitude.toFixed(3)}, ${space.longitude.toFixed(3)}`;
+    }
     return 'Unknown location';
   }
 
-  return space.join(', ');
+  if (space.type === 'bounding_box') {
+    return space.named_place || 'Bounding area';
+  }
+
+  if (space.type === 'polygon') {
+    return space.named_place || 'Polygon area';
+  }
+
+  if (!space.locations?.length) {
+    return space.named_place || 'Unknown location';
+  }
+
+  const labels = space.locations.map(location => formatSingleSpaceLabel(location)).filter(Boolean);
+  const uniqueLabels = [...new Set(labels)];
+  if (space.named_place) {
+    return space.named_place;
+  }
+  if (uniqueLabels.length <= 3) {
+    return uniqueLabels.join(', ');
+  }
+  return `${uniqueLabels.slice(0, 3).join(', ')} +${uniqueLabels.length - 3}`;
+}
+
+export function formatEventLocation(space: TimelineSpaceValueInput | undefined): string {
+  const normalized = normalizeSpaceInput(space);
+  return formatSingleSpaceLabel(normalized);
 }
 
 export function parseTimelineYear(value: TimelineTimeValue | undefined, position: 'start' | 'end' = 'start'): number {

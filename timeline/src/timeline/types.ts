@@ -1,9 +1,52 @@
 export type TimelineTimeValue = string | number;
+export type TimelineTimeType = 'year' | 'year_month' | 'date' | 'datetime' | 'text';
+export type TimelineSpaceType = 'latitude_and_longitude' | 'named_place' | 'bounding_box' | 'polygon' | 'multi_location';
+
+export interface TimelineTimeInput {
+  type?: TimelineTimeType | string;
+  start?: TimelineTimeValue;
+  end?: TimelineTimeValue;
+}
+
+export interface TimelineTimeNormalized {
+  type: TimelineTimeType;
+  start: TimelineTimeValue;
+  end: TimelineTimeValue;
+}
+
+export interface TimelineSpaceInput {
+  type?: TimelineSpaceType | string;
+  named_place?: string;
+  latitude?: number;
+  longitude?: number;
+  altitude?: number;
+  radius_km?: number;
+  country?: string;
+  admin1?: string;
+  admin2?: string;
+  city?: string;
+  site?: string;
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
+  coordinates?: [number, number][];
+  locations?: unknown[];
+  location?: string;
+}
+
+export interface TimelineSpaceNormalized extends Omit<TimelineSpaceInput, 'type' | 'locations'> {
+  type: TimelineSpaceType;
+  locations?: TimelineSpaceNormalized[];
+}
+
+export type TimelineTimeValueInput = TimelineTimeInput | TimelineTimeValue[];
+export type TimelineSpaceValueInput = TimelineSpaceInput | string[];
 
 export interface TimelineNodeInput {
   key: string;
-  time?: TimelineTimeValue[];
-  space?: string[];
+  time?: TimelineTimeValueInput;
+  space?: TimelineSpaceValueInput;
   data?: Record<string, unknown>;
   parents?: string[];
   kids?: string[];
@@ -11,8 +54,8 @@ export interface TimelineNodeInput {
 }
 
 export interface TimelineEvent extends TimelineNodeInput {
-  time: TimelineTimeValue[];
-  space: string[];
+  time: TimelineTimeNormalized;
+  space: TimelineSpaceNormalized;
   data: Record<string, unknown>;
   parents: string[];
   kids: string[];
