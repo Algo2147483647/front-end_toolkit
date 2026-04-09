@@ -1,6 +1,6 @@
 import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { buildTimelineModel, getPointGeometry, getRangeGeometry } from './timeline/layout';
-import { collectConnectedState, getEdgeStateClass, getNodeStateClass } from './timeline/hover';
+import { collectConnectedState, getNodeStateClass } from './timeline/hover';
 import type { TimelineEvent, TimelineNodeInput } from './timeline/types';
 import { formatTimeRange, formatYearLabel, getEventPalette, normalizeTimelinePayload, parseTimelineYear, truncateText } from './timeline/utils';
 
@@ -85,12 +85,40 @@ function App() {
   const [jsonPath, setJsonPath] = useState(DEFAULT_SOURCE);
 
   const [horizontalScale, setHorizontalScale] = useState(24);
-  const [verticalScale, setVerticalScale] = useState(20);
+  const [verticalScalePercent, setVerticalScalePercent] = useState(100);
   const [scale, setScale] = useState(1);
-  const [settingsVisible, setSettingsVisible] = useState(true);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [containerHeight, setContainerHeight] = useState(900);
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [eventCard, setEventCard] = useState<EventCardState | null>(null);
+
+  const timelineYearRange = useMemo(() => {
+    if (!historyData.length) {
+      return 1;
+    }
+
+    let minYear = Number.POSITIVE_INFINITY;
+    let maxYear = Number.NEGATIVE_INFINITY;
+
+    historyData.forEach(item => {
+      const start = parseTimelineYear(item.time?.[0], 'start');
+      const lastTime = item.time?.[item.time.length - 1];
+      const end = parseTimelineYear(lastTime, 'end');
+      minYear = Math.min(minYear, start, end);
+      maxYear = Math.max(maxYear, start, end);
+    });
+
+    return Math.max(maxYear - minYear, 1);
+  }, [historyData]);
+
+  const fitVerticalScale = useMemo(() => {
+    const viewportHeight = Math.max(containerHeight, 320);
+    const availableInnerHeight = Math.max(viewportHeight - 168, 120);
+    return availableInnerHeight / timelineYearRange;
+  }, [containerHeight, timelineYearRange]);
+
+  const verticalScale = useMemo(() => fitVerticalScale * (verticalScalePercent / 100), [fitVerticalScale, verticalScalePercent]);
 
   const model = useMemo(
     () =>
@@ -109,25 +137,6 @@ function App() {
 
     return collectConnectedState(hoveredKey, model.eventMap);
   }, [hoveredKey, model]);
-
-  const summary = useMemo(() => {
-    if (statusMessage) {
-      return statusMessage;
-    }
-
-    if (!model) {
-      return 'No timeline data available.';
-    }
-
-    if (hoveredKey) {
-      const event = model.eventMap.get(hoveredKey);
-      if (event) {
-        return `${event.title} | ${event.timeLabel}. ${event.parents.length} upstream and ${(event.kids || []).length} downstream links are highlighted.`;
-      }
-    }
-
-    return model.summary;
-  }, [hoveredKey, model, statusMessage]);
 
   const loadTimelineFromData = useCallback((data: unknown, nextSourceLabel: string) => {
     const normalized = normalizeTimelinePayload(data)
@@ -182,6 +191,25 @@ function App() {
   useEffect(() => {
     void loadTimelineFromPath(DEFAULT_SOURCE);
   }, [loadTimelineFromPath]);
+
+  useEffect(() => {
+    const container = timelineContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const refreshHeight = () => {
+      setContainerHeight(container.clientHeight);
+    };
+
+    refreshHeight();
+    const observer = new ResizeObserver(refreshHeight);
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const updateEventCardPosition = useCallback((x: number, y: number) => {
     setEventCard(prev => {
@@ -337,28 +365,26 @@ function App() {
   );
 
   const connectedNodes = connectedState?.connectedNodes || null;
-  const activeEdges = connectedState?.activeEdges || null;
   const zoomValue = `${Math.round(scale * 100)}%`;
   const cardDataEntries = eventCard ? Object.entries(eventCard.event.data || {}).filter(([key]) => key !== 'event') : [];
+  const sourceName = sourceLabel.split('/').pop() || sourceLabel;
 
   return (
     <>
       <div className="app-shell">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Timeline DAG</p>
             <h1>Timeline Atlas</h1>
-            <p className="topbar-copy">
-              Explore historical branches as a time-aware DAG with visible lineage, stable color families, and event labels that stay readable even before hover.
-            </p>
           </div>
           <div className="topbar-meta">
-            <div className="zoom-pill">
-              Zoom <span id="zoom-value">{zoomValue}</span>
+            <div className="topbar-actions">
+              <div className="zoom-pill">
+                Zoom <span id="zoom-value">{zoomValue}</span>
+              </div>
+              <button id="settings-btn" className="settings-toggle-btn" type="button" onClick={() => setSettingsVisible(value => !value)}>
+                {settingsVisible ? 'Hide Controls' : 'Show Controls'}
+              </button>
             </div>
-            <p id="timeline-summary" className="timeline-summary">
-              {summary}
-            </p>
           </div>
         </header>
 
@@ -375,10 +401,6 @@ function App() {
               style={{ transform: `scale(${scale})` }}
             >
               <defs>
-                <marker id="timeline-arrowhead" orient="auto" markerWidth={8} markerHeight={8} refX={7} refY={4}>
-                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#7f94bd" fillOpacity={0.4} />
-                </marker>
-
                 <filter id="timeline-soft-glow" x="-50%" y="-50%" width="200%" height="200%">
                   <feGaussianBlur stdDeviation={12} />
                 </filter>
@@ -387,7 +409,6 @@ function App() {
               {model && (
                 <>
                   <g>
-                    <rect className="timeline-stage__panel" x={28} y={28} width={model.stage.stageWidth - 56} height={model.stage.stageHeight - 56} rx={32} ry={32} />
                     <rect
                       className="timeline-stage__focus"
                       x={model.stage.contentLeft - 18}
@@ -440,25 +461,6 @@ function App() {
                       </text>
                     </g>
                   ))}
-
-                  <g>
-                    {model.edges.map(edge => {
-                      const stateClass = getEdgeStateClass(edge.source, edge.target, hoveredKey, connectedNodes, activeEdges);
-                      return (
-                        <g className="timeline-edge-group" data-edge-id={edge.id} key={edge.id}>
-                          <path className="timeline-edge-glow" d={edge.path} />
-                          <path
-                            className={`timeline-edge${stateClass ? ` ${stateClass}` : ''}`}
-                            d={edge.path}
-                            data-source={edge.source}
-                            data-target={edge.target}
-                            markerEnd="url(#timeline-arrowhead)"
-                            stroke={edge.stroke}
-                          />
-                        </g>
-                      );
-                    })}
-                  </g>
 
                   <g>
                     {model.timeRanges.map(event => {
@@ -541,11 +543,6 @@ function App() {
                           onMouseLeave={handleEventMouseLeave}
                           onMouseMove={domEvent => updateEventCardPosition(domEvent.clientX, domEvent.clientY)}
                         >
-                          <path
-                            className="timeline-axis__connector"
-                            d={`M ${model.stage.axisX + 8} ${geometry.dotY} C ${model.stage.axisX + 24} ${geometry.dotY}, ${geometry.dotX - 34} ${geometry.dotY}, ${geometry.dotX - 14} ${geometry.dotY}`}
-                            stroke={palette.connector}
-                          />
                           <ellipse
                             className="timeline-event__glow"
                             cx={geometry.labelX + pillWidth / 2 - 8}
@@ -622,94 +619,121 @@ function App() {
         </div>
       )}
 
-      <div className="control-card">
-        <div className="control-card__header">
-          <div>
-            <p className="control-card__title">View Controls</p>
-            <p className="control-card__subtitle">Tune density, export the canvas, or zoom the stage.</p>
+      {settingsVisible && (
+        <div className="control-card">
+          <div className="control-card__status">
+            <span className="control-card__status-label">Source</span>
+            <span className="control-card__status-value" title={sourceLabel}>
+              {sourceName}
+            </span>
           </div>
-          <button id="settings-btn" className="settings-toggle-btn" type="button" onClick={() => setSettingsVisible(value => !value)}>
-            Controls
-          </button>
+
+          <div id="settings-panel" className="settings-panel settings-panel-visible">
+            <section className="settings-section">
+              <div className="settings-section__header">
+                <div>
+                  <p className="settings-section__title">Data source</p>
+                  <p className="settings-section__subtitle">Load a hosted JSON path or open a local file.</p>
+                </div>
+              </div>
+              <div className="setting-item">
+                <label htmlFor="json-path">
+                  <span>JSON path</span>
+                  <span>Same-origin URL</span>
+                </label>
+                <div className="path-input-row">
+                  <input
+                    type="text"
+                    id="json-path"
+                    value={jsonPath}
+                    onChange={event => setJsonPath(event.target.value)}
+                    onKeyDown={handlePathEnter}
+                    placeholder="example.json"
+                  />
+                  <button id="load-path-btn" className="ghost-btn" type="button" onClick={() => void loadTimelineFromPath(jsonPath)}>
+                    Load
+                  </button>
+                </div>
+              </div>
+
+              <label className="file-input-label" htmlFor="json-file">
+                <input type="file" id="json-file" accept=".json,application/json" onChange={handleFileChange} />
+                <span className="file-input-text">Open a local JSON file</span>
+              </label>
+            </section>
+
+            <section className="settings-section">
+              <div className="settings-section__header">
+                <div>
+                  <p className="settings-section__title">Layout density</p>
+                  <p className="settings-section__subtitle">Control branch width and year spacing.</p>
+                </div>
+              </div>
+
+              <div className="setting-item">
+                <label htmlFor="horizontal-scale">
+                  <span>Branch width</span>
+                  <span className="setting-value">
+                    <span id="horizontal-scale-value">{horizontalScale}</span> px
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  id="horizontal-scale"
+                  min={12}
+                  max={56}
+                  value={horizontalScale}
+                  onChange={event => setHorizontalScale(parseInt(event.target.value, 10))}
+                />
+              </div>
+
+              <div className="setting-item">
+                <label htmlFor="vertical-scale">
+                  <span>Year spacing</span>
+                  <span className="setting-value">
+                    <span id="vertical-scale-value">{verticalScalePercent}</span>%
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  id="vertical-scale"
+                  min={100}
+                  max={360}
+                  value={verticalScalePercent}
+                  onChange={event => setVerticalScalePercent(parseInt(event.target.value, 10))}
+                />
+              </div>
+            </section>
+
+            <section className="settings-section">
+              <div className="settings-section__header">
+                <div>
+                  <p className="settings-section__title">Viewport</p>
+                  <p className="settings-section__subtitle">Zoom the stage or export the current SVG.</p>
+                </div>
+              </div>
+
+              <div className="setting-buttons setting-buttons--triple">
+                <button id="zoom-out" className="ghost-btn" type="button" onClick={() => setScale(value => Math.max(value / 1.18, 0.56))}>
+                  Zoom Out
+                </button>
+                <button id="zoom-reset" className="ghost-btn" type="button" onClick={() => setScale(1)}>
+                  Reset
+                </button>
+                <button id="zoom-in" className="ghost-btn" type="button" onClick={() => setScale(value => Math.min(value * 1.18, 2.8))}>
+                  Zoom In
+                </button>
+              </div>
+
+              <div className="setting-buttons">
+                <button id="download-btn" className="primary-btn" type="button" onClick={handleDownloadSvg}>
+                  Export SVG
+                </button>
+              </div>
+            </section>
+          </div>
         </div>
-
-        <div id="settings-panel" className={`settings-panel${settingsVisible ? ' settings-panel-visible' : ''}`}>
-          <div className="setting-item">
-            <label htmlFor="json-path">
-              <span>JSON path</span>
-              <span>Same-origin URL</span>
-            </label>
-            <div className="path-input-row">
-              <input
-                type="text"
-                id="json-path"
-                value={jsonPath}
-                onChange={event => setJsonPath(event.target.value)}
-                onKeyDown={handlePathEnter}
-                placeholder="example.json"
-              />
-              <button id="load-path-btn" className="ghost-btn" type="button" onClick={() => void loadTimelineFromPath(jsonPath)}>
-                Load
-              </button>
-            </div>
-          </div>
-
-          <label className="file-input-label" htmlFor="json-file">
-            <input type="file" id="json-file" accept=".json,application/json" onChange={handleFileChange} />
-            <span className="file-input-text">Open a local JSON file</span>
-          </label>
-
-          <div className="setting-item">
-            <label htmlFor="horizontal-scale">
-              <span>Branch width</span>
-              <span>
-                <span id="horizontal-scale-value">{horizontalScale}</span> px
-              </span>
-            </label>
-            <input
-              type="range"
-              id="horizontal-scale"
-              min={12}
-              max={56}
-              value={horizontalScale}
-              onChange={event => setHorizontalScale(parseInt(event.target.value, 10))}
-            />
-          </div>
-
-          <div className="setting-item">
-            <label htmlFor="vertical-scale">
-              <span>Year spacing</span>
-              <span>
-                <span id="vertical-scale-value">{verticalScale}</span> px
-              </span>
-            </label>
-            <input
-              type="range"
-              id="vertical-scale"
-              min={6}
-              max={30}
-              value={verticalScale}
-              onChange={event => setVerticalScale(parseInt(event.target.value, 10))}
-            />
-          </div>
-
-          <div className="setting-buttons">
-            <button id="download-btn" className="primary-btn" type="button" onClick={handleDownloadSvg}>
-              Export SVG
-            </button>
-            <button id="zoom-in" className="ghost-btn" type="button" onClick={() => setScale(value => Math.min(value * 1.18, 2.8))}>
-              Zoom In
-            </button>
-            <button id="zoom-out" className="ghost-btn" type="button" onClick={() => setScale(value => Math.max(value / 1.18, 0.56))}>
-              Zoom Out
-            </button>
-          </div>
-        </div>
-
-        <p className="control-hint">
-          Hover an event to trace its upstream and downstream lineage. Color families stay stable per root branch, so the same storyline keeps the same hue.
-        </p>
-      </div>
+      )}
     </>
   );
 }

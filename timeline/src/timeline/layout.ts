@@ -435,7 +435,8 @@ export function buildTimelineModel(nodes: TimelineNodeInput[], options: BuildMod
 
   const minYear = Math.min(...years);
   const maxYear = Math.max(...years);
-  const innerHeight = Math.max((maxYear - minYear) * options.verticalScale, 760);
+  const yearRange = Math.max(maxYear - minYear, 1);
+  const innerHeight = Math.max(yearRange * options.verticalScale, 120);
   const height = innerHeight + DEFAULT_MARGIN.top + DEFAULT_MARGIN.bottom;
   const yearScale = createYearScale(minYear, maxYear, DEFAULT_MARGIN, innerHeight);
 

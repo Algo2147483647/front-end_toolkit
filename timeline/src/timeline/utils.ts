@@ -9,6 +9,21 @@ export function normalizeTimelinePayload(data: unknown): TimelineNodeInput[] {
     return (data as { nodes: TimelineNodeInput[] }).nodes;
   }
 
+  if (data && typeof data === 'object') {
+    return Object.entries(data as Record<string, unknown>).reduce<TimelineNodeInput[]>((items, [key, value]) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return items;
+      }
+
+      items.push({
+        ...(value as Omit<TimelineNodeInput, 'key'>),
+        key,
+      });
+
+      return items;
+    }, []);
+  }
+
   return [];
 }
 

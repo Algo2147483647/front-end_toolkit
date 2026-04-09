@@ -1,6 +1,5 @@
-[
-  {
-    "key": "writing_systems",
+{
+  "writing_systems": {
     "time": ["3200 BCE"],
     "space": ["Mesopotamia", "Nile Valley"],
     "data": {
@@ -11,8 +10,7 @@
     "parents": [],
     "kids": ["legal_codes", "knowledge_exchange", "engineering_craft"]
   },
-  {
-    "key": "legal_codes",
+  "legal_codes": {
     "time": ["1754 BCE"],
     "space": ["Babylon"],
     "data": {
@@ -23,8 +21,7 @@
     "parents": ["writing_systems"],
     "kids": ["civic_governance"]
   },
-  {
-    "key": "civic_governance",
+  "civic_governance": {
     "time": ["509 BCE", "27 BCE"],
     "space": ["Rome"],
     "data": {
@@ -35,8 +32,7 @@
     "parents": ["legal_codes"],
     "kids": ["constitutional_era"]
   },
-  {
-    "key": "constitutional_era",
+  "constitutional_era": {
     "time": ["1215", "1789"],
     "space": ["England", "France", "North America"],
     "data": {
@@ -47,8 +43,7 @@
     "parents": ["civic_governance"],
     "kids": ["human_rights"]
   },
-  {
-    "key": "human_rights",
+  "human_rights": {
     "time": ["1948"],
     "space": ["United Nations"],
     "data": {
@@ -59,8 +54,7 @@
     "parents": ["constitutional_era"],
     "kids": []
   },
-  {
-    "key": "knowledge_exchange",
+  "knowledge_exchange": {
     "time": ["200 BCE", "900"],
     "space": ["Silk Road", "Indian Ocean"],
     "data": {
@@ -71,8 +65,7 @@
     "parents": ["writing_systems"],
     "kids": ["paper_invention"]
   },
-  {
-    "key": "paper_invention",
+  "paper_invention": {
     "time": ["105"],
     "space": ["China"],
     "data": {
@@ -82,8 +75,7 @@
     "parents": ["knowledge_exchange"],
     "kids": ["printing_press"]
   },
-  {
-    "key": "printing_press",
+  "printing_press": {
     "time": ["1450"],
     "space": ["Mainz"],
     "data": {
@@ -94,8 +86,7 @@
     "parents": ["paper_invention"],
     "kids": ["scientific_method"]
   },
-  {
-    "key": "scientific_method",
+  "scientific_method": {
     "time": ["1543", "1687"],
     "space": ["Europe"],
     "data": {
@@ -106,8 +97,7 @@
     "parents": ["printing_press"],
     "kids": ["industrial_revolution"]
   },
-  {
-    "key": "industrial_revolution",
+  "industrial_revolution": {
     "time": ["1760", "1914"],
     "space": ["Britain", "Europe", "North America"],
     "data": {
@@ -118,8 +108,7 @@
     "parents": ["scientific_method"],
     "kids": ["electrification"]
   },
-  {
-    "key": "electrification",
+  "electrification": {
     "time": ["1880", "1930"],
     "space": ["Global Cities"],
     "data": {
@@ -130,8 +119,7 @@
     "parents": ["industrial_revolution"],
     "kids": ["digital_network"]
   },
-  {
-    "key": "digital_network",
+  "digital_network": {
     "time": ["1969", "2007"],
     "space": ["United States", "Global"],
     "data": {
@@ -142,8 +130,7 @@
     "parents": ["electrification"],
     "kids": ["ai_era"]
   },
-  {
-    "key": "ai_era",
+  "ai_era": {
     "time": ["2012", "2026"],
     "space": ["Global"],
     "data": {
@@ -154,8 +141,7 @@
     "parents": ["digital_network"],
     "kids": []
   },
-  {
-    "key": "engineering_craft",
+  "engineering_craft": {
     "time": ["2600 BCE", "500 BCE"],
     "space": ["Egypt", "Greece", "China"],
     "data": {
@@ -166,8 +152,7 @@
     "parents": ["writing_systems"],
     "kids": ["maritime_navigation"]
   },
-  {
-    "key": "maritime_navigation",
+  "maritime_navigation": {
     "time": ["1400", "1600"],
     "space": ["Atlantic", "Indian Ocean"],
     "data": {
@@ -178,8 +163,7 @@
     "parents": ["engineering_craft"],
     "kids": ["global_trade"]
   },
-  {
-    "key": "global_trade",
+  "global_trade": {
     "time": ["1600", "1914"],
     "space": ["Global"],
     "data": {
@@ -190,8 +174,7 @@
     "parents": ["maritime_navigation"],
     "kids": ["public_health"]
   },
-  {
-    "key": "public_health",
+  "public_health": {
     "time": ["1854", "2020"],
     "space": ["London", "Global"],
     "data": {
@@ -202,8 +185,7 @@
     "parents": ["global_trade"],
     "kids": ["green_transition"]
   },
-  {
-    "key": "green_transition",
+  "green_transition": {
     "time": ["2015", "2040"],
     "space": ["Global"],
     "data": {
@@ -214,4 +196,4 @@
     "parents": ["public_health"],
     "kids": []
   }
-]
+}
