@@ -114,7 +114,8 @@ function App() {
 
   const fitVerticalScale = useMemo(() => {
     const viewportHeight = Math.max(containerHeight, 320);
-    const availableInnerHeight = Math.max(viewportHeight - 168, 120);
+    const topbarOffset = 108;
+    const availableInnerHeight = Math.max(viewportHeight - 168 - topbarOffset, 120);
     return availableInnerHeight / timelineYearRange;
   }, [containerHeight, timelineYearRange]);
 
