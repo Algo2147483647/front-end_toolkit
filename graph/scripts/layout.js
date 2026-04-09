@@ -16,8 +16,10 @@
 
         const roots = normalizeModule.findRootsFromDag(dag);
         const root = resolveRootKey(dag, roots, requestedRoot);
+        const forestTopLevelKeys = roots.length ? roots : Object.keys(dag);
+        const forestTopLevelSet = new Set(forestTopLevelKeys);
 
-        if (!dag[root]) {
+        if (root !== "__graph_root__" && !dag[root]) {
             dag[root] = { key: root, kids: roots.length ? roots : Object.keys(dag) };
         }
 
@@ -25,15 +27,21 @@
             dag[root] = {
                 key: root,
                 label: "All roots",
-                kids: roots.length ? roots : Object.keys(dag).filter(key => key !== root),
+                kids: forestTopLevelKeys,
                 synthetic: true,
             };
         }
 
         resetCoordinates(dag);
-        buildCoordinates(dag, root);
+        if (root === "__graph_root__") {
+            buildCoordinatesFromRoots(dag, forestTopLevelKeys);
+        } else {
+            buildCoordinates(dag, root);
+        }
 
-        const reachable = collectReachableNodes(dag, root);
+        const reachable = root === "__graph_root__"
+            ? collectReachableFromRoots(dag, forestTopLevelKeys)
+            : collectReachableNodes(dag, root);
         const nodeKeys = Array.from(reachable).filter(key => dag[key] && dag[key].coordinate);
         const nodesByLayer = new Map();
         const nodeMap = {};
@@ -57,7 +65,7 @@
                 detail: visual.detail,
                 width: visual.width,
                 height: theme.nodeHeight,
-                isRoot: nodeKey === root,
+                isRoot: root === "__graph_root__" ? forestTopLevelSet.has(nodeKey) : nodeKey === root,
             };
 
             nodesByLayer.get(layer).push(nodeData);
@@ -113,7 +121,7 @@
 
             laneData.push({
                 layer,
-                label: layer === 0 ? "Focus" : `Tier ${layer}`,
+                label: layer === 0 ? (root === "__graph_root__" ? "Root" : "Focus") : `Tier ${layer}`,
                 x: laneCenter,
                 width: layerWidth,
             });
@@ -163,8 +171,6 @@
         if (!root || !dag[root]) {
             if (roots.length === 1) {
                 root = roots[0];
-            } else if (dag.root) {
-                root = "root";
             } else {
                 root = "__graph_root__";
             }
@@ -209,9 +215,61 @@
         }
     }
 
+    function buildCoordinatesFromRoots(dag, roots) {
+        const queue = roots.slice();
+        const visited = new Set(queue);
+        let level = -1;
+
+        while (queue.length) {
+            const levelCount = queue.length;
+            level += 1;
+
+            for (let index = 0; index < levelCount; index += 1) {
+                const key = queue.shift();
+                if (!dag[key]) {
+                    continue;
+                }
+
+                dag[key].coordinate = [level, index];
+
+                const kids = dag[key].kids || [];
+                const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+                kidKeys.forEach(kidKey => {
+                    if (!dag[kidKey]) {
+                        dag[kidKey] = { key: kidKey, kids: [] };
+                    }
+
+                    if (!visited.has(kidKey)) {
+                        visited.add(kidKey);
+                        queue.push(kidKey);
+                    }
+                });
+            }
+        }
+    }
+
     function collectReachableNodes(dag, root) {
         const visited = new Set();
         const stack = [root];
+
+        while (stack.length) {
+            const nodeKey = stack.pop();
+            if (visited.has(nodeKey) || !dag[nodeKey]) {
+                continue;
+            }
+
+            visited.add(nodeKey);
+            const kids = dag[nodeKey].kids || [];
+            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+            kidKeys.forEach(kidKey => stack.push(kidKey));
+        }
+
+        return visited;
+    }
+
+    function collectReachableFromRoots(dag, roots) {
+        const visited = new Set();
+        const stack = roots.slice();
 
         while (stack.length) {
             const nodeKey = stack.pop();

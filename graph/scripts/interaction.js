@@ -594,9 +594,6 @@
         if (roots.length === 1) {
             return roots[0];
         }
-        if (dag.root) {
-            return "root";
-        }
         return "__graph_root__";
     }
 

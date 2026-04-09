@@ -206,16 +206,25 @@
     }
 
     function findRootsFromDag(dag) {
-        const allNodes = new Set(Object.keys(dag));
+        const nodeKeys = Object.keys(dag);
+        const rootsByParents = nodeKeys.filter(nodeKey => {
+            const node = dag[nodeKey] || {};
+            return getRelationKeys(node.parents).length === 0;
+        });
+        if (rootsByParents.length) {
+            return rootsByParents;
+        }
 
-        Object.keys(dag).forEach(nodeKey => {
-            const kidKeys = getRelationKeys(dag[nodeKey].kids);
+        const allNodes = new Set(nodeKeys);
+        nodeKeys.forEach(nodeKey => {
+            const kidKeys = getRelationKeys((dag[nodeKey] || {}).kids);
             kidKeys.forEach(kidKey => {
                 allNodes.delete(kidKey);
             });
         });
 
-        return Array.from(allNodes);
+        const inferredRoots = Array.from(allNodes);
+        return inferredRoots.length ? inferredRoots : nodeKeys;
     }
 
     function ensureReferencedNodesExist(dag) {
