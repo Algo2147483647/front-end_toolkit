@@ -1,8 +1,8 @@
 import { type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { buildTimelineModel, getPointGeometry, getRangeGeometry } from './timeline/layout';
 import { collectConnectedState, getNodeStateClass } from './timeline/hover';
-import type { TimelineEvent, TimelineNodeInput } from './timeline/types';
-import { formatTimeRange, formatYearLabel, getEventPalette, getTimelineBounds, normalizeTimelinePayload, parseTimelineYear, truncateText } from './timeline/utils';
+import type { TimeScaleMode, TimelineEvent, TimelineNodeInput } from './timeline/types';
+import { formatTimeRange, formatYearLabel, getEventPalette, getTimelineBounds, normalizeTimelinePayload, parseTimelineYear } from './timeline/utils';
 
 const DEFAULT_SOURCE = 'example.json';
 
@@ -86,6 +86,7 @@ function App() {
 
   const [horizontalScale, setHorizontalScale] = useState(24);
   const [verticalScalePercent, setVerticalScalePercent] = useState(100);
+  const [timeScaleMode, setTimeScaleMode] = useState<TimeScaleMode>('elastic');
   const [scale, setScale] = useState(1);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [containerHeight, setContainerHeight] = useState(900);
@@ -127,8 +128,9 @@ function App() {
         horizontalScale,
         verticalScale,
         sourceLabel,
+        scaleMode: timeScaleMode,
       }),
-    [historyData, horizontalScale, verticalScale, sourceLabel],
+    [historyData, horizontalScale, verticalScale, sourceLabel, timeScaleMode],
   );
 
   const connectedState = useMemo(() => {
@@ -461,7 +463,7 @@ function App() {
                         y2={tick.y}
                       />
                       <line className="timeline-axis__tick" x1={model.stage.axisX - 8} y1={tick.y} x2={model.stage.axisX + 8} y2={tick.y} />
-                      <text className="timeline-axis__year" x={model.stage.axisX - 18} y={tick.y + 4} textAnchor="end">
+                      <text className="timeline-axis__year" x={model.stage.axisX - 18} y={tick.y + 5} textAnchor="end">
                         {formatYearLabel(tick.year)}
                       </text>
                     </g>
@@ -473,9 +475,7 @@ function App() {
                       const palette = getEventPalette(event);
                       const nodeClass = getNodeStateClass(event.key, hoveredKey, connectedNodes);
                       const className = `timeline-event timeline-event--range${event.parents.length === 0 ? ' is-root' : ''}${nodeClass ? ` ${nodeClass}` : ''}`;
-                      const badgeWidth = Math.min(Math.max(event.branchRoots.length > 1 ? 78 : 62, event.timeLabel.length * 5 + 22), geometry.width - 18);
-                      const titleLimit = Math.max(Math.floor((geometry.width - 24) / 6.2), 16);
-                      const locationLimit = Math.max(Math.floor((geometry.width - 24) / 7), 14);
+                      const keyText = event.key || 'N/A';
 
                       return (
                         <g
@@ -499,32 +499,11 @@ function App() {
                             stroke={palette.stroke}
                             strokeWidth={1.4}
                           />
-                          <rect
-                            className="timeline-event__badge"
-                            x={geometry.x + 10}
-                            y={geometry.y + 10}
-                            width={badgeWidth}
-                            height={18}
-                            rx={9}
-                            ry={9}
-                            fill={palette.badge}
-                            stroke={palette.stroke}
-                            strokeWidth={0.7}
-                          />
-                          <text className="timeline-event__badge-text" x={geometry.x + 16} y={geometry.y + 22.5}>
-                            {event.branchRoots.length > 1 ? 'Shared branch' : truncateText(event.timeLabel, 14)}
-                          </text>
-                          <text className="timeline-event__eyebrow" x={geometry.x + 12} y={geometry.y + 42}>
-                            {truncateText(event.locationLabel, locationLimit)}
-                          </text>
-                          <text className="timeline-event__title" x={geometry.x + 12} y={geometry.y + 60}>
-                            {truncateText(event.title, titleLimit)}
-                          </text>
-                          {geometry.height > 88 && (
-                            <text className="timeline-event__meta" x={geometry.x + 12} y={geometry.y + 78}>
-                              {truncateText(`${event.parents.length} upstream / ${(event.kids || []).length} downstream`, Math.max(Math.floor((geometry.width - 24) / 6.8), 16))}
-                            </text>
-                          )}
+                          <foreignObject x={geometry.x + 12} y={geometry.y + 10} width={Math.max(geometry.width - 24, 20)} height={Math.max(geometry.height - 18, 20)}>
+                            <div className="timeline-event__key-block timeline-event__key-block--range">
+                              {keyText}
+                            </div>
+                          </foreignObject>
                         </g>
                       );
                     })}
@@ -536,8 +515,13 @@ function App() {
                       const palette = getEventPalette(event);
                       const nodeClass = getNodeStateClass(event.key, hoveredKey, connectedNodes);
                       const className = `timeline-event timeline-event--point${event.parents.length === 0 ? ' is-root' : ''}${nodeClass ? ` ${nodeClass}` : ''}`;
-                      const titleWidth = Math.max(92, Math.min(250, event.title.length * 6.7 + 42));
-                      const pillWidth = Math.min(titleWidth, model.stage.stageWidth - geometry.labelX - model.stage.margin.right / 2);
+                      const keyText = event.key || 'N/A';
+                      const titleWidth = Math.max(108, Math.min(300, keyText.length * 6.6 + 48));
+                      const pillWidth = Math.max(108, Math.min(titleWidth, model.stage.stageWidth - geometry.labelX - model.stage.margin.right / 2));
+                      const charsPerLine = Math.max(Math.floor((pillWidth - 24) / 7), 8);
+                      const lineCount = Math.min(4, Math.max(1, Math.ceil(keyText.length / charsPerLine)));
+                      const pillHeight = Math.max(36, 20 + lineCount * 14);
+                      const pillY = geometry.dotY - pillHeight / 2;
 
                       return (
                         <g
@@ -553,29 +537,28 @@ function App() {
                             cx={geometry.labelX + pillWidth / 2 - 8}
                             cy={geometry.dotY}
                             rx={pillWidth / 2 + 22}
-                            ry={22}
+                            ry={Math.max(22, pillHeight / 2 + 6)}
                             fill={palette.glow}
                           />
                           <rect
                             className="timeline-event__pill"
                             x={geometry.labelX}
-                            y={geometry.dotY - 18}
+                            y={pillY}
                             width={pillWidth}
-                            height={36}
-                            rx={18}
-                            ry={18}
+                            height={pillHeight}
+                            rx={Math.min(pillHeight / 2, 18)}
+                            ry={Math.min(pillHeight / 2, 18)}
                             fill={palette.badge}
                             stroke={palette.stroke}
                             strokeWidth={1.2}
                           />
                           <circle className="timeline-event__dot" cx={geometry.dotX} cy={geometry.dotY} r={10} fill="#ffffff" stroke={palette.stroke} strokeWidth={1.4} />
                           <circle className="timeline-event__dot-core" cx={geometry.dotX} cy={geometry.dotY} r={4} fill={palette.accent} />
-                          <text className="timeline-event__point-label" x={geometry.labelX + 14} y={geometry.dotY - 1}>
-                            {truncateText(event.title, Math.max(Math.floor((pillWidth - 28) / 6.5), 12))}
-                          </text>
-                          <text className="timeline-event__point-meta" x={geometry.labelX + 14} y={geometry.dotY + 13}>
-                            {truncateText(event.timeLabel, Math.max(Math.floor((pillWidth - 28) / 7), 12))}
-                          </text>
+                          <foreignObject x={geometry.labelX + 12} y={pillY + 6} width={Math.max(pillWidth - 24, 20)} height={Math.max(pillHeight - 12, 20)}>
+                            <div className="timeline-event__key-block timeline-event__key-block--point">
+                              {keyText}
+                            </div>
+                          </foreignObject>
                         </g>
                       );
                     })}
@@ -665,6 +648,36 @@ function App() {
                 <input type="file" id="json-file" accept=".json,application/json" onChange={handleFileChange} />
                 <span className="file-input-text">Open a local JSON file</span>
               </label>
+            </section>
+
+            <section className="settings-section">
+              <div className="settings-section__header">
+                <div>
+                  <p className="settings-section__title">Time scale mode</p>
+                  <p className="settings-section__subtitle">Linear keeps a uniform year distance. Elastic uses semantic segments to expand modern history.</p>
+                </div>
+              </div>
+
+              <div className="setting-buttons setting-buttons--double">
+                <button
+                  type="button"
+                  className={`ghost-btn${timeScaleMode === 'linear' ? ' is-selected' : ''}`}
+                  onClick={() => setTimeScaleMode('linear')}
+                >
+                  Linear
+                </button>
+                <button
+                  type="button"
+                  className={`ghost-btn${timeScaleMode === 'elastic' ? ' is-selected' : ''}`}
+                  onClick={() => setTimeScaleMode('elastic')}
+                >
+                  Elastic
+                </button>
+              </div>
+
+              <p className="settings-section__note">
+                Elastic segments: before 1000 BCE (compressed), 1000 BCE-500 CE, 500-1500, 1500-1800, 1800-1945, 1945-2000, and after 2000 (expanded).
+              </p>
             </section>
 
             <section className="settings-section">

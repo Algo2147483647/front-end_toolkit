@@ -432,7 +432,6 @@ export function getBranchColor(index: number, sharedCount = 1): TimelinePalette 
     stroke: `hsla(${hue}, ${saturation + 4}%, 42%, 0.7)`,
     accent: `hsla(${hue}, ${saturation + 8}%, 36%, 0.92)`,
     glow: `hsla(${hue}, ${Math.max(saturation - 8, 42)}%, 58%, 0.16)`,
-    connector: `hsla(${hue}, ${Math.max(saturation - 10, 34)}%, 52%, 0.42)`,
     badge: `hsla(${hue}, ${Math.max(saturation - 14, 34)}%, 96%, 0.88)`,
   };
 }

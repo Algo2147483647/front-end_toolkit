@@ -98,20 +98,11 @@ export interface YearTick {
   isMajor: boolean;
 }
 
-export interface TimelineEdge {
-  id: string;
-  source: string;
-  target: string;
-  path: string;
-  stroke: string;
-}
-
 export interface TimelinePalette {
   fill: string;
   stroke: string;
   accent: string;
   glow: string;
-  connector: string;
   badge: string;
 }
 
@@ -124,7 +115,6 @@ export interface TimelineModel {
   summary: string;
   stage: StageMetrics;
   yearTicks: YearTick[];
-  edges: TimelineEdge[];
   timeRanges: TimelineEvent[];
   singlePoints: TimelineEvent[];
 }
@@ -146,4 +136,7 @@ export interface BuildModelOptions {
   horizontalScale: number;
   verticalScale: number;
   sourceLabel: string;
+  scaleMode: TimeScaleMode;
 }
+
+export type TimeScaleMode = 'linear' | 'elastic';

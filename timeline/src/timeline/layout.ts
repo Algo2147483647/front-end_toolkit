@@ -4,7 +4,6 @@ import type {
   PointGeometry,
   RangeGeometry,
   StageMetrics,
-  TimelineEdge,
   TimelineEvent,
   TimelineModel,
   TimelineNodeInput,
@@ -14,12 +13,10 @@ import type {
 } from './types';
 import {
   areTimelineValuesEqual,
-  clamp,
   formatEventLocation,
   formatTimeRange,
   formatYearLabel,
   getAdaptiveYearInterval,
-  getEventPalette,
   getEventTitle,
   normalizeSpaceInput,
   normalizeTimeInput,
@@ -70,13 +67,84 @@ function normalizeNode(node: TimelineNodeInput, index: number): NormalizedNode {
   };
 }
 
-function createYearScale(minYear: number, maxYear: number, margin: Margin, innerHeight: number): (year: number) => number {
+const ELASTIC_BREAKPOINTS = [-1000, 500, 1500, 1800, 1945, 2000];
+
+function getElasticWeight(year: number): number {
+  if (year < -1000) {
+    return 0.45;
+  }
+  if (year < 500) {
+    return 0.65;
+  }
+  if (year < 1500) {
+    return 0.95;
+  }
+  if (year < 1800) {
+    return 1.25;
+  }
+  if (year < 1945) {
+    return 1.65;
+  }
+  if (year < 2000) {
+    return 2.05;
+  }
+  return 2.55;
+}
+
+function createLinearYearScale(minYear: number, maxYear: number, margin: Margin, innerHeight: number): (year: number) => number {
   return year => {
     if (maxYear === minYear) {
       return margin.top + innerHeight / 2;
     }
 
     return margin.top + ((year - minYear) / (maxYear - minYear)) * innerHeight;
+  };
+}
+
+function createElasticYearScale(minYear: number, maxYear: number, margin: Margin, innerHeight: number): (year: number) => number {
+  if (maxYear === minYear) {
+    return () => margin.top + innerHeight / 2;
+  }
+
+  const boundaries = [minYear, ...ELASTIC_BREAKPOINTS.filter(value => value > minYear && value < maxYear), maxYear];
+  const segments: Array<{ start: number; end: number; height: number; yStart: number }> = [];
+
+  const weightedSpan = boundaries.slice(0, -1).reduce((total, start, index) => {
+    const end = boundaries[index + 1];
+    const span = Math.max(end - start, 0);
+    const midYear = start + span / 2;
+    return total + span * getElasticWeight(midYear);
+  }, 0);
+
+  const pxPerWeightedYear = weightedSpan > 0 ? innerHeight / weightedSpan : innerHeight / Math.max(maxYear - minYear, 1);
+  let offsetY = margin.top;
+
+  boundaries.slice(0, -1).forEach((start, index) => {
+    const end = boundaries[index + 1];
+    const span = Math.max(end - start, 0);
+    const weight = getElasticWeight(start + span / 2);
+    const height = span * weight * pxPerWeightedYear;
+    segments.push({
+      start,
+      end,
+      height,
+      yStart: offsetY,
+    });
+    offsetY += height;
+  });
+
+  return year => {
+    if (year <= minYear) {
+      return margin.top;
+    }
+    if (year >= maxYear) {
+      return margin.top + innerHeight;
+    }
+
+    const segment = segments.find(item => year <= item.end) || segments[segments.length - 1];
+    const span = Math.max(segment.end - segment.start, 1);
+    const ratio = (year - segment.start) / span;
+    return segment.yStart + ratio * segment.height;
   };
 }
 
@@ -328,82 +396,25 @@ export function getPointGeometry(event: TimelineEvent, stage: StageMetrics): Poi
   };
 }
 
-function getEventOutputAnchor(event: TimelineEvent, referenceY: number, stage: StageMetrics): { x: number; y: number } {
-  if (event.isTimeRange) {
-    const geometry = getRangeGeometry(event, stage);
-    return {
-      x: geometry.x + geometry.width - 6,
-      y: clamp(referenceY, geometry.y + 14, geometry.y + geometry.height - 14),
-    };
-  }
-
-  const geometry = getPointGeometry(event, stage);
-  return {
-    x: geometry.dotX + 10,
-    y: geometry.dotY,
-  };
-}
-
-function getEventInputAnchor(event: TimelineEvent, referenceY: number, stage: StageMetrics): { x: number; y: number } {
-  if (event.isTimeRange) {
-    const geometry = getRangeGeometry(event, stage);
-    return {
-      x: geometry.x + 4,
-      y: clamp(referenceY, geometry.y + 14, geometry.y + geometry.height - 14),
-    };
-  }
-
-  const geometry = getPointGeometry(event, stage);
-  return {
-    x: geometry.dotX - 10,
-    y: geometry.dotY,
-  };
-}
-
-function buildDagEdges(events: TimelineEvent[], stage: StageMetrics): TimelineEdge[] {
-  const eventMap = new Map(events.map(event => [event.key, event]));
-  const edges: TimelineEdge[] = [];
-
-  events.forEach(sourceEvent => {
-    (sourceEvent.kids || []).forEach(targetKey => {
-      const targetEvent = eventMap.get(targetKey);
-      if (!targetEvent) {
-        return;
-      }
-
-      const palette = getEventPalette(targetEvent);
-      const sourceAnchor = getEventOutputAnchor(sourceEvent, targetEvent.startY, stage);
-      const targetAnchor = getEventInputAnchor(targetEvent, sourceAnchor.y, stage);
-      const bend = clamp((targetAnchor.x - sourceAnchor.x) * 0.45, 36, 96);
-      const path = [
-        `M ${sourceAnchor.x} ${sourceAnchor.y}`,
-        `C ${sourceAnchor.x + bend} ${sourceAnchor.y}, ${targetAnchor.x - bend} ${targetAnchor.y}, ${targetAnchor.x} ${targetAnchor.y}`,
-      ].join(' ');
-
-      edges.push({
-        id: `${sourceEvent.key}-->${targetEvent.key}`,
-        source: sourceEvent.key,
-        target: targetEvent.key,
-        path,
-        stroke: palette.connector,
-      });
-    });
-  });
-
-  return edges;
-}
-
 function separateEvents(events: TimelineEvent[]): { timeRanges: TimelineEvent[]; singlePoints: TimelineEvent[] } {
   const timeRanges = events.filter(event => event.isTimeRange);
   const singlePoints = events.filter(event => !event.isTimeRange);
   return { timeRanges, singlePoints };
 }
 
-function buildTimelineSummary(events: TimelineEvent[], roots: TimelineEvent[], minYear: number, maxYear: number, sourceLabel: string): string {
+function buildTimelineSummary(
+  events: TimelineEvent[],
+  roots: TimelineEvent[],
+  minYear: number,
+  maxYear: number,
+  sourceLabel: string,
+  scaleMode: BuildModelOptions['scaleMode'],
+): string {
   const rangeCount = events.filter(event => event.isTimeRange).length;
   const pointCount = events.length - rangeCount;
+  const scaleLabel = scaleMode === 'elastic' ? 'elastic segmented scale' : 'linear scale';
 
-  return `${sourceLabel}: ${events.length} events across ${roots.length} root branches, spanning ${formatYearLabel(minYear)} to ${formatYearLabel(maxYear)}. ${rangeCount} ranges and ${pointCount} milestone points are visible in this atlas.`;
+  return `${sourceLabel}: ${events.length} events across ${roots.length} root branches, spanning ${formatYearLabel(minYear)} to ${formatYearLabel(maxYear)} with ${scaleLabel}. ${rangeCount} ranges and ${pointCount} milestone points are visible in this atlas.`;
 }
 
 function buildYearTicks(minYear: number, maxYear: number, yearScale: (year: number) => number): YearTick[] {
@@ -443,7 +454,10 @@ export function buildTimelineModel(nodes: TimelineNodeInput[], options: BuildMod
   const yearRange = Math.max(maxYear - minYear, 1);
   const innerHeight = Math.max(yearRange * options.verticalScale, 120);
   const height = innerHeight + DEFAULT_MARGIN.top + DEFAULT_MARGIN.bottom;
-  const yearScale = createYearScale(minYear, maxYear, DEFAULT_MARGIN, innerHeight);
+  const yearScale =
+    options.scaleMode === 'elastic'
+      ? createElasticYearScale(minYear, maxYear, DEFAULT_MARGIN, innerHeight)
+      : createLinearYearScale(minYear, maxYear, DEFAULT_MARGIN, innerHeight);
 
   const events = processEvents(normalized, yearScale);
   alignParentChildRelationships(events);
@@ -451,7 +465,6 @@ export function buildTimelineModel(nodes: TimelineNodeInput[], options: BuildMod
   const roots = assignBranchMetadata(events);
   const stage = calculateStageMetrics(events, DEFAULT_MARGIN, height, options.horizontalScale);
   const yearTicks = buildYearTicks(minYear, maxYear, yearScale);
-  const edges = buildDagEdges(events, stage);
   const { timeRanges, singlePoints } = separateEvents(events);
 
   return {
@@ -460,10 +473,9 @@ export function buildTimelineModel(nodes: TimelineNodeInput[], options: BuildMod
     roots,
     minYear,
     maxYear,
-    summary: buildTimelineSummary(events, roots, minYear, maxYear, options.sourceLabel || 'timeline data'),
+    summary: buildTimelineSummary(events, roots, minYear, maxYear, options.sourceLabel || 'timeline data', options.scaleMode),
     stage,
     yearTicks,
-    edges,
     timeRanges,
     singlePoints,
   };
