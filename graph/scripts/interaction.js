@@ -1026,7 +1026,6 @@
         dag[newKey] = {
             key: newKey,
             define: "",
-            properties: [],
             parents: {},
             kids: {},
         };
@@ -1132,7 +1131,6 @@
             dag[nodeKey] = {
                 key: nodeKey,
                 define: "",
-                properties: [],
                 parents: {},
                 kids: {},
             };

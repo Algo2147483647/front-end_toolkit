@@ -5,6 +5,9 @@
     const TARGET_EDGE_GAP = 0;
     const ARROW_MARKER_WIDTH = 10;
     const ARROW_MARKER_HEIGHT = 8;
+    const DETAIL_MAX_LINE_LENGTH = 38;
+    const DETAIL_MAX_LINES = 2;
+    const DETAIL_LINE_HEIGHT = 10;
 
     function renderStage(stageData) {
         const { mainContent, emptyState } = GraphApp.state.getDom();
@@ -247,9 +250,17 @@
         const detail = createSvgElement("text", {
             class: "graph-node__detail",
             x: "48",
-            y: "43",
+            y: "45",
         });
-        detail.textContent = truncate(nodeData.detail, 34);
+        const detailLines = wrapDetailText(nodeData.detail, DETAIL_MAX_LINE_LENGTH, DETAIL_MAX_LINES);
+        detailLines.forEach((line, index) => {
+            const tspan = createSvgElement("tspan", {
+                x: "48",
+                dy: index === 0 ? "0" : String(DETAIL_LINE_HEIGHT),
+            });
+            tspan.textContent = line;
+            detail.appendChild(tspan);
+        });
         group.appendChild(detail);
 
         const affordance = createSvgElement("g", { class: "graph-node__affordance" });
@@ -274,6 +285,44 @@
         group.appendChild(affordance);
 
         return group;
+    }
+
+    function wrapDetailText(text, maxLineLength, maxLines) {
+        const normalized = String(text || "").replace(/\s+/g, " ").trim();
+        if (!normalized) {
+            return [""];
+        }
+
+        const lines = [];
+        let remaining = normalized;
+
+        while (remaining && lines.length < maxLines) {
+            if (remaining.length <= maxLineLength) {
+                lines.push(remaining);
+                remaining = "";
+                break;
+            }
+
+            const candidate = remaining.slice(0, maxLineLength + 1);
+            let breakAt = candidate.lastIndexOf(" ");
+            if (breakAt < Math.floor(maxLineLength * 0.5)) {
+                breakAt = maxLineLength;
+            }
+
+            lines.push(remaining.slice(0, breakAt).trim());
+            remaining = remaining.slice(breakAt).trim();
+        }
+
+        if (remaining) {
+            const availableLength = Math.max(maxLineLength - 3, 1);
+            const lastLine = lines[lines.length - 1] || "";
+            const truncatedLine = lastLine.length > availableLength
+                ? lastLine.slice(0, availableLength).trimEnd()
+                : lastLine;
+            lines[lines.length - 1] = `${truncatedLine}...`;
+        }
+
+        return lines.slice(0, maxLines);
     }
 
     function createSvgElement(tagName, attributes) {

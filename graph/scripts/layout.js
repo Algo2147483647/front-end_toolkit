@@ -356,9 +356,8 @@
 
     function getNodeDetail(node, fallbackTitle) {
         const defineText = stripRichText(node.define || "");
-        const propertyText = Array.isArray(node.properties) ? stripRichText(node.properties.find(Boolean) || "") : "";
-        const detail = firstMeaningfulSegment(defineText) || firstMeaningfulSegment(propertyText) || fallbackTitle;
-        return GraphApp.state.utils.truncate(detail, 52);
+        const detail = firstMeaningfulSegment(defineText) || fallbackTitle;
+        return detail;
     }
 
     function stripRichText(text) {

@@ -45,10 +45,6 @@
         nodeValue.kids = normalizeRelationField(nodeValue.kids);
         nodeValue.parents = normalizeRelationField(nodeValue.parents);
 
-        if (!Array.isArray(nodeValue.properties)) {
-            nodeValue.properties = Array.isArray(value && value.properties) ? value.properties : [];
-        }
-
         return nodeValue;
     }
 
@@ -234,7 +230,7 @@
 
         Object.keys(dag).forEach(nodeKey => {
             if (!dag[nodeKey] || typeof dag[nodeKey] !== "object") {
-                dag[nodeKey] = { key: nodeKey, kids: {}, parents: {}, properties: [] };
+                dag[nodeKey] = { key: nodeKey, kids: {}, parents: {} };
                 return;
             }
 
@@ -242,9 +238,6 @@
             node.key = nodeKey;
             node.kids = normalizeRelationField(node.kids);
             node.parents = normalizeRelationField(node.parents);
-            if (!Array.isArray(node.properties)) {
-                node.properties = [];
-            }
         });
 
         Object.keys(dag).forEach(nodeKey => {
@@ -254,14 +247,14 @@
 
             kids.forEach(kidKey => {
                 if (!dag[kidKey]) {
-                    dag[kidKey] = { key: kidKey, kids: {}, parents: {}, properties: [] };
+                    dag[kidKey] = { key: kidKey, kids: {}, parents: {} };
                 }
                 addRelationKey(dag[kidKey], "parents", nodeKey, defaultRelationValue);
             });
 
             parents.forEach(parentKey => {
                 if (!dag[parentKey]) {
-                    dag[parentKey] = { key: parentKey, kids: {}, parents: {}, properties: [] };
+                    dag[parentKey] = { key: parentKey, kids: {}, parents: {} };
                 }
                 addRelationKey(dag[parentKey], "kids", nodeKey, defaultRelationValue);
             });
