@@ -435,13 +435,6 @@ body::before {
   pointer-events: none;
 }
 
-.graph-edge-glow {
-  fill: none;
-  stroke: var(--edge-glow);
-  stroke-linecap: round;
-  stroke-width: 6;
-}
-
 .graph-edge {
   fill: none;
   stroke: var(--edge);

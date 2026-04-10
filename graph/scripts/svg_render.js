@@ -161,10 +161,6 @@
 
         const group = createSvgElement("g", { class: "graph-edge-group" });
         group.appendChild(createSvgElement("path", {
-            class: "graph-edge-glow",
-            d,
-        }));
-        group.appendChild(createSvgElement("path", {
             class: "graph-edge",
             d,
             "data-source": edge.source,
