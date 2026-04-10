@@ -51,6 +51,10 @@
         nodeKey: null,
         fieldName: null,
     };
+    const detailViewState = {
+        isOpen: false,
+        nodeKey: null,
+    };
 
     function init() {
         const stateModule = GraphApp.state;
@@ -137,6 +141,16 @@
                 }
             });
         }
+        if (dom.nodeDetailCloseButton) {
+            dom.nodeDetailCloseButton.addEventListener("click", closeNodeDetail);
+        }
+        if (dom.nodeDetailModal) {
+            dom.nodeDetailModal.addEventListener("click", event => {
+                if (event.target === dom.nodeDetailModal) {
+                    closeNodeDetail();
+                }
+            });
+        }
 
         document.addEventListener("mousemove", handlePanMove);
         document.addEventListener("mouseup", handlePanEnd);
@@ -181,6 +195,7 @@
         GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
         syncRawDataFromNormalized();
         resetGraphData();
+        closeNodeDetail();
 
         const initialSelection = resolveInitialSelection(data.normalizedDag);
         renderFromSelection(initialSelection, false);
@@ -266,6 +281,13 @@
         const nextSelection = resolveNextSelection(preferredSelection, data.currentSelection, data.normalizedDag, fallbackSelection);
 
         renderFromSelection(nextSelection, false);
+        if (detailViewState.isOpen && detailViewState.nodeKey) {
+            if (data.normalizedDag && data.normalizedDag[detailViewState.nodeKey]) {
+                openNodeDetail(detailViewState.nodeKey);
+            } else {
+                closeNodeDetail();
+            }
+        }
         if (statusMessage) {
             setGraphMessage(statusMessage);
         }
@@ -839,6 +861,7 @@
             setSettingsPanelVisibility(false);
             hideContextMenu();
             closeRelationEditor();
+            closeNodeDetail();
         }
     }
 
@@ -850,7 +873,8 @@
     function handlePanStart(event) {
         const { mainContent } = GraphApp.state.getDom();
         const isEditMode = GraphApp.state.data.viewMode === "edit";
-        if (!mainContent || event.button !== 2 || !mainContent.classList.contains("is-ready") || isEditMode) {
+        const hasNodeTarget = Boolean(getNodeElement(event.target));
+        if (!mainContent || event.button !== 2 || !mainContent.classList.contains("is-ready") || isEditMode || hasNodeTarget) {
             return;
         }
 
@@ -896,19 +920,21 @@
             return;
         }
 
-        event.preventDefault();
+        const isEditMode = GraphApp.state.data.viewMode === "edit";
+        const node = getNodeElement(event.target);
+        const nodeKey = node ? node.dataset.nodeKey : null;
 
-        if (GraphApp.state.data.viewMode !== "edit") {
+        if (!isEditMode && !nodeKey) {
+            event.preventDefault();
             hideContextMenu();
             return;
         }
 
-        const node = getNodeElement(event.target);
-        const nodeKey = node ? node.dataset.nodeKey : null;
-        openContextMenu(event.clientX, event.clientY, nodeKey || null);
+        event.preventDefault();
+        openContextMenu(event.clientX, event.clientY, nodeKey || null, isEditMode);
     }
 
-    function openContextMenu(x, y, nodeKey) {
+    function openContextMenu(x, y, nodeKey, isEditMode) {
         const { contextMenu } = GraphApp.state.getDom();
         if (!contextMenu) {
             return;
@@ -928,10 +954,11 @@
         contextMenu.style.left = `${Math.max(8, safeX)}px`;
         contextMenu.style.top = `${Math.max(8, safeY)}px`;
 
-        const requiresNode = ["rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-children"];
+        const requiresNode = ["view-node", "rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-children"];
+        const requiresEditMode = ["rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-children", "add-node"];
         contextMenu.querySelectorAll(".context-menu-item").forEach(button => {
             const action = button.getAttribute("data-action") || "";
-            const disabled = requiresNode.includes(action) && !nodeKey;
+            const disabled = (requiresNode.includes(action) && !nodeKey) || (requiresEditMode.includes(action) && !isEditMode);
             button.disabled = disabled;
             button.style.opacity = disabled ? "0.45" : "1";
         });
@@ -965,6 +992,10 @@
             return;
         }
 
+        if (action === "view-node" && nodeKey) {
+            openNodeDetail(nodeKey);
+            return;
+        }
         if (action === "rename-node" && nodeKey) {
             promptRenameNodeKey(nodeKey);
             return;
@@ -1040,6 +1071,9 @@
             GraphApp.normalize.renameRelationKey(dag[nodeKey], "parents", oldKey, newKey);
             GraphApp.normalize.renameRelationKey(dag[nodeKey], "children", oldKey, newKey);
         });
+        if (detailViewState.isOpen && detailViewState.nodeKey === oldKey) {
+            detailViewState.nodeKey = newKey;
+        }
 
         data.history = data.history
             .map(item => remapSelectionKeys(item, key => (key === oldKey ? newKey : key)))
@@ -1242,6 +1276,57 @@
         }
     }
 
+    function openNodeDetail(nodeKey) {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        if (!dag || !dag[nodeKey]) {
+            return;
+        }
+
+        const dom = GraphApp.state.getDom();
+        const node = dag[nodeKey];
+        const fieldEntries = buildNodeFieldEntries(nodeKey, node);
+
+        detailViewState.isOpen = true;
+        detailViewState.nodeKey = nodeKey;
+
+        if (dom.nodeDetailTitle) {
+            dom.nodeDetailTitle.textContent = nodeKey;
+        }
+        if (dom.nodeDetailSubtitle) {
+            dom.nodeDetailSubtitle.textContent = `Generic field view for ${fieldEntries.length} key-value pairs in this node.`;
+        }
+        renderNodeFields(dom.nodeDetailFields, fieldEntries);
+        if (dom.nodeDetailJson) {
+            dom.nodeDetailJson.textContent = JSON.stringify(buildSerializableNode(nodeKey, node), null, 2);
+        }
+        if (dom.nodeDetailModal) {
+            dom.nodeDetailModal.classList.add("is-visible");
+            dom.nodeDetailModal.setAttribute("aria-hidden", "false");
+        }
+
+        setTimeout(() => {
+            if (dom.nodeDetailCloseButton) {
+                dom.nodeDetailCloseButton.focus();
+            }
+        }, 0);
+    }
+
+    function closeNodeDetail() {
+        if (!detailViewState.isOpen) {
+            return;
+        }
+
+        detailViewState.isOpen = false;
+        detailViewState.nodeKey = null;
+
+        const { nodeDetailModal } = GraphApp.state.getDom();
+        if (nodeDetailModal) {
+            nodeDetailModal.classList.remove("is-visible");
+            nodeDetailModal.setAttribute("aria-hidden", "true");
+        }
+    }
+
     function saveRelationEditor() {
         const nodeKey = relationEditorState.nodeKey;
         const fieldName = relationEditorState.fieldName;
@@ -1360,6 +1445,143 @@
                 GraphApp.state.constants.defaultRelationValue
             );
         });
+    }
+
+    function buildNodeFieldEntries(nodeKey, node) {
+        const clonedNode = GraphApp.state.utils.structuredCloneValue(node || {});
+        if (clonedNode.key === nodeKey) {
+            delete clonedNode.key;
+        }
+
+        return [
+            ["key", nodeKey],
+            ...Object.entries(clonedNode),
+        ];
+    }
+
+    function buildSerializableNode(nodeKey, node) {
+        const clonedNode = GraphApp.state.utils.structuredCloneValue(node || {});
+        if (clonedNode.key === nodeKey) {
+            delete clonedNode.key;
+        }
+        return {
+            [nodeKey]: clonedNode,
+        };
+    }
+
+    function renderNodeFields(container, entries) {
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = "";
+        if (!entries.length) {
+            const emptyNode = document.createElement("p");
+            emptyNode.className = "node-detail-empty";
+            emptyNode.textContent = "No fields are available for this node.";
+            container.appendChild(emptyNode);
+            return;
+        }
+
+        entries.forEach(entry => {
+            const block = document.createElement("article");
+            block.className = "node-detail-field";
+
+            const [fieldName, fieldValue] = entry;
+
+            const heading = document.createElement("p");
+            heading.className = "node-detail-field__label";
+            heading.textContent = fieldName;
+            block.appendChild(heading);
+
+            block.appendChild(buildFieldValuePreview(fieldName, fieldValue));
+
+            container.appendChild(block);
+        });
+    }
+
+    function buildFieldValuePreview(fieldName, value) {
+        if (fieldName === "parents" || fieldName === "children") {
+            return buildRelationValuePreview(fieldName, value);
+        }
+
+        if (fieldName === "define") {
+            const paragraph = document.createElement("p");
+            paragraph.className = "node-detail-text node-detail-text--define";
+            paragraph.textContent = String(value || "").trim() || "(empty string)";
+            return paragraph;
+        }
+
+        return buildValuePreview(value);
+    }
+
+    function buildRelationValuePreview(fieldName, value) {
+        const relationKeys = GraphApp.normalize.getRelationKeys(value);
+        if (!relationKeys.length) {
+            const emptyNode = document.createElement("p");
+            emptyNode.className = "node-detail-empty";
+            emptyNode.textContent = `No ${fieldName} linked.`;
+            return emptyNode;
+        }
+
+        const chipList = document.createElement("div");
+        chipList.className = "node-detail-chip-list";
+        relationKeys.forEach(relationKey => {
+            const chip = document.createElement("span");
+            chip.className = "node-detail-chip";
+            chip.textContent = relationKey;
+            chipList.appendChild(chip);
+        });
+        return chipList;
+    }
+
+    function buildValuePreview(value) {
+        if (value === null || value === undefined) {
+            const emptyNode = document.createElement("p");
+            emptyNode.className = "node-detail-empty";
+            emptyNode.textContent = "(empty)";
+            return emptyNode;
+        }
+
+        if (typeof value === "string") {
+            const paragraph = document.createElement("p");
+            paragraph.className = "node-detail-text";
+            paragraph.textContent = value.trim() || "(empty string)";
+            return paragraph;
+        }
+
+        if (typeof value === "number" || typeof value === "boolean") {
+            const inline = document.createElement("p");
+            inline.className = "node-detail-text";
+            inline.textContent = String(value);
+            return inline;
+        }
+
+        if (Array.isArray(value) && value.every(item => typeof item === "string" || typeof item === "number" || typeof item === "boolean")) {
+            const chipList = document.createElement("div");
+            chipList.className = "node-detail-chip-list";
+
+            if (!value.length) {
+                const emptyChip = document.createElement("span");
+                emptyChip.className = "node-detail-chip";
+                emptyChip.textContent = "(empty)";
+                chipList.appendChild(emptyChip);
+                return chipList;
+            }
+
+            value.forEach(item => {
+                const chip = document.createElement("span");
+                chip.className = "node-detail-chip";
+                chip.textContent = String(item);
+                chipList.appendChild(chip);
+            });
+            return chipList;
+        }
+
+        const pre = document.createElement("pre");
+        pre.className = "node-detail-pre";
+        pre.textContent = JSON.stringify(value, null, 2);
+        return pre;
     }
 
     function handleNodeMouseOver(event) {

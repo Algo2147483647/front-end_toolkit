@@ -66,6 +66,12 @@
                 relationEditorInput: document.getElementById("relation-editor-input"),
                 relationEditorSaveButton: document.getElementById("relation-editor-save"),
                 relationEditorCancelButton: document.getElementById("relation-editor-cancel"),
+                nodeDetailModal: document.getElementById("node-detail-modal"),
+                nodeDetailTitle: document.getElementById("node-detail-title"),
+                nodeDetailSubtitle: document.getElementById("node-detail-subtitle"),
+                nodeDetailFields: document.getElementById("node-detail-fields"),
+                nodeDetailJson: document.getElementById("node-detail-json"),
+                nodeDetailCloseButton: document.getElementById("node-detail-close"),
             };
         }
 
