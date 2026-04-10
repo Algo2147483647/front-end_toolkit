@@ -26,7 +26,7 @@
         "parents": [
 
         ],
-        "kids": [
+        "children": [
             "legal_codes",
             "knowledge_exchange",
             "engineering_craft"
@@ -50,7 +50,7 @@
         "parents": [
             "writing_systems"
         ],
-        "kids": [
+        "children": [
             "civic_governance"
         ]
     },
@@ -72,7 +72,7 @@
         "parents": [
             "legal_codes"
         ],
-        "kids": [
+        "children": [
             "constitutional_era"
         ]
     },
@@ -111,7 +111,7 @@
         "parents": [
             "civic_governance"
         ],
-        "kids": [
+        "children": [
             "human_rights"
         ]
     },
@@ -133,7 +133,7 @@
         "parents": [
             "constitutional_era"
         ],
-        "kids": [
+        "children": [
 
         ]
     },
@@ -164,7 +164,7 @@
         "parents": [
             "writing_systems"
         ],
-        "kids": [
+        "children": [
             "paper_invention"
         ]
     },
@@ -185,7 +185,7 @@
         "parents": [
             "knowledge_exchange"
         ],
-        "kids": [
+        "children": [
             "printing_press"
         ]
     },
@@ -207,7 +207,7 @@
         "parents": [
             "paper_invention"
         ],
-        "kids": [
+        "children": [
             "scientific_method"
         ]
     },
@@ -233,7 +233,7 @@
         "parents": [
             "printing_press"
         ],
-        "kids": [
+        "children": [
             "industrial_revolution"
         ]
     },
@@ -268,7 +268,7 @@
         "parents": [
             "scientific_method"
         ],
-        "kids": [
+        "children": [
             "electrification"
         ]
     },
@@ -294,7 +294,7 @@
         "parents": [
             "industrial_revolution"
         ],
-        "kids": [
+        "children": [
             "digital_network"
         ]
     },
@@ -329,7 +329,7 @@
         "parents": [
             "electrification"
         ],
-        "kids": [
+        "children": [
             "ai_era"
         ]
     },
@@ -351,7 +351,7 @@
         "parents": [
             "digital_network"
         ],
-        "kids": [
+        "children": [
 
         ]
     },
@@ -390,7 +390,7 @@
         "parents": [
             "writing_systems"
         ],
-        "kids": [
+        "children": [
             "maritime_navigation"
         ]
     },
@@ -425,7 +425,7 @@
         "parents": [
             "engineering_craft"
         ],
-        "kids": [
+        "children": [
             "global_trade"
         ]
     },
@@ -447,7 +447,7 @@
         "parents": [
             "maritime_navigation"
         ],
-        "kids": [
+        "children": [
             "public_health"
         ]
     },
@@ -482,7 +482,7 @@
         "parents": [
             "global_trade"
         ],
-        "kids": [
+        "children": [
             "green_transition"
         ]
     },
@@ -508,7 +508,7 @@
         "parents": [
             "public_health"
         ],
-        "kids": [
+        "children": [
 
         ]
     }

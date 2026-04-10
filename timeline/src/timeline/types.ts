@@ -49,7 +49,7 @@ export interface TimelineNodeInput {
   space?: TimelineSpaceValueInput;
   data?: Record<string, unknown>;
   parents?: string[];
-  kids?: string[];
+  children?: string[];
   label?: string;
 }
 
@@ -58,7 +58,7 @@ export interface TimelineEvent extends TimelineNodeInput {
   space: TimelineSpaceNormalized;
   data: Record<string, unknown>;
   parents: string[];
-  kids: string[];
+  children: string[];
   isTimeRange: boolean;
   startTime: number;
   endTime: number;

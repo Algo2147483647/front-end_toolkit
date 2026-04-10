@@ -21,14 +21,14 @@
         const forestTopLevelSet = new Set(forestTopLevelKeys);
 
         if (root !== "__graph_root__" && !dag[root]) {
-            dag[root] = { key: root, kids: roots.length ? roots : Object.keys(dag) };
+            dag[root] = { key: root, children: roots.length ? roots : Object.keys(dag) };
         }
 
         if (selection.isForest) {
             dag[root] = {
                 key: root,
                 label: selection.label,
-                kids: forestTopLevelKeys,
+                children: forestTopLevelKeys,
                 synthetic: true,
             };
         }
@@ -132,15 +132,15 @@
 
         nodeKeys.forEach(sourceKey => {
             const sourceNode = dag[sourceKey];
-            const kids = sourceNode.kids || [];
-            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+            const children = sourceNode.children || [];
+            const childKeys = Array.isArray(children) ? children : Object.keys(children);
 
-            kidKeys.forEach(targetKey => {
+            childKeys.forEach(targetKey => {
                 if (!nodeMap[targetKey]) {
                     return;
                 }
 
-                const weight = Array.isArray(kids) ? 1 : kids[targetKey];
+                const weight = Array.isArray(children) ? 1 : children[targetKey];
                 edgeData.push({
                     id: `${sourceKey}-->${targetKey}`,
                     source: sourceKey,
@@ -220,17 +220,17 @@
                 const key = queue.shift();
                 dag[key].coordinate = [level, index];
 
-                const kids = dag[key].kids || [];
-                const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+                const children = dag[key].children || [];
+                const childKeys = Array.isArray(children) ? children : Object.keys(children);
 
-                kidKeys.forEach(kidKey => {
-                    if (!dag[kidKey]) {
-                        dag[kidKey] = { key: kidKey, kids: [] };
+                childKeys.forEach(childKey => {
+                    if (!dag[childKey]) {
+                        dag[childKey] = { key: childKey, children: [] };
                     }
 
-                    if (!visited.has(kidKey)) {
-                        visited.add(kidKey);
-                        queue.push(kidKey);
+                    if (!visited.has(childKey)) {
+                        visited.add(childKey);
+                        queue.push(childKey);
                     }
                 });
             }
@@ -254,16 +254,16 @@
 
                 dag[key].coordinate = [level, index];
 
-                const kids = dag[key].kids || [];
-                const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
-                kidKeys.forEach(kidKey => {
-                    if (!dag[kidKey]) {
-                        dag[kidKey] = { key: kidKey, kids: [] };
+                const children = dag[key].children || [];
+                const childKeys = Array.isArray(children) ? children : Object.keys(children);
+                childKeys.forEach(childKey => {
+                    if (!dag[childKey]) {
+                        dag[childKey] = { key: childKey, children: [] };
                     }
 
-                    if (!visited.has(kidKey)) {
-                        visited.add(kidKey);
-                        queue.push(kidKey);
+                    if (!visited.has(childKey)) {
+                        visited.add(childKey);
+                        queue.push(childKey);
                     }
                 });
             }
@@ -281,9 +281,9 @@
             }
 
             visited.add(nodeKey);
-            const kids = dag[nodeKey].kids || [];
-            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
-            kidKeys.forEach(kidKey => stack.push(kidKey));
+            const children = dag[nodeKey].children || [];
+            const childKeys = Array.isArray(children) ? children : Object.keys(children);
+            childKeys.forEach(childKey => stack.push(childKey));
         }
 
         return visited;
@@ -300,9 +300,9 @@
             }
 
             visited.add(nodeKey);
-            const kids = dag[nodeKey].kids || [];
-            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
-            kidKeys.forEach(kidKey => stack.push(kidKey));
+            const children = dag[nodeKey].children || [];
+            const childKeys = Array.isArray(children) ? children : Object.keys(children);
+            childKeys.forEach(childKey => stack.push(childKey));
         }
 
         return visited;
@@ -317,10 +317,10 @@
         });
 
         nodeKeys.forEach(sourceKey => {
-            const kids = dag[sourceKey].kids || [];
-            const kidKeys = Array.isArray(kids) ? kids : Object.keys(kids);
+            const children = dag[sourceKey].children || [];
+            const childKeys = Array.isArray(children) ? children : Object.keys(children);
 
-            kidKeys.forEach(targetKey => {
+            childKeys.forEach(targetKey => {
                 if (visibleKeys.has(targetKey)) {
                     incomingMap[targetKey].push(sourceKey);
                 }

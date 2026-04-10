@@ -116,27 +116,27 @@ The accepted input structure is flexible. These shapes are supported:
 
 ```json
 {
-  "A": { "kids": ["B", "C"] },
-  "B": { "kids": ["D"] },
-  "C": { "kids": [] },
-  "D": { "kids": [] }
+  "A": { "children": ["B", "C"] },
+  "B": { "children": ["D"] },
+  "C": { "children": [] },
+  "D": { "children": [] }
 }
 ```
 
 ```json
 [
-  { "key": "A", "kids": ["B", "C"] },
-  { "key": "B", "kids": ["D"] },
-  { "key": "C", "kids": [] },
-  { "key": "D", "kids": [] }
+  { "key": "A", "children": ["B", "C"] },
+  { "key": "B", "children": ["D"] },
+  { "key": "C", "children": [] },
+  { "key": "D", "children": [] }
 ]
 ```
 
 ```json
 {
   "nodes": [
-    { "key": "A", "kids": ["B", "C"] },
-    { "key": "B", "kids": ["D"] }
+    { "key": "A", "children": ["B", "C"] },
+    { "key": "B", "children": ["D"] }
   ]
 }
 ```
@@ -168,7 +168,7 @@ Key capabilities:
       "significance": "Why it matters"
     },
     "parents": [],
-    "kids": ["event_b"]
+    "children": ["event_b"]
   }
 ]
 ```
@@ -179,7 +179,7 @@ Field notes:
 - `time`: one value usually means a point event; two values usually mean a time range.
 - `space`: location metadata, typically an array.
 - `data`: extra event metadata shown in the hover card.
-- `parents` / `kids`: graph relationships between events.
+- `parents` / `children`: graph relationships between events.
 
 ### 5. `svg/` SVG Studio
 

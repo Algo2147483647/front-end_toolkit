@@ -26,7 +26,7 @@ export function collectConnectedState(nodeKey: string, eventMap: Map<string, Tim
       queue.push(parentKey);
     });
 
-    (currentEvent.kids || []).forEach(kidKey => {
+    (currentEvent.children || []).forEach(kidKey => {
       connectedNodes.add(kidKey);
       queue.push(kidKey);
     });

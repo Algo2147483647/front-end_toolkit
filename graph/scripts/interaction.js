@@ -928,7 +928,7 @@
         contextMenu.style.left = `${Math.max(8, safeX)}px`;
         contextMenu.style.top = `${Math.max(8, safeY)}px`;
 
-        const requiresNode = ["rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-kids"];
+        const requiresNode = ["rename-node", "delete-node", "delete-subtree", "edit-parents", "edit-children"];
         contextMenu.querySelectorAll(".context-menu-item").forEach(button => {
             const action = button.getAttribute("data-action") || "";
             const disabled = requiresNode.includes(action) && !nodeKey;
@@ -981,8 +981,8 @@
             openRelationEditor(nodeKey, "parents");
             return;
         }
-        if (action === "edit-kids" && nodeKey) {
-            openRelationEditor(nodeKey, "kids");
+        if (action === "edit-children" && nodeKey) {
+            openRelationEditor(nodeKey, "children");
             return;
         }
         if (action === "add-node") {
@@ -1038,7 +1038,7 @@
 
         Object.keys(dag).forEach(nodeKey => {
             GraphApp.normalize.renameRelationKey(dag[nodeKey], "parents", oldKey, newKey);
-            GraphApp.normalize.renameRelationKey(dag[nodeKey], "kids", oldKey, newKey);
+            GraphApp.normalize.renameRelationKey(dag[nodeKey], "children", oldKey, newKey);
         });
 
         data.history = data.history
@@ -1062,7 +1062,7 @@
             return;
         }
 
-        const confirmed = window.confirm(`Delete node "${nodeKey}" and remove all related parent/kid references?`);
+        const confirmed = window.confirm(`Delete node "${nodeKey}" and remove all related parent/child references?`);
         if (!confirmed) {
             return;
         }
@@ -1108,7 +1108,7 @@
             }
 
             visited.add(currentKey);
-            const childKeys = GraphApp.normalize.getRelationKeys(dag[currentKey].kids);
+            const childKeys = GraphApp.normalize.getRelationKeys(dag[currentKey].children);
             childKeys.forEach(childKey => stack.push(childKey));
         }
 
@@ -1134,7 +1134,7 @@
         Object.keys(dag).forEach(otherKey => {
             deleteSet.forEach(deletedKey => {
                 GraphApp.normalize.removeRelationKey(dag[otherKey], "parents", deletedKey);
-                GraphApp.normalize.removeRelationKey(dag[otherKey], "kids", deletedKey);
+                GraphApp.normalize.removeRelationKey(dag[otherKey], "children", deletedKey);
             });
         });
 
@@ -1177,13 +1177,13 @@
             key: newKey,
             define: "",
             parents: {},
-            kids: {},
+            children: {},
         };
 
         if (referenceNodeKey && dag[referenceNodeKey]) {
             const shouldLink = window.confirm(`Link "${newKey}" as a child of "${referenceNodeKey}"?`);
             if (shouldLink) {
-                addKidReferences(referenceNodeKey, [newKey]);
+                addChildReferences(referenceNodeKey, [newKey]);
             }
         }
 
@@ -1205,7 +1205,7 @@
         relationEditorState.fieldName = fieldName;
 
         if (dom.relationEditorTitle) {
-            dom.relationEditorTitle.textContent = fieldName === "parents" ? "Edit Parents" : "Edit Kids";
+            dom.relationEditorTitle.textContent = fieldName === "parents" ? "Edit Parents" : "Edit Children";
         }
         if (dom.relationEditorDescription) {
             dom.relationEditorDescription.textContent = `Editing ${fieldName} for node ${nodeKey}.`;
@@ -1259,7 +1259,7 @@
         if (fieldName === "parents") {
             setParentReferences(nodeKey, nextKeys);
         } else {
-            setKidReferences(nodeKey, nextKeys);
+            setChildReferences(nodeKey, nextKeys);
         }
 
         closeRelationEditor();
@@ -1282,7 +1282,7 @@
                 key: nodeKey,
                 define: "",
                 parents: {},
-                kids: {},
+                children: {},
             };
         }
     }
@@ -1299,7 +1299,7 @@
 
         previousParents.forEach(parentKey => {
             if (!nextParents.includes(parentKey) && dag[parentKey]) {
-                GraphApp.normalize.removeRelationKey(dag[parentKey], "kids", nodeKey);
+                GraphApp.normalize.removeRelationKey(dag[parentKey], "children", nodeKey);
             }
         });
 
@@ -1307,33 +1307,33 @@
             ensureNodeExists(parentKey);
             GraphApp.normalize.addRelationKey(
                 dag[parentKey],
-                "kids",
+                "children",
                 nodeKey,
                 GraphApp.state.constants.defaultRelationValue
             );
         });
     }
 
-    function setKidReferences(nodeKey, kidKeys) {
+    function setChildReferences(nodeKey, childKeys) {
         const dag = GraphApp.state.data.normalizedDag;
         ensureNodeExists(nodeKey);
 
         const node = dag[nodeKey];
-        const previousKids = GraphApp.normalize.getRelationKeys(node.kids);
-        const nextKids = GraphApp.normalize.uniqueKeys(kidKeys);
+        const previousChildren = GraphApp.normalize.getRelationKeys(node.children);
+        const nextChildren = GraphApp.normalize.uniqueKeys(childKeys);
 
-        GraphApp.normalize.setRelationKeys(node, "kids", nextKids, GraphApp.state.constants.defaultRelationValue);
+        GraphApp.normalize.setRelationKeys(node, "children", nextChildren, GraphApp.state.constants.defaultRelationValue);
 
-        previousKids.forEach(kidKey => {
-            if (!nextKids.includes(kidKey) && dag[kidKey]) {
-                GraphApp.normalize.removeRelationKey(dag[kidKey], "parents", nodeKey);
+        previousChildren.forEach(childKey => {
+            if (!nextChildren.includes(childKey) && dag[childKey]) {
+                GraphApp.normalize.removeRelationKey(dag[childKey], "parents", nodeKey);
             }
         });
 
-        nextKids.forEach(kidKey => {
-            ensureNodeExists(kidKey);
+        nextChildren.forEach(childKey => {
+            ensureNodeExists(childKey);
             GraphApp.normalize.addRelationKey(
-                dag[kidKey],
+                dag[childKey],
                 "parents",
                 nodeKey,
                 GraphApp.state.constants.defaultRelationValue
@@ -1341,20 +1341,20 @@
         });
     }
 
-    function addKidReferences(parentKey, kidKeys) {
+    function addChildReferences(parentKey, childKeys) {
         const dag = GraphApp.state.data.normalizedDag;
         ensureNodeExists(parentKey);
 
-        kidKeys.forEach(kidKey => {
-            ensureNodeExists(kidKey);
+        childKeys.forEach(childKey => {
+            ensureNodeExists(childKey);
             GraphApp.normalize.addRelationKey(
                 dag[parentKey],
-                "kids",
-                kidKey,
+                "children",
+                childKey,
                 GraphApp.state.constants.defaultRelationValue
             );
             GraphApp.normalize.addRelationKey(
-                dag[kidKey],
+                dag[childKey],
                 "parents",
                 parentKey,
                 GraphApp.state.constants.defaultRelationValue

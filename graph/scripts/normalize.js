@@ -42,7 +42,7 @@
     function normalizeNodeValue(key, value) {
         const nodeValue = value && typeof value === "object" ? { ...value } : {};
         nodeValue.key = key;
-        nodeValue.kids = normalizeRelationField(nodeValue.kids);
+        nodeValue.children = normalizeRelationField(nodeValue.children);
         nodeValue.parents = normalizeRelationField(nodeValue.parents);
 
         return nodeValue;
@@ -213,9 +213,9 @@
 
         const allNodes = new Set(nodeKeys);
         nodeKeys.forEach(nodeKey => {
-            const kidKeys = getRelationKeys((dag[nodeKey] || {}).kids);
-            kidKeys.forEach(kidKey => {
-                allNodes.delete(kidKey);
+            const childKeys = getRelationKeys((dag[nodeKey] || {}).children);
+            childKeys.forEach(childKey => {
+                allNodes.delete(childKey);
             });
         });
 
@@ -230,33 +230,33 @@
 
         Object.keys(dag).forEach(nodeKey => {
             if (!dag[nodeKey] || typeof dag[nodeKey] !== "object") {
-                dag[nodeKey] = { key: nodeKey, kids: {}, parents: {} };
+                dag[nodeKey] = { key: nodeKey, children: {}, parents: {} };
                 return;
             }
 
             const node = dag[nodeKey];
             node.key = nodeKey;
-            node.kids = normalizeRelationField(node.kids);
+            node.children = normalizeRelationField(node.children);
             node.parents = normalizeRelationField(node.parents);
         });
 
         Object.keys(dag).forEach(nodeKey => {
             const node = dag[nodeKey];
-            const kids = getRelationKeys(node.kids);
+            const children = getRelationKeys(node.children);
             const parents = getRelationKeys(node.parents);
 
-            kids.forEach(kidKey => {
-                if (!dag[kidKey]) {
-                    dag[kidKey] = { key: kidKey, kids: {}, parents: {} };
+            children.forEach(childKey => {
+                if (!dag[childKey]) {
+                    dag[childKey] = { key: childKey, children: {}, parents: {} };
                 }
-                addRelationKey(dag[kidKey], "parents", nodeKey, defaultRelationValue);
+                addRelationKey(dag[childKey], "parents", nodeKey, defaultRelationValue);
             });
 
             parents.forEach(parentKey => {
                 if (!dag[parentKey]) {
-                    dag[parentKey] = { key: parentKey, kids: {}, parents: {} };
+                    dag[parentKey] = { key: parentKey, children: {}, parents: {} };
                 }
-                addRelationKey(dag[parentKey], "kids", nodeKey, defaultRelationValue);
+                addRelationKey(dag[parentKey], "children", nodeKey, defaultRelationValue);
             });
         });
     }

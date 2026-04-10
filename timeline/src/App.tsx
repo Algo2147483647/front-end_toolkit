@@ -595,7 +595,7 @@ function App() {
             </div>
             <div className="event-card__row">
               <strong>Downstream</strong>
-              <span>{(eventCard.event.kids || []).length}</span>
+              <span>{(eventCard.event.children || []).length}</span>
             </div>
             {cardDataEntries.map(([key, value]) => (
               <div className="event-card__row" key={key}>

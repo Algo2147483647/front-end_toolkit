@@ -16,7 +16,7 @@ Use an object keyed by event ID.
 Rules:
 
 - The outer key is the real event key. Do not repeat `key` inside the value.
-- `parents` and `kids` are arrays of event IDs (outer keys).
+- `parents` and `children` are arrays of event IDs (outer keys).
 
 ## 2) Event object
 
@@ -28,7 +28,7 @@ Rules:
     "event": "Human readable title"
   },
   "parents": [],
-  "kids": []
+  "children": []
 }
 ```
 
@@ -38,7 +38,7 @@ Fields:
 - `space`: optional, structured location object.
 - `data`: optional, free metadata for UI details.
 - `parents`: optional, default `[]`.
-- `kids`: optional, default `[]`.
+- `children`: optional, default `[]`.
 
 ## 3) `time` design (unified `period`)
 
@@ -151,7 +151,7 @@ Range event:
       "significance": "Transforms knowledge from oral tradition into durable records."
     },
     "parents": [],
-    "kids": ["legal_codes"]
+    "children": ["legal_codes"]
   }
 }
 ```

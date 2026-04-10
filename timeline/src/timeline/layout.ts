@@ -31,7 +31,7 @@ type NormalizedNode = TimelineNodeInput & {
   space: TimelineSpaceNormalized;
   data: Record<string, unknown>;
   parents: string[];
-  kids: string[];
+  children: string[];
 };
 
 function normalizeList(values: string[] | undefined): string[] {
@@ -63,7 +63,7 @@ function normalizeNode(node: TimelineNodeInput, index: number): NormalizedNode {
     space,
     data,
     parents: normalizeList(node.parents),
-    kids: normalizeList(node.kids),
+    children: normalizeList(node.children),
   };
 }
 
@@ -160,7 +160,7 @@ function processEvents(nodes: NormalizedNode[], yearScale: (year: number) => num
       space: node.space,
       data: node.data || {},
       parents: [...(node.parents || [])],
-      kids: [...(node.kids || [])],
+      children: [...(node.children || [])],
       isTimeRange,
       startTime,
       endTime,
@@ -189,18 +189,18 @@ export function alignParentChildRelationships(events: TimelineEvent[]): void {
 
   events.forEach(event => {
     event.parents = normalizeList(event.parents);
-    event.kids = normalizeList(event.kids);
+    event.children = normalizeList(event.children);
   });
 
   events.forEach(event => {
     event.parents.forEach(parentKey => {
       const parent = eventMap.get(parentKey);
-      if (parent && !parent.kids.includes(event.key)) {
-        parent.kids.push(event.key);
+      if (parent && !parent.children.includes(event.key)) {
+        parent.children.push(event.key);
       }
     });
 
-    event.kids.forEach(kidKey => {
+    event.children.forEach(kidKey => {
       const kid = eventMap.get(kidKey);
       if (kid && !kid.parents.includes(event.key)) {
         kid.parents.push(event.key);
@@ -210,7 +210,7 @@ export function alignParentChildRelationships(events: TimelineEvent[]): void {
 
   events.forEach(event => {
     event.parents = normalizeList(event.parents);
-    event.kids = normalizeList(event.kids);
+    event.children = normalizeList(event.children);
   });
 }
 
@@ -238,12 +238,12 @@ function findNonConflictingXPositionForEvent(event: TimelineEvent, positionedEve
 }
 
 function processEventDFS(
-  event: Pick<TimelineEvent, 'kids' | 'startTime' | 'endTime' | 'width' | 'x' | 'key'>,
+  event: Pick<TimelineEvent, 'children' | 'startTime' | 'endTime' | 'width' | 'x' | 'key'>,
   allEventsMap: Map<string, TimelineEvent>,
   positionedEvents: TimelineEvent[],
 ): void {
-  const kids = [...(event.kids || [])];
-  if (!kids.length) {
+  const children = [...(event.children || [])];
+  if (!children.length) {
     const targetEvent = allEventsMap.get(event.key);
     if (targetEvent) {
       targetEvent.width = 1;
@@ -253,14 +253,14 @@ function processEventDFS(
     return;
   }
 
-  kids.sort((a, b) => {
+  children.sort((a, b) => {
     const aEvent = allEventsMap.get(a);
     const bEvent = allEventsMap.get(b);
     return (aEvent?.startTime ?? Number.POSITIVE_INFINITY) - (bEvent?.startTime ?? Number.POSITIVE_INFINITY);
   });
 
   const positionedChildren: TimelineEvent[] = [];
-  kids.forEach(kid => {
+  children.forEach(kid => {
     const kidEvent = allEventsMap.get(kid);
     if (kidEvent) {
       processEventDFS(kidEvent, allEventsMap, positionedChildren);
@@ -294,7 +294,7 @@ export function calculateHorizontalPositions(events: TimelineEvent[]): void {
 
   const virtualRoot = {
     key: 'virtualRoot',
-    kids: getRoots(events).map(root => root.key),
+    children: getRoots(events).map(root => root.key),
     startTime: Number.NEGATIVE_INFINITY,
     endTime: Number.POSITIVE_INFINITY,
     width: 1,
@@ -338,7 +338,7 @@ export function assignBranchMetadata(events: TimelineEvent[]): TimelineEvent[] {
         event.primaryBranchIndex = rootIndex;
       }
 
-      (event.kids || []).forEach(kidKey => {
+      (event.children || []).forEach(kidKey => {
         stack.push(kidKey);
       });
     }
