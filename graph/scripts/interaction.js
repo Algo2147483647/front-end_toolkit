@@ -107,6 +107,9 @@
         if (dom.backButton) {
             dom.backButton.addEventListener("click", navigateBack);
         }
+        if (dom.upButton) {
+            dom.upButton.addEventListener("click", navigateUpLevel);
+        }
         if (dom.mainContent) {
             dom.mainContent.addEventListener("mousedown", handlePanStart);
             dom.mainContent.addEventListener("contextmenu", handleGraphContextMenu);
@@ -179,8 +182,8 @@
         syncRawDataFromNormalized();
         resetGraphData();
 
-        const initialRoot = resolveInitialRoot(data.normalizedDag);
-        renderFromRoot(initialRoot, false);
+        const initialSelection = resolveInitialSelection(data.normalizedDag);
+        renderFromSelection(initialSelection, false);
     }
 
     function syncRawDataFromNormalized() {
@@ -207,30 +210,31 @@
     }
 
     function navigateBack() {
-        const previousRoot = GraphApp.state.data.history.pop();
-        if (!previousRoot) {
+        const previousSelection = GraphApp.state.data.history.pop();
+        if (!previousSelection) {
             return;
         }
 
-        renderFromRoot(previousRoot, false);
+        renderFromSelection(previousSelection, false);
     }
 
-    function renderFromRoot(rootKey, pushHistory) {
+    function renderFromSelection(selection, pushHistory) {
         const data = GraphApp.state.data;
         if (!data.normalizedDag) {
             return;
         }
 
-        if (pushHistory && data.currentRoot && data.currentRoot !== rootKey) {
-            data.history.push(data.currentRoot);
+        if (pushHistory && data.currentSelection && !areSelectionsEqual(data.currentSelection, selection)) {
+            data.history.push(cloneSelection(data.currentSelection));
         }
 
-        const stageData = GraphApp.layout.buildStageData(data.normalizedDag, rootKey);
+        const stageData = GraphApp.layout.buildStageData(data.normalizedDag, selection);
         if (!stageData) {
             return;
         }
 
         data.currentRoot = stageData.root;
+        data.currentSelection = getStoredSelection(selection, stageData);
         data.stageData = stageData;
         interactionState.hoveredNodeKey = null;
         interactionState.focusedNodeKey = null;
@@ -240,20 +244,116 @@
         refreshGraphZoom(false);
     }
 
-    function commitDagUpdate(preferredRoot, statusMessage) {
+    function getStoredSelection(selection, stageData) {
+        if (selection && typeof selection === "object" && selection.type === "forest") {
+            return cloneSelection(selection);
+        }
+        if (typeof selection === "string") {
+            return selection;
+        }
+        if (stageData && stageData.root === "__graph_root__") {
+            return "__graph_root__";
+        }
+        return stageData ? stageData.root : null;
+    }
+
+    function commitDagUpdate(preferredSelection, statusMessage) {
         const data = GraphApp.state.data;
         GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
         syncRawDataFromNormalized();
 
-        const fallbackRoot = resolveInitialRoot(data.normalizedDag);
-        const nextRoot = preferredRoot && data.normalizedDag[preferredRoot]
-            ? preferredRoot
-            : (data.currentRoot && data.normalizedDag[data.currentRoot] ? data.currentRoot : fallbackRoot);
+        const fallbackSelection = resolveInitialSelection(data.normalizedDag);
+        const nextSelection = resolveNextSelection(preferredSelection, data.currentSelection, data.normalizedDag, fallbackSelection);
 
-        renderFromRoot(nextRoot, false);
+        renderFromSelection(nextSelection, false);
         if (statusMessage) {
             setGraphMessage(statusMessage);
         }
+    }
+
+    function resolveNextSelection(preferredSelection, currentSelection, dag, fallbackSelection) {
+        if (isSelectionValid(preferredSelection, dag)) {
+            return cloneSelection(preferredSelection);
+        }
+        if (isSelectionValid(currentSelection, dag)) {
+            return cloneSelection(currentSelection);
+        }
+        return cloneSelection(fallbackSelection);
+    }
+
+    function cloneSelection(selection) {
+        if (!selection || typeof selection !== "object") {
+            return selection || null;
+        }
+
+        return {
+            ...selection,
+            keys: Array.isArray(selection.keys) ? selection.keys.slice() : [],
+        };
+    }
+
+    function areSelectionsEqual(left, right) {
+        const leftValue = normalizeSelectionKey(left);
+        const rightValue = normalizeSelectionKey(right);
+        return leftValue === rightValue;
+    }
+
+    function normalizeSelectionKey(selection) {
+        if (!selection || typeof selection !== "object") {
+            return String(selection || "");
+        }
+
+        const type = selection.type || "forest";
+        const keys = Array.isArray(selection.keys) ? selection.keys.slice().sort().join("|") : "";
+        const label = selection.label || "";
+        return `${type}:${label}:${keys}`;
+    }
+
+    function isSelectionValid(selection, dag) {
+        if (!selection) {
+            return false;
+        }
+
+        if (typeof selection === "string") {
+            return selection === "__graph_root__" || Boolean(dag[selection]);
+        }
+
+        if (selection.type === "forest") {
+            return Array.isArray(selection.keys) && selection.keys.some(key => Boolean(dag[key]));
+        }
+
+        return false;
+    }
+
+    function remapSelectionKeys(selection, keyMapper) {
+        if (!selection || typeof selection !== "object") {
+            return keyMapper(selection);
+        }
+
+        return {
+            ...selection,
+            keys: Array.isArray(selection.keys)
+                ? selection.keys.map(key => keyMapper(key)).filter(Boolean)
+                : [],
+        };
+    }
+
+    function removeSelectionKeys(selection, deleteSet) {
+        if (!selection || typeof selection !== "object") {
+            return deleteSet.has(selection) ? null : selection;
+        }
+
+        const nextKeys = Array.isArray(selection.keys)
+            ? selection.keys.filter(key => !deleteSet.has(key))
+            : [];
+        if (!nextKeys.length) {
+            return null;
+        }
+
+        return {
+            ...selection,
+            keys: nextKeys,
+        };
     }
 
     function setGraphMessage(message) {
@@ -577,6 +677,7 @@
         const nodeCount = stageData.nodes.length;
         const focusLabel = getDisplayLabel(stageData.root, stageData.dag[stageData.root]);
         const modeLabel = GraphApp.state.data.viewMode === "edit" ? "Edit" : "Preview";
+        const canNavigateUp = getParentLevelSelection() !== null;
 
         if (dom.graphSummary) {
             dom.graphSummary.textContent = `${modeLabel} mode. Focused on ${focusLabel}. ${nodeCount} nodes and ${edgeCount} links are visible.`;
@@ -584,12 +685,15 @@
         if (dom.backButton) {
             dom.backButton.disabled = GraphApp.state.data.history.length === 0;
         }
+        if (dom.upButton) {
+            dom.upButton.disabled = !canNavigateUp;
+        }
         if (dom.emptyStateMessage) {
             dom.emptyStateMessage.textContent = "Loading graph data...";
         }
     }
 
-    function resolveInitialRoot(dag) {
+    function resolveInitialSelection(dag) {
         const roots = GraphApp.normalize.findRootsFromDag(dag);
         if (roots.length === 1) {
             return roots[0];
@@ -598,11 +702,53 @@
     }
 
     function getDisplayLabel(nodeKey, node) {
-        if (node && node.synthetic && nodeKey === "__graph_root__") {
-            return "All roots";
+        if (node && node.synthetic) {
+            return node.label || "Selected roots";
         }
 
         return GraphApp.state.utils.sanitizeNodeLabel((node && (node.label || node.title || node.name || nodeKey)) || nodeKey);
+    }
+
+    function navigateUpLevel() {
+        const parentSelection = getParentLevelSelection();
+        if (!parentSelection) {
+            return;
+        }
+
+        renderFromSelection(parentSelection, true);
+    }
+
+    function getParentLevelSelection() {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        const stageData = data.stageData;
+        if (!dag || !stageData) {
+            return null;
+        }
+
+        const topLevelKeys = Array.isArray(stageData.topLevelKeys) ? stageData.topLevelKeys : [];
+        if (!topLevelKeys.length) {
+            return null;
+        }
+
+        const parentKeys = Array.from(new Set(topLevelKeys.flatMap(nodeKey => {
+            const node = dag[nodeKey];
+            return node ? GraphApp.normalize.getRelationKeys(node.parents) : [];
+        })));
+
+        if (!parentKeys.length) {
+            return null;
+        }
+
+        if (parentKeys.length === 1) {
+            return parentKeys[0];
+        }
+
+        return {
+            type: "forest",
+            keys: parentKeys,
+            label: "Parent level",
+        };
     }
 
     function handleFileInput(event) {
@@ -895,10 +1041,12 @@
             GraphApp.normalize.renameRelationKey(dag[nodeKey], "kids", oldKey, newKey);
         });
 
-        data.history = data.history.map(item => (item === oldKey ? newKey : item));
+        data.history = data.history
+            .map(item => remapSelectionKeys(item, key => (key === oldKey ? newKey : key)))
+            .filter(Boolean);
 
-        const preferredRoot = data.currentRoot === oldKey ? newKey : data.currentRoot;
-        commitDagUpdate(preferredRoot, `Renamed node key from ${oldKey} to ${newKey}.`);
+        const preferredSelection = remapSelectionKeys(data.currentSelection, key => (key === oldKey ? newKey : key));
+        commitDagUpdate(preferredSelection, `Renamed node key from ${oldKey} to ${newKey}.`);
     }
 
     function deleteNode(nodeKey) {
@@ -990,9 +1138,11 @@
             });
         });
 
-        data.history = data.history.filter(item => !deleteSet.has(item));
-        const preferredRoot = deleteSet.has(data.currentRoot) ? resolveInitialRoot(dag) : data.currentRoot;
-        commitDagUpdate(preferredRoot, statusMessage);
+        data.history = data.history
+            .map(item => removeSelectionKeys(item, deleteSet))
+            .filter(Boolean);
+        const preferredSelection = removeSelectionKeys(data.currentSelection, deleteSet);
+        commitDagUpdate(preferredSelection, statusMessage);
     }
 
     function addNode(referenceNodeKey) {
@@ -1037,7 +1187,7 @@
             }
         }
 
-        commitDagUpdate(data.currentRoot || resolveInitialRoot(dag), `Added node ${newKey}.`);
+        commitDagUpdate(data.currentSelection || resolveInitialSelection(dag), `Added node ${newKey}.`);
     }
 
     function openRelationEditor(nodeKey, fieldName) {
@@ -1113,7 +1263,7 @@
         }
 
         closeRelationEditor();
-        commitDagUpdate(GraphApp.state.data.currentRoot, `Updated ${fieldName} for ${nodeKey}.`);
+        commitDagUpdate(GraphApp.state.data.currentSelection, `Updated ${fieldName} for ${nodeKey}.`);
     }
 
     function parseRelationInput(rawText) {
@@ -1278,11 +1428,12 @@
     }
 
     function focusNodeBranch(nodeKey) {
-        if (!nodeKey || GraphApp.state.data.currentRoot === nodeKey) {
+        const currentSelection = GraphApp.state.data.currentSelection;
+        if (!nodeKey || areSelectionsEqual(currentSelection, nodeKey)) {
             return;
         }
 
-        renderFromRoot(nodeKey, true);
+        renderFromSelection(nodeKey, true);
     }
 
     function getNodeElement(target) {

@@ -5,6 +5,7 @@
         rawData: null,
         normalizedDag: null,
         currentRoot: null,
+        currentSelection: null,
         history: [],
         stageData: null,
         zoomScale: 1,
@@ -43,6 +44,7 @@
                 emptyStateMessage: document.getElementById("empty-state-message"),
                 graphSummary: document.getElementById("graph-summary"),
                 backButton: document.getElementById("back-btn"),
+                upButton: document.getElementById("up-btn"),
                 zoomInButton: document.getElementById("zoom-in-btn"),
                 zoomOutButton: document.getElementById("zoom-out-btn"),
                 zoomFitButton: document.getElementById("zoom-fit-btn"),
@@ -72,6 +74,7 @@
 
     function resetGraphData() {
         data.currentRoot = null;
+        data.currentSelection = null;
         data.history = [];
         data.stageData = null;
         data.zoomScale = 1;

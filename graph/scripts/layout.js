@@ -15,31 +15,32 @@
         normalizeModule.ensureReferencedNodesExist(dag);
 
         const roots = normalizeModule.findRootsFromDag(dag);
-        const root = resolveRootKey(dag, roots, requestedRoot);
-        const forestTopLevelKeys = roots.length ? roots : Object.keys(dag);
+        const selection = resolveSelection(dag, roots, requestedRoot);
+        const root = selection.rootKey;
+        const forestTopLevelKeys = selection.topLevelKeys;
         const forestTopLevelSet = new Set(forestTopLevelKeys);
 
         if (root !== "__graph_root__" && !dag[root]) {
             dag[root] = { key: root, kids: roots.length ? roots : Object.keys(dag) };
         }
 
-        if (root === "__graph_root__") {
+        if (selection.isForest) {
             dag[root] = {
                 key: root,
-                label: "All roots",
+                label: selection.label,
                 kids: forestTopLevelKeys,
                 synthetic: true,
             };
         }
 
         resetCoordinates(dag);
-        if (root === "__graph_root__") {
+        if (selection.isForest) {
             buildCoordinatesFromRoots(dag, forestTopLevelKeys);
         } else {
             buildCoordinates(dag, root);
         }
 
-        const reachable = root === "__graph_root__"
+        const reachable = selection.isForest
             ? collectReachableFromRoots(dag, forestTopLevelKeys)
             : collectReachableNodes(dag, root);
         const nodeKeys = Array.from(reachable).filter(key => dag[key] && dag[key].coordinate);
@@ -65,7 +66,7 @@
                 detail: visual.detail,
                 width: visual.width,
                 height: theme.nodeHeight,
-                isRoot: root === "__graph_root__" ? forestTopLevelSet.has(nodeKey) : nodeKey === root,
+                isRoot: selection.isForest ? forestTopLevelSet.has(nodeKey) : nodeKey === root,
             };
 
             nodesByLayer.get(layer).push(nodeData);
@@ -121,7 +122,7 @@
 
             laneData.push({
                 layer,
-                label: layer === 0 ? (root === "__graph_root__" ? "Root" : "Focus") : `Tier ${layer}`,
+                label: layer === 0 ? (selection.isForest ? "Root" : "Focus") : `Tier ${layer}`,
                 x: laneCenter,
                 width: layerWidth,
             });
@@ -156,6 +157,9 @@
         return {
             dag,
             root,
+            selection,
+            topLevelKeys: forestTopLevelKeys,
+            isForest: selection.isForest,
             nodeMap,
             nodes: Object.values(nodeMap),
             edges: edgeData,
@@ -165,10 +169,22 @@
         };
     }
 
-    function resolveRootKey(dag, roots, requestedRoot) {
-        let root = requestedRoot;
+    function resolveSelection(dag, roots, requestedRoot) {
+        if (requestedRoot && typeof requestedRoot === "object" && requestedRoot.type === "forest") {
+            const topLevelKeys = Array.from(new Set((requestedRoot.keys || []).filter(key => dag[key])));
+            if (topLevelKeys.length) {
+                return {
+                    type: "forest",
+                    isForest: true,
+                    rootKey: "__selection_root__",
+                    topLevelKeys,
+                    label: requestedRoot.label || "Parent level",
+                };
+            }
+        }
 
-        if (!root || !dag[root]) {
+        let root = requestedRoot;
+        if (!root || typeof root !== "string" || !dag[root]) {
             if (roots.length === 1) {
                 root = roots[0];
             } else {
@@ -176,7 +192,13 @@
             }
         }
 
-        return root;
+        return {
+            type: "single",
+            isForest: root === "__graph_root__",
+            rootKey: root,
+            topLevelKeys: root === "__graph_root__" ? (roots.length ? roots : Object.keys(dag)) : [root],
+            label: root === "__graph_root__" ? "All roots" : root,
+        };
     }
 
     function resetCoordinates(dag) {
@@ -334,9 +356,9 @@
         const theme = GraphApp.state.theme;
         const utils = GraphApp.state.utils;
 
-        if (node.synthetic && nodeKey === "__graph_root__") {
+        if (node.synthetic) {
             return {
-                title: "All roots",
+                title: node.label || "Selected roots",
                 detail: "Combined entry point for every detected root branch.",
                 width: 232,
             };
