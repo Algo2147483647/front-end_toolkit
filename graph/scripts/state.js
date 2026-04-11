@@ -71,6 +71,7 @@
                 nodeDetailSubtitle: document.getElementById("node-detail-subtitle"),
                 nodeDetailFields: document.getElementById("node-detail-fields"),
                 nodeDetailJson: document.getElementById("node-detail-json"),
+                nodeDetailSaveButton: document.getElementById("node-detail-save"),
                 nodeDetailCloseButton: document.getElementById("node-detail-close"),
             };
         }

@@ -55,6 +55,7 @@
         isOpen: false,
         nodeKey: null,
     };
+    let loadRequestId = 0;
 
     function init() {
         const stateModule = GraphApp.state;
@@ -144,6 +145,9 @@
         if (dom.nodeDetailCloseButton) {
             dom.nodeDetailCloseButton.addEventListener("click", closeNodeDetail);
         }
+        if (dom.nodeDetailSaveButton) {
+            dom.nodeDetailSaveButton.addEventListener("click", saveNodeDetail);
+        }
         if (dom.nodeDetailModal) {
             dom.nodeDetailModal.addEventListener("click", event => {
                 if (event.target === dom.nodeDetailModal) {
@@ -162,6 +166,7 @@
 
     async function loadDefaultDag() {
         const defaultFileName = "example.json";
+        const requestId = ++loadRequestId;
         updateFileInputText(defaultFileName);
 
         try {
@@ -171,8 +176,14 @@
             }
 
             const payload = await response.json();
+            if (requestId !== loadRequestId) {
+                return;
+            }
             loadDagData(payload, { sourceFileName: defaultFileName });
         } catch (error) {
+            if (requestId !== loadRequestId) {
+                return;
+            }
             GraphApp.svgRender.clearStage();
             setGraphMessage("Unable to load example.json automatically. Please choose a JSON file.");
             const { emptyStateMessage, emptyState } = GraphApp.state.getDom();
@@ -189,8 +200,10 @@
     function loadDagData(input, options) {
         const { data, resetGraphData } = GraphApp.state;
         const request = options || {};
+        const sourceFileName = request.sourceFileName || data.sourceFileName || "graph.json";
 
-        data.sourceFileName = request.sourceFileName || data.sourceFileName || "graph.json";
+        data.sourceFileName = sourceFileName;
+        updateFileInputText(sourceFileName);
         data.normalizedDag = GraphApp.normalize.normalizeDagInput(input);
         GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
         syncRawDataFromNormalized();
@@ -544,6 +557,9 @@
             const focusLabel = getDisplayLabel(stageData.root, stageData.dag[stageData.root]);
             setGraphMessage(`Mode: ${GraphApp.state.data.viewMode === "edit" ? "Edit" : "Preview"}. Focused on ${focusLabel}.`);
         }
+        if (detailViewState.isOpen && detailViewState.nodeKey) {
+            openNodeDetail(detailViewState.nodeKey);
+        }
     }
 
     function updateModeButtons() {
@@ -779,10 +795,14 @@
             return;
         }
 
+        const requestId = ++loadRequestId;
         updateFileInputText(file.name);
 
         const reader = new FileReader();
         reader.onload = loadEvent => {
+            if (requestId !== loadRequestId) {
+                return;
+            }
             try {
                 loadDagData(JSON.parse(loadEvent.target.result), { sourceFileName: file.name });
             } catch (error) {
@@ -1286,6 +1306,7 @@
         const dom = GraphApp.state.getDom();
         const node = dag[nodeKey];
         const fieldEntries = buildNodeFieldEntries(nodeKey, node);
+        const isEditMode = data.viewMode === "edit";
 
         detailViewState.isOpen = true;
         detailViewState.nodeKey = nodeKey;
@@ -1294,9 +1315,15 @@
             dom.nodeDetailTitle.textContent = nodeKey;
         }
         if (dom.nodeDetailSubtitle) {
-            dom.nodeDetailSubtitle.textContent = `Generic field view for ${fieldEntries.length} key-value pairs in this node.`;
+            dom.nodeDetailSubtitle.textContent = isEditMode
+                ? `Editing ${fieldEntries.length} key-value pairs in this node.`
+                : `Generic field view for ${fieldEntries.length} key-value pairs in this node.`;
         }
-        renderNodeFields(dom.nodeDetailFields, fieldEntries);
+        if (dom.nodeDetailSaveButton) {
+            dom.nodeDetailSaveButton.hidden = !isEditMode;
+            dom.nodeDetailSaveButton.disabled = !isEditMode;
+        }
+        renderNodeFields(dom.nodeDetailFields, fieldEntries, isEditMode);
         if (dom.nodeDetailJson) {
             dom.nodeDetailJson.textContent = JSON.stringify(buildSerializableNode(nodeKey, node), null, 2);
         }
@@ -1306,7 +1333,9 @@
         }
 
         setTimeout(() => {
-            if (dom.nodeDetailCloseButton) {
+            if (isEditMode && dom.nodeDetailSaveButton) {
+                dom.nodeDetailSaveButton.focus();
+            } else if (dom.nodeDetailCloseButton) {
                 dom.nodeDetailCloseButton.focus();
             }
         }, 0);
@@ -1325,6 +1354,190 @@
             nodeDetailModal.classList.remove("is-visible");
             nodeDetailModal.setAttribute("aria-hidden", "true");
         }
+    }
+
+    function saveNodeDetail() {
+        const data = GraphApp.state.data;
+        const dag = data.normalizedDag;
+        const oldKey = detailViewState.nodeKey;
+        const { nodeDetailFields } = GraphApp.state.getDom();
+
+        if (data.viewMode !== "edit" || !detailViewState.isOpen || !dag || !oldKey || !dag[oldKey] || !nodeDetailFields) {
+            return;
+        }
+
+        const collected = collectNodeDetailFormValues(nodeDetailFields);
+        if (!collected.ok) {
+            window.alert(collected.message);
+            return;
+        }
+
+        const nextKey = collected.key;
+        if (!nextKey) {
+            window.alert("Node key cannot be empty.");
+            return;
+        }
+        if (nextKey.includes("\n") || nextKey.includes(",")) {
+            window.alert("Node key cannot contain commas or line breaks.");
+            return;
+        }
+        if (nextKey !== oldKey && Object.prototype.hasOwnProperty.call(dag, nextKey)) {
+            window.alert(`Node key "${nextKey}" already exists.`);
+            return;
+        }
+
+        const nextNode = collected.node;
+        nextNode.parents = GraphApp.normalize.normalizeRelationField(nextNode.parents);
+        nextNode.children = GraphApp.normalize.normalizeRelationField(nextNode.children);
+
+        const nextParentKeys = GraphApp.normalize.getRelationKeys(nextNode.parents);
+        const nextChildKeys = GraphApp.normalize.getRelationKeys(nextNode.children);
+        if (nextParentKeys.includes(nextKey) || nextChildKeys.includes(nextKey)) {
+            window.alert("A node cannot reference itself.");
+            return;
+        }
+
+        const previousNode = dag[oldKey];
+        const previousParentKeys = GraphApp.normalize.getRelationKeys(previousNode.parents);
+        const previousChildKeys = GraphApp.normalize.getRelationKeys(previousNode.children);
+        let preferredSelection = data.currentSelection;
+
+        if (nextKey !== oldKey) {
+            delete dag[oldKey];
+            Object.keys(dag).forEach(nodeKey => {
+                GraphApp.normalize.renameRelationKey(dag[nodeKey], "parents", oldKey, nextKey);
+                GraphApp.normalize.renameRelationKey(dag[nodeKey], "children", oldKey, nextKey);
+            });
+            detailViewState.nodeKey = nextKey;
+            data.history = data.history
+                .map(item => remapSelectionKeys(item, key => (key === oldKey ? nextKey : key)))
+                .filter(Boolean);
+            preferredSelection = remapSelectionKeys(data.currentSelection, key => (key === oldKey ? nextKey : key));
+        }
+
+        nextNode.key = nextKey;
+        dag[nextKey] = nextNode;
+        syncEditedNodeRelations(nextKey, previousParentKeys, previousChildKeys, nextNode.parents, nextNode.children);
+        commitDagUpdate(preferredSelection, `Saved node ${nextKey}.`);
+    }
+
+    function collectNodeDetailFormValues(container) {
+        const controls = Array.from(container.querySelectorAll(".node-detail-editor"));
+        const nextNode = {};
+        let nextKey = "";
+
+        for (const control of controls) {
+            const fieldName = control.dataset.fieldName || "";
+            const valueType = control.dataset.valueType || "string";
+
+            if (fieldName === "key") {
+                nextKey = String(control.value || "").trim();
+                continue;
+            }
+
+            const parsed = parseNodeDetailEditorValue(fieldName, control.value, valueType);
+            if (!parsed.ok) {
+                return parsed;
+            }
+            nextNode[fieldName] = parsed.value;
+        }
+
+        return {
+            ok: true,
+            key: nextKey,
+            node: nextNode,
+        };
+    }
+
+    function parseNodeDetailEditorValue(fieldName, rawValue, valueType) {
+        const text = String(rawValue || "");
+        const trimmed = text.trim();
+
+        if (fieldName === "parents" || fieldName === "children") {
+            if (!trimmed) {
+                return { ok: true, value: {} };
+            }
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                return parseJsonEditorValue(fieldName, trimmed);
+            }
+            return { ok: true, value: parseRelationInput(trimmed) };
+        }
+
+        if (valueType === "string") {
+            return { ok: true, value: text };
+        }
+
+        if (valueType === "number") {
+            const nextNumber = Number(trimmed);
+            if (!trimmed || !Number.isFinite(nextNumber)) {
+                return { ok: false, message: `Field "${fieldName}" must be a valid number.` };
+            }
+            return { ok: true, value: nextNumber };
+        }
+
+        if (valueType === "boolean") {
+            if (/^true$/i.test(trimmed)) {
+                return { ok: true, value: true };
+            }
+            if (/^false$/i.test(trimmed)) {
+                return { ok: true, value: false };
+            }
+            return { ok: false, message: `Field "${fieldName}" must be true or false.` };
+        }
+
+        return parseJsonEditorValue(fieldName, trimmed || "null");
+    }
+
+    function parseJsonEditorValue(fieldName, rawJson) {
+        try {
+            return {
+                ok: true,
+                value: JSON.parse(rawJson),
+            };
+        } catch (error) {
+            return {
+                ok: false,
+                message: `Field "${fieldName}" contains invalid JSON.`,
+            };
+        }
+    }
+
+    function syncEditedNodeRelations(nodeKey, previousParentKeys, previousChildKeys, nextParents, nextChildren) {
+        const dag = GraphApp.state.data.normalizedDag;
+        const nextParentKeys = GraphApp.normalize.getRelationKeys(nextParents);
+        const nextChildKeys = GraphApp.normalize.getRelationKeys(nextChildren);
+
+        previousParentKeys.forEach(parentKey => {
+            if (!nextParentKeys.includes(parentKey) && dag[parentKey]) {
+                GraphApp.normalize.removeRelationKey(dag[parentKey], "children", nodeKey);
+            }
+        });
+
+        nextParentKeys.forEach(parentKey => {
+            ensureNodeExists(parentKey);
+            GraphApp.normalize.addRelationKey(
+                dag[parentKey],
+                "children",
+                nodeKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+        });
+
+        previousChildKeys.forEach(childKey => {
+            if (!nextChildKeys.includes(childKey) && dag[childKey]) {
+                GraphApp.normalize.removeRelationKey(dag[childKey], "parents", nodeKey);
+            }
+        });
+
+        nextChildKeys.forEach(childKey => {
+            ensureNodeExists(childKey);
+            GraphApp.normalize.addRelationKey(
+                dag[childKey],
+                "parents",
+                nodeKey,
+                GraphApp.state.constants.defaultRelationValue
+            );
+        });
     }
 
     function saveRelationEditor() {
@@ -1469,7 +1682,7 @@
         };
     }
 
-    function renderNodeFields(container, entries) {
+    function renderNodeFields(container, entries, isEditMode) {
         if (!container) {
             return;
         }
@@ -1494,10 +1707,106 @@
             heading.textContent = fieldName;
             block.appendChild(heading);
 
-            block.appendChild(buildFieldValuePreview(fieldName, fieldValue));
+            if (isEditMode) {
+                block.appendChild(buildFieldValueEditor(fieldName, fieldValue));
+            } else {
+                block.appendChild(buildFieldValuePreview(fieldName, fieldValue));
+            }
 
             container.appendChild(block);
         });
+    }
+
+    function buildFieldValueEditor(fieldName, value) {
+        const control = fieldName === "key"
+            ? document.createElement("input")
+            : document.createElement("textarea");
+        const valueType = getEditorValueType(fieldName, value);
+
+        control.className = fieldName === "key"
+            ? "node-detail-editor node-detail-editor--input"
+            : "node-detail-editor node-detail-editor--textarea";
+        control.dataset.fieldName = fieldName;
+        control.dataset.valueType = valueType;
+        control.spellcheck = false;
+
+        if (fieldName === "key") {
+            control.type = "text";
+            control.value = String(value || "");
+            return control;
+        }
+
+        control.rows = getEditorRows(fieldName, value);
+        control.value = formatEditorValue(fieldName, value, valueType);
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "node-detail-editor-wrap";
+        wrapper.appendChild(control);
+
+        const hint = getEditorHint(fieldName, valueType);
+        if (hint) {
+            const hintNode = document.createElement("p");
+            hintNode.className = "node-detail-editor-hint";
+            hintNode.textContent = hint;
+            wrapper.appendChild(hintNode);
+        }
+
+        return wrapper;
+    }
+
+    function getEditorValueType(fieldName, value) {
+        if (fieldName === "parents" || fieldName === "children") {
+            return "relation";
+        }
+        if (typeof value === "string") {
+            return "string";
+        }
+        if (typeof value === "number") {
+            return "number";
+        }
+        if (typeof value === "boolean") {
+            return "boolean";
+        }
+        return "json";
+    }
+
+    function formatEditorValue(fieldName, value, valueType) {
+        if (fieldName === "parents" || fieldName === "children") {
+            return JSON.stringify(GraphApp.normalize.normalizeRelationField(value), null, 2);
+        }
+        if (valueType === "string") {
+            return String(value || "");
+        }
+        if (valueType === "number" || valueType === "boolean") {
+            return String(value);
+        }
+        return JSON.stringify(value, null, 2);
+    }
+
+    function getEditorRows(fieldName, value) {
+        if (fieldName === "define") {
+            return 8;
+        }
+        if (fieldName === "parents" || fieldName === "children") {
+            return 5;
+        }
+        if (value && typeof value === "object") {
+            return 6;
+        }
+        return 3;
+    }
+
+    function getEditorHint(fieldName, valueType) {
+        if (fieldName === "parents" || fieldName === "children") {
+            return "Use a JSON object, a JSON array, or one key per line.";
+        }
+        if (valueType === "json") {
+            return "Enter valid JSON.";
+        }
+        if (valueType === "boolean") {
+            return "Use true or false.";
+        }
+        return "";
     }
 
     function buildFieldValuePreview(fieldName, value) {

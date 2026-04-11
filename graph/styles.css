@@ -793,6 +793,25 @@ body::before {
   border-bottom: 1px solid rgba(96, 118, 151, 0.12);
 }
 
+.node-detail-header-main {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.node-detail-save-btn {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.node-detail-save-btn[hidden] {
+  display: none;
+}
+
 .node-detail-eyebrow {
   margin: 0 0 6px;
   color: var(--text-soft);
@@ -863,6 +882,39 @@ body::before {
   text-transform: uppercase;
 }
 
+.node-detail-editor-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.node-detail-editor {
+  width: 100%;
+  border: 1px solid rgba(96, 118, 151, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text-strong);
+  background: #fff;
+  font: 13px/1.55 "IBM Plex Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  outline: none;
+}
+
+.node-detail-editor:focus {
+  border-color: rgba(40, 95, 223, 0.42);
+  box-shadow: 0 0 0 3px rgba(40, 95, 223, 0.12);
+}
+
+.node-detail-editor--textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.node-detail-editor-hint {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .node-detail-chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -921,5 +973,9 @@ body::before {
   .node-detail-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .node-detail-header-main {
+    flex-direction: column;
   }
 }
