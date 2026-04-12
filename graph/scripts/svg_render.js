@@ -5,7 +5,7 @@
     const TARGET_EDGE_GAP = 0;
     const ARROW_MARKER_WIDTH = 10;
     const ARROW_MARKER_HEIGHT = 8;
-    const DETAIL_MAX_LINE_LENGTH = 38;
+    const DETAIL_MAX_LINE_LENGTH = 48;
     const DETAIL_MAX_LINES = 2;
     const DETAIL_LINE_HEIGHT = 10;
 
