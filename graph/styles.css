@@ -697,30 +697,75 @@ body::before {
   background: rgba(18, 28, 43, 0.28);
 }
 
-.relation-editor-modal.is-visible {
+.relation-editor-modal.is-visible,
+.save-json-modal.is-visible {
   display: flex;
 }
 
-.relation-editor-dialog {
+.relation-editor-dialog,
+.save-json-dialog {
   width: min(540px, calc(100vw - 32px));
   padding: 18px;
-  border-radius: 18px;
   border: 1px solid rgba(66, 86, 119, 0.14);
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 18px 36px rgba(26, 39, 63, 0.18);
 }
 
-.relation-editor-dialog h3 {
+.relation-editor-dialog {
+  border-radius: 18px;
+}
+
+.relation-editor-dialog h3,
+.save-json-dialog h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
 }
 
-.relation-editor-description {
+.relation-editor-description,
+.save-json-description {
   margin: 8px 0 0;
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.save-json-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(18, 28, 43, 0.28);
+}
+
+.save-json-dialog {
+  width: min(460px, calc(100vw - 32px));
+  border-radius: 8px;
+}
+
+.save-json-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.save-json-actions button {
+  flex: 1 1 140px;
+  min-height: 40px;
+  border-radius: 8px;
+}
+
+.save-json-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.save-json-actions button:disabled:hover {
+  transform: none;
 }
 
 #relation-editor-input {

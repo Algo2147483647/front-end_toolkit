@@ -70,6 +70,7 @@
         bindEvents();
         updateModeButtons();
         updateZoomControls();
+        updateSaveJsonButton();
         stateModule.data.isInitialized = true;
         loadDefaultDag();
     }
@@ -78,6 +79,7 @@
         const dom = GraphApp.state.getDom();
 
         if (dom.fileInput) {
+            dom.fileInput.addEventListener("click", handleFileInputClick);
             dom.fileInput.addEventListener("change", handleFileInput);
         }
         if (dom.settingsButton) {
@@ -107,7 +109,23 @@
             dom.exportButton.addEventListener("click", exportCurrentSvg);
         }
         if (dom.saveJsonButton) {
-            dom.saveJsonButton.addEventListener("click", saveCurrentJson);
+            dom.saveJsonButton.addEventListener("click", openSaveJsonDialog);
+        }
+        if (dom.saveJsonOverwriteButton) {
+            dom.saveJsonOverwriteButton.addEventListener("click", saveCurrentJsonToSource);
+        }
+        if (dom.saveJsonNewButton) {
+            dom.saveJsonNewButton.addEventListener("click", saveCurrentJsonAsNew);
+        }
+        if (dom.saveJsonCancelButton) {
+            dom.saveJsonCancelButton.addEventListener("click", closeSaveJsonDialog);
+        }
+        if (dom.saveJsonModal) {
+            dom.saveJsonModal.addEventListener("click", event => {
+                if (event.target === dom.saveJsonModal) {
+                    closeSaveJsonDialog();
+                }
+            });
         }
         if (dom.backButton) {
             dom.backButton.addEventListener("click", navigateBack);
@@ -203,6 +221,7 @@
         const sourceFileName = request.sourceFileName || data.sourceFileName || "graph.json";
 
         data.sourceFileName = sourceFileName;
+        data.sourceFileHandle = request.sourceFileHandle || null;
         updateFileInputText(sourceFileName);
         data.normalizedDag = GraphApp.normalize.normalizeDagInput(input);
         GraphApp.normalize.ensureReferencedNodesExist(data.normalizedDag);
@@ -420,7 +439,100 @@
         URL.revokeObjectURL(url);
     }
 
-    function saveCurrentJson() {
+    function openSaveJsonDialog() {
+        const data = GraphApp.state.data;
+        if (!data.normalizedDag) {
+            setGraphMessage("Load or render a graph before saving JSON.");
+            return;
+        }
+
+        const dom = GraphApp.state.getDom();
+        const sourceFileName = ensureJsonExtension(data.sourceFileName || "graph.json");
+        const newFileName = buildTimestampFileName(sourceFileName);
+        const canOverwrite = canOverwriteSourceFile();
+
+        if (dom.saveJsonDescription) {
+            dom.saveJsonDescription.textContent = canOverwrite
+                ? `Overwrite "${sourceFileName}" on disk, or save a new copy named "${newFileName}".`
+                : `Direct overwrite is unavailable for "${sourceFileName}". Reopen the JSON with file access, or save a new copy named "${newFileName}".`;
+        }
+        if (dom.saveJsonOverwriteButton) {
+            dom.saveJsonOverwriteButton.disabled = !canOverwrite;
+            dom.saveJsonOverwriteButton.title = canOverwrite
+                ? `Overwrite ${sourceFileName}`
+                : "Open the JSON with file access to enable direct overwrite.";
+        }
+        if (dom.saveJsonModal) {
+            dom.saveJsonModal.classList.add("is-visible");
+            dom.saveJsonModal.setAttribute("aria-hidden", "false");
+        }
+
+        setTimeout(() => {
+            if (canOverwrite && dom.saveJsonOverwriteButton) {
+                dom.saveJsonOverwriteButton.focus();
+            } else if (dom.saveJsonNewButton) {
+                dom.saveJsonNewButton.focus();
+            }
+        }, 0);
+    }
+
+    function closeSaveJsonDialog() {
+        const { saveJsonModal } = GraphApp.state.getDom();
+        if (saveJsonModal) {
+            saveJsonModal.classList.remove("is-visible");
+            saveJsonModal.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    function canOverwriteSourceFile() {
+        const fileHandle = GraphApp.state.data.sourceFileHandle;
+        return Boolean(fileHandle && typeof fileHandle.createWritable === "function");
+    }
+
+    function getCurrentJsonContent() {
+        syncRawDataFromNormalized();
+        return JSON.stringify(GraphApp.state.data.rawData || {}, null, 2);
+    }
+
+    async function saveCurrentJsonToSource() {
+        const data = GraphApp.state.data;
+        if (!data.normalizedDag) {
+            setGraphMessage("Load or render a graph before saving JSON.");
+            return;
+        }
+
+        const fileHandle = data.sourceFileHandle;
+        const sourceFileName = ensureJsonExtension(data.sourceFileName || (fileHandle && fileHandle.name) || "graph.json");
+        if (!canOverwriteSourceFile()) {
+            setGraphMessage("Direct overwrite is unavailable. Reopen the JSON with file access, or save a new copy.");
+            return;
+        }
+
+        const shouldOverwrite = window.confirm(`Overwrite "${sourceFileName}" on disk?`);
+        if (!shouldOverwrite) {
+            setGraphMessage("Save cancelled.");
+            return;
+        }
+
+        try {
+            const granted = await ensureWritableFilePermission(fileHandle);
+            if (!granted) {
+                setGraphMessage("Write permission was not granted for the source JSON file.");
+                return;
+            }
+
+            const writable = await fileHandle.createWritable();
+            await writable.write(getCurrentJsonContent());
+            await writable.close();
+            closeSaveJsonDialog();
+            setGraphMessage(`Saved JSON to ${sourceFileName}.`);
+        } catch (error) {
+            setGraphMessage(`Unable to overwrite ${sourceFileName}.`);
+            console.error(error);
+        }
+    }
+
+    function saveCurrentJsonAsNew() {
         const data = GraphApp.state.data;
         if (!data.normalizedDag) {
             setGraphMessage("Load or render a graph before saving JSON.");
@@ -428,15 +540,31 @@
         }
 
         const sourceFileName = data.sourceFileName || "graph.json";
-        const saveAsNew = window.confirm("Save as a new file? Click OK for New (default) or Cancel for Overwrite.");
-        const outputFileName = saveAsNew
-            ? buildTimestampFileName(sourceFileName)
-            : ensureJsonExtension(sourceFileName);
-
-        syncRawDataFromNormalized();
-        const content = JSON.stringify(data.rawData || {}, null, 2);
+        const outputFileName = buildTimestampFileName(sourceFileName);
+        const content = getCurrentJsonContent();
         downloadJsonFile(content, outputFileName);
+        closeSaveJsonDialog();
         setGraphMessage(`Saved JSON as ${outputFileName}.`);
+    }
+
+    async function ensureWritableFilePermission(fileHandle) {
+        if (!fileHandle) {
+            return false;
+        }
+
+        if (typeof fileHandle.queryPermission === "function") {
+            const permission = await fileHandle.queryPermission({ mode: "readwrite" });
+            if (permission === "granted") {
+                return true;
+            }
+        }
+
+        if (typeof fileHandle.requestPermission === "function") {
+            const permission = await fileHandle.requestPermission({ mode: "readwrite" });
+            return permission === "granted";
+        }
+
+        return true;
     }
 
     function downloadJsonFile(content, fileName) {
@@ -709,6 +837,20 @@
         }
     }
 
+    function updateSaveJsonButton() {
+        const dom = GraphApp.state.getDom();
+        const data = GraphApp.state.data;
+        if (!dom.saveJsonButton) {
+            return;
+        }
+
+        const sourceFileName = ensureJsonExtension(data.sourceFileName || "graph.json");
+        dom.saveJsonButton.disabled = !data.normalizedDag;
+        dom.saveJsonButton.title = canOverwriteSourceFile()
+            ? `Save ${sourceFileName}: overwrite original or create a new copy.`
+            : `Save ${sourceFileName}: direct overwrite needs file access; new copy is available.`;
+    }
+
     function updateChrome(stageData) {
         const dom = GraphApp.state.getDom();
         const edgeCount = stageData.edges.length;
@@ -729,6 +871,7 @@
         if (dom.emptyStateMessage) {
             dom.emptyStateMessage.textContent = "Loading graph data...";
         }
+        updateSaveJsonButton();
     }
 
     function resolveInitialSelection(dag) {
@@ -789,32 +932,94 @@
         };
     }
 
+    function handleFileInputClick(event) {
+        if (typeof window.showOpenFilePicker !== "function") {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        importJsonFileWithAccess();
+    }
+
+    async function importJsonFileWithAccess() {
+        try {
+            const pickedFile = await openJsonDocumentPicker();
+            if (!pickedFile || !pickedFile.file) {
+                return;
+            }
+
+            await loadJsonFile(pickedFile.file, pickedFile.handle);
+        } catch (error) {
+            if (error && error.name === "AbortError") {
+                return;
+            }
+            setGraphMessage("The selected file could not be opened as JSON.");
+            console.error(error);
+        }
+    }
+
+    async function openJsonDocumentPicker() {
+        if (typeof window.showOpenFilePicker !== "function") {
+            return null;
+        }
+
+        const handles = await window.showOpenFilePicker({
+            excludeAcceptAllOption: false,
+            multiple: false,
+            types: [{
+                accept: {
+                    "application/json": [".json"],
+                },
+                description: "JSON graph documents",
+            }],
+        });
+
+        const handle = handles && handles[0];
+        if (!handle) {
+            return null;
+        }
+
+        return {
+            file: await handle.getFile(),
+            handle,
+        };
+    }
+
+    async function loadJsonFile(file, sourceFileHandle) {
+        const requestId = ++loadRequestId;
+        updateFileInputText(file.name);
+
+        try {
+            const text = await file.text();
+            if (requestId !== loadRequestId) {
+                return;
+            }
+            loadDagData(JSON.parse(text), {
+                sourceFileName: file.name,
+                sourceFileHandle: sourceFileHandle || null,
+            });
+        } catch (error) {
+            if (requestId !== loadRequestId) {
+                return;
+            }
+            setGraphMessage("The selected file could not be parsed as JSON.");
+            const { emptyStateMessage } = GraphApp.state.getDom();
+            if (emptyStateMessage) {
+                emptyStateMessage.textContent = "The selected file could not be parsed as JSON.";
+            }
+            console.error(error);
+        }
+    }
+
     function handleFileInput(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) {
             return;
         }
 
-        const requestId = ++loadRequestId;
-        updateFileInputText(file.name);
-
-        const reader = new FileReader();
-        reader.onload = loadEvent => {
-            if (requestId !== loadRequestId) {
-                return;
-            }
-            try {
-                loadDagData(JSON.parse(loadEvent.target.result), { sourceFileName: file.name });
-            } catch (error) {
-                setGraphMessage("The selected file could not be parsed as JSON.");
-                const { emptyStateMessage } = GraphApp.state.getDom();
-                if (emptyStateMessage) {
-                    emptyStateMessage.textContent = "The selected file could not be parsed as JSON.";
-                }
-                console.error(error);
-            }
-        };
-        reader.readAsText(file);
+        loadJsonFile(file, null);
+        event.target.value = "";
     }
 
     function updateFileInputText(fileName) {
@@ -880,6 +1085,7 @@
         if (event.key === "Escape") {
             setSettingsPanelVisibility(false);
             hideContextMenu();
+            closeSaveJsonDialog();
             closeRelationEditor();
             closeNodeDetail();
         }

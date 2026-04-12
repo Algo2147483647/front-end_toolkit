@@ -263,8 +263,9 @@ The top bar includes `Save JSON`.
 
 When clicked:
 
-- `OK`: save as a new file
-- `Cancel`: save using the original file name
+- `Overwrite Original`: write the edited JSON back to the source file
+- `Save New Copy`: download a timestamped JSON copy
+- `Cancel`: close the save dialog
 
 Default new-file naming:
 
@@ -272,7 +273,7 @@ Default new-file naming:
 original-name-YYYYMMDD-HHMMSS.json
 ```
 
-In browser environments, overwrite is implemented as a same-name download.
+Direct overwrite uses the browser File System Access API. When available, choosing a JSON file through the workspace picker binds the file handle so `Overwrite Original` can write back to disk. If file access is unavailable, save a new copy instead.
 
 ## Rendering Notes
 

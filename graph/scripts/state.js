@@ -14,6 +14,7 @@
         isInitialized: false,
         viewMode: "preview",
         sourceFileName: "example.json",
+        sourceFileHandle: null,
         contextMenuNodeKey: null,
     };
 
@@ -58,6 +59,11 @@
                 fileInputText: document.querySelector(".file-input-text"),
                 exportButton: document.getElementById("export-btn"),
                 saveJsonButton: document.getElementById("save-json-btn"),
+                saveJsonModal: document.getElementById("save-json-modal"),
+                saveJsonDescription: document.getElementById("save-json-description"),
+                saveJsonOverwriteButton: document.getElementById("save-json-overwrite"),
+                saveJsonNewButton: document.getElementById("save-json-new"),
+                saveJsonCancelButton: document.getElementById("save-json-cancel"),
                 topbar: document.querySelector(".topbar"),
                 contextMenu: document.getElementById("node-context-menu"),
                 relationEditorModal: document.getElementById("relation-editor-modal"),
