@@ -845,6 +845,14 @@ body::before {
   gap: 14px;
 }
 
+.node-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .node-detail-save-btn {
   flex: 0 0 auto;
   min-height: 34px;
@@ -1022,5 +1030,9 @@ body::before {
 
   .node-detail-header-main {
     flex-direction: column;
+  }
+
+  .node-detail-actions {
+    justify-content: flex-end;
   }
 }
