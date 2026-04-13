@@ -70,6 +70,7 @@
         bindEvents();
         updateModeButtons();
         updateZoomControls();
+        updateAllButton();
         updateSaveJsonButton();
         stateModule.data.isInitialized = true;
         loadDefaultDag();
@@ -132,6 +133,9 @@
         }
         if (dom.upButton) {
             dom.upButton.addEventListener("click", navigateUpLevel);
+        }
+        if (dom.allButton) {
+            dom.allButton.addEventListener("click", navigateToFullGraph);
         }
         if (dom.mainContent) {
             dom.mainContent.addEventListener("mousedown", handlePanStart);
@@ -851,6 +855,20 @@
             : `Save ${sourceFileName}: direct overwrite needs file access; new copy is available.`;
     }
 
+    function updateAllButton() {
+        const dom = GraphApp.state.getDom();
+        const data = GraphApp.state.data;
+        if (!dom.allButton) {
+            return;
+        }
+
+        const isFullGraph = areSelectionsEqual(data.currentSelection, getFullGraphSelection());
+        dom.allButton.disabled = !data.normalizedDag || isFullGraph;
+        dom.allButton.title = data.normalizedDag
+            ? "Return to the full graph."
+            : "Load a graph before returning to the full set.";
+    }
+
     function updateChrome(stageData) {
         const dom = GraphApp.state.getDom();
         const edgeCount = stageData.edges.length;
@@ -871,7 +889,12 @@
         if (dom.emptyStateMessage) {
             dom.emptyStateMessage.textContent = "Loading graph data...";
         }
+        updateAllButton();
         updateSaveJsonButton();
+    }
+
+    function getFullGraphSelection() {
+        return "__graph_root__";
     }
 
     function resolveInitialSelection(dag) {
@@ -897,6 +920,20 @@
         }
 
         renderFromSelection(parentSelection, true);
+    }
+
+    function navigateToFullGraph() {
+        const data = GraphApp.state.data;
+        if (!data.normalizedDag) {
+            return;
+        }
+
+        const fullSelection = getFullGraphSelection();
+        if (areSelectionsEqual(data.currentSelection, fullSelection)) {
+            return;
+        }
+
+        renderFromSelection(fullSelection, true);
     }
 
     function getParentLevelSelection() {

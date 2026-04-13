@@ -85,25 +85,30 @@ body::before {
   z-index: 5;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.34));
   border: 1px solid var(--panel-border);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 0 12px 24px rgba(26, 39, 63, 0.04);
   backdrop-filter: blur(12px);
+}
+
+.topbar-brand {
+  flex: 0 0 auto;
+  min-width: 132px;
 }
 
 .topbar h1 {
   margin: 0;
   font-family: "Cormorant Garamond", "Georgia", serif;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .topbar h1 {
-  font-size: clamp(30px, 2.6vw, 40px);
+  font-size: 30px;
   line-height: 0.96;
 }
 
@@ -127,24 +132,37 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  min-height: 36px;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
   flex-wrap: wrap;
+}
+
+.topbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 38px;
+  padding: 4px;
+  border: 1px solid rgba(91, 109, 142, 0.09);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .graph-summary {
   margin: 0;
-  max-width: 460px;
+  padding: 10px 12px;
+  border: 1px solid rgba(91, 109, 142, 0.1);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.55;
-  text-align: right;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
 }
 
 .zoom-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -161,9 +179,10 @@ body::before {
 .zoom-pill {
   margin: 0;
   min-width: 58px;
-  padding: 8px 12px;
+  min-height: 30px;
+  padding: 7px 10px;
   border-radius: 999px;
-  background: rgba(243, 246, 250, 0.62);
+  background: rgba(255, 255, 255, 0.54);
   color: var(--text-strong);
   font-size: 12px;
   font-weight: 700;
@@ -275,6 +294,14 @@ body::before {
   flex-shrink: 0;
 }
 
+.file-controls {
+  flex-shrink: 0;
+}
+
+.file-controls .control-dock {
+  width: auto;
+}
+
 .settings-toggle-btn,
 .ghost-btn,
 .primary-btn {
@@ -285,9 +312,10 @@ body::before {
 
 .settings-toggle-btn,
 .ghost-btn {
-  padding: 9px 13px;
+  min-height: 30px;
+  padding: 7px 11px;
   border-radius: 999px;
-  background: rgba(243, 246, 250, 0.62);
+  background: rgba(255, 255, 255, 0.54);
   color: var(--text-strong);
   font-size: 12px;
   font-weight: 600;
@@ -585,12 +613,31 @@ body::before {
     align-items: stretch;
   }
 
+  .topbar-brand {
+    min-width: 0;
+  }
+
+  .topbar-group {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .nav-controls .ghost-btn,
+  .file-controls > *,
+  .file-controls .topbar-save-btn,
+  .file-controls .settings-toggle-btn {
+    flex: 1 1 0;
+  }
+
   .graph-summary {
+    width: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: none;
     text-align: left;
   }
 
   .zoom-controls {
-    width: 100%;
     justify-content: stretch;
   }
 
@@ -644,11 +691,11 @@ body::before {
 }
 
 .topbar-save-btn {
-  min-height: 34px;
-  padding: 0 14px;
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 12px;
-  box-shadow: 0 6px 12px rgba(40, 95, 223, 0.14);
+  box-shadow: 0 5px 10px rgba(40, 95, 223, 0.12);
 }
 
 .node-context-menu {

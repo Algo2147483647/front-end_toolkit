@@ -46,6 +46,7 @@
                 graphSummary: document.getElementById("graph-summary"),
                 backButton: document.getElementById("back-btn"),
                 upButton: document.getElementById("up-btn"),
+                allButton: document.getElementById("all-btn"),
                 zoomInButton: document.getElementById("zoom-in-btn"),
                 zoomOutButton: document.getElementById("zoom-out-btn"),
                 zoomFitButton: document.getElementById("zoom-fit-btn"),
