@@ -438,7 +438,7 @@ body::before {
 }
 
 .graph-stage__halo {
-  fill: rgba(255, 255, 255, 0.46);
+  fill: rgba(255, 255, 255, 0.8);
 }
 
 .graph-stage__lane {
