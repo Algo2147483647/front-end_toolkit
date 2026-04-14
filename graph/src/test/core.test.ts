@@ -69,3 +69,72 @@ test("layout does not mutate input graph", () => {
   assert.equal(JSON.stringify(dag), before);
   assert.ok(!("coordinate" in dag.A));
 });
+
+test("BFS layout remains the default layout mode", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["D"] },
+    C: { children: ["E"] },
+    D: { children: ["E"] },
+    E: {},
+  });
+  const implicitStage = buildStageData({ dag, selection: { type: "node", key: "A" } });
+  const bfsStage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "bfs" });
+
+  assert.ok(implicitStage);
+  assert.ok(bfsStage);
+  assert.equal(implicitStage.nodeMap.E.layer, bfsStage.nodeMap.E.layer);
+  assert.equal(bfsStage.nodeMap.E.layer, 2);
+});
+
+test("Sugiyama layout ranks multi-parent nodes after their deepest visible parent", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["D"] },
+    C: { children: ["E"] },
+    D: { children: ["E"] },
+    E: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(stage);
+  assert.equal(stage.nodeMap.A.layer, 0);
+  assert.equal(stage.nodeMap.B.layer, 1);
+  assert.equal(stage.nodeMap.D.layer, 2);
+  assert.equal(stage.nodeMap.E.layer, 3);
+});
+
+test("Sugiyama layout is deterministic for the same graph", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C", "D"] },
+    B: { children: ["E"] },
+    C: { children: ["E", "F"] },
+    D: { children: ["F"] },
+    E: {},
+    F: {},
+  });
+  const first = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+  const second = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.deepEqual(
+    first.nodes.map((node) => [node.key, node.layer, node.order, node.x, node.y]),
+    second.nodes.map((node) => [node.key, node.layer, node.order, node.x, node.y]),
+  );
+});
+
+test("Sugiyama layout warns and continues when a visible cycle is present", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: { children: ["C"] },
+    C: { children: ["B"] },
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(stage);
+  assert.ok(stage.nodeMap.A);
+  assert.ok(stage.nodeMap.B);
+  assert.ok(stage.nodeMap.C);
+  assert.ok(stage.warnings.length > 0);
+});

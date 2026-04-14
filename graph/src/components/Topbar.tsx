@@ -1,8 +1,9 @@
-import type { GraphMode } from "../graph/types";
+import type { GraphLayoutMode, GraphMode } from "../graph/types";
 
 interface TopbarProps {
   topbarRef: React.RefObject<HTMLElement>;
   mode: GraphMode;
+  layoutMode: GraphLayoutMode;
   status: string;
   fileName: string;
   hasGraph: boolean;
@@ -21,6 +22,7 @@ interface TopbarProps {
   onZoomPercentCommit: (percent: number) => void;
   onSettingsToggle: () => void;
   onModeChange: (mode: GraphMode) => void;
+  onLayoutModeChange: (mode: GraphLayoutMode) => void;
   onFileInputClick: (event: React.MouseEvent<HTMLInputElement>) => void;
   onFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
@@ -30,6 +32,7 @@ interface TopbarProps {
 export default function Topbar({
   topbarRef,
   mode,
+  layoutMode,
   status,
   fileName,
   hasGraph,
@@ -48,6 +51,7 @@ export default function Topbar({
   onZoomPercentCommit,
   onSettingsToggle,
   onModeChange,
+  onLayoutModeChange,
   onFileInputClick,
   onFileInputChange,
   onExport,
@@ -89,6 +93,19 @@ export default function Topbar({
                 <button id="mode-preview-btn" className={`mode-toggle-btn${mode === "preview" ? " is-active" : ""}`} type="button" data-mode="preview" aria-pressed={mode === "preview"} onClick={() => onModeChange("preview")}>Preview</button>
                 <button id="mode-edit-btn" className={`mode-toggle-btn${mode === "edit" ? " is-active" : ""}`} type="button" data-mode="edit" aria-pressed={mode === "edit"} onClick={() => onModeChange("edit")}>Edit</button>
               </div>
+
+              <label className="layout-select-label" htmlFor="layout-mode-select">
+                <span className="control-label">Layout</span>
+                <select
+                  id="layout-mode-select"
+                  className="layout-select"
+                  value={layoutMode}
+                  onChange={(event) => onLayoutModeChange(event.currentTarget.value as GraphLayoutMode)}
+                >
+                  <option value="bfs">BFS</option>
+                  <option value="sugiyama">Sugiyama layered</option>
+                </select>
+              </label>
 
               <p className="control-label">Workspace</p>
               <label htmlFor="fileInput" className="file-input-label">

@@ -35,6 +35,8 @@ export type GraphSelection =
 
 export type GraphMode = "preview" | "edit";
 
+export type GraphLayoutMode = "bfs" | "sugiyama";
+
 export interface GraphTheme {
   stagePaddingX: number;
   stagePaddingY: number;

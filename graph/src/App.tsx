@@ -22,7 +22,7 @@ import RelationEditorModal from "./components/RelationEditorModal";
 import SaveJsonModal from "./components/SaveJsonModal";
 import Topbar from "./components/Topbar";
 import Workspace from "./components/Workspace";
-import type { GraphMode, NodeKey } from "./graph/types";
+import type { GraphLayoutMode, GraphMode, NodeKey } from "./graph/types";
 
 export default function App() {
   const [state, dispatch] = useReducer(graphReducer, initialGraphAppState);
@@ -34,7 +34,7 @@ export default function App() {
 
   useDefaultGraph(dispatch);
 
-  const stage = useMemo(() => state.dag ? buildStageData({ dag: state.dag, selection: state.selection }) : null, [state.dag, state.selection]);
+  const stage = useMemo(() => state.dag ? buildStageData({ dag: state.dag, selection: state.selection, layoutMode: state.layout.mode }) : null, [state.dag, state.layout.mode, state.selection]);
   const parentSelection = useMemo(() => state.dag && stage ? getParentLevelSelection(state.dag, stage.topLevelKeys) : null, [stage, state.dag]);
   const status = useMemo(() => {
     if (!state.dag || !stage) {
@@ -43,10 +43,15 @@ export default function App() {
     const focusNode = stage.dag[stage.root];
     const focusLabel = focusNode?.synthetic ? focusNode.label || "Selected roots" : sanitizeNodeLabel(focusNode?.label || focusNode?.title || focusNode?.name || stage.root);
     const modeLabel = state.mode === "edit" ? "Edit" : "Preview";
-    return state.ui.status && !state.ui.status.includes("loaded from") && !state.ui.status.startsWith("Mode:")
+    const layoutLabel = state.layout.mode === "sugiyama" ? "Sugiyama layered" : "BFS";
+    const warningText = stage.warnings.length ? ` ${stage.warnings[0]}` : "";
+    return state.ui.status
+      && !state.ui.status.includes("loaded from")
+      && !state.ui.status.startsWith("Mode:")
+      && !state.ui.status.startsWith("Layout:")
       ? state.ui.status
-      : `${modeLabel} mode. Focused on ${focusLabel}. ${stage.nodes.length} nodes and ${stage.edges.length} links are visible.`;
-  }, [stage, state.dag, state.mode, state.ui.status]);
+      : `${modeLabel} mode. ${layoutLabel} layout. Focused on ${focusLabel}. ${stage.nodes.length} nodes and ${stage.edges.length} links are visible.${warningText}`;
+  }, [stage, state.dag, state.layout.mode, state.mode, state.ui.status]);
 
   const handleZoomChange = useCallback((scale: number, minScale?: number) => {
     dispatch({ type: "zoomChanged", scale, minScale });
@@ -214,6 +219,10 @@ export default function App() {
     dispatch({ type: "modeChanged", mode });
   }
 
+  function handleLayoutModeChange(mode: GraphLayoutMode) {
+    dispatch({ type: "layoutModeChanged", mode });
+  }
+
   function handleExportSvg() {
     if (!svgRef.current) {
       dispatch({ type: "statusChanged", status: "Render a DAG first, then export the SVG." });
@@ -265,6 +274,7 @@ export default function App() {
       <Topbar
         topbarRef={topbarRef}
         mode={state.mode}
+        layoutMode={state.layout.mode}
         status={status}
         fileName={state.source.fileName}
         hasGraph={Boolean(stage)}
@@ -283,6 +293,7 @@ export default function App() {
         onZoomPercentCommit={(percent) => zoom.setZoomPercent(percent)}
         onSettingsToggle={() => dispatch({ type: "settingsToggled" })}
         onModeChange={handleModeChange}
+        onLayoutModeChange={handleLayoutModeChange}
         onFileInputClick={handleFileInputClick}
         onFileInputChange={handleFileInputChange}
         onExport={handleExportSvg}

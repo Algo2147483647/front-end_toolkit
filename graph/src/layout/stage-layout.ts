@@ -1,19 +1,20 @@
-import type { GraphSelection, GraphTheme, NodeKey, NormalizedDag, RelationValue } from "../graph/types";
+import type { GraphLayoutMode, GraphSelection, GraphTheme, NodeKey, NormalizedDag, RelationValue } from "../graph/types";
 import { DEFAULT_GRAPH_THEME } from "../graph/types";
 import { getRelationKeys } from "../graph/relations";
 import { structuredCloneValue } from "../graph/serialize";
 import { getNodeVisual } from "./text";
 import { resolveStageSelection, withSyntheticSelectionRoot } from "./selection";
 import type { StageData, StageNode } from "./types";
-
-type CoordinateMap = Map<NodeKey, [number, number]>;
+import { buildBfsLayout } from "./algorithms/bfs";
+import { buildSugiyamaLayout } from "./algorithms/sugiyama";
 
 export function buildStageData(input: {
   dag: NormalizedDag;
   selection: GraphSelection | null;
+  layoutMode?: GraphLayoutMode;
   theme?: GraphTheme;
 }): StageData | null {
-  const { dag: sourceDag, selection: requestedSelection, theme = DEFAULT_GRAPH_THEME } = input;
+  const { dag: sourceDag, selection: requestedSelection, layoutMode = "bfs", theme = DEFAULT_GRAPH_THEME } = input;
   if (!sourceDag || Object.keys(sourceDag).length === 0) {
     return null;
   }
@@ -22,9 +23,11 @@ export function buildStageData(input: {
   const selection = resolveStageSelection(dag, requestedSelection);
   const layoutDag = withSyntheticSelectionRoot(dag, selection);
   const forestTopLevelSet = new Set(selection.topLevelKeys);
-  const coordinates = selection.isForest
-    ? buildCoordinatesFromRoots(layoutDag, selection.topLevelKeys)
-    : buildCoordinates(layoutDag, selection.rootKey);
+  const layoutRoots = selection.isForest ? selection.topLevelKeys : [selection.rootKey];
+  const layoutResult = layoutMode === "sugiyama"
+    ? buildSugiyamaLayout(layoutDag, layoutRoots)
+    : buildBfsLayout(layoutDag, layoutRoots);
+  const coordinates = layoutResult.coordinates;
 
   const reachable = selection.isForest
     ? collectReachableFromRoots(layoutDag, selection.topLevelKeys)
@@ -69,7 +72,7 @@ export function buildStageData(input: {
 
   sortedLayers.forEach((layer) => {
     const layerNodes = nodesByLayer.get(layer)!.sort((a, b) => a.order - b.order);
-    if (layer > 0) {
+    if (layoutMode === "bfs" && layer > 0) {
       layerNodes.sort((a, b) => {
         const aScore = getBarycentricScore(a.key, incomingMap, nodeMap);
         const bScore = getBarycentricScore(b.key, incomingMap, nodeMap);
@@ -142,40 +145,8 @@ export function buildStageData(input: {
     lanes,
     stageWidth: Math.max(stageWidth, 980),
     stageHeight: Math.max(stageHeight, 600),
-    warnings: [],
+    warnings: layoutResult.warnings,
   };
-}
-
-function buildCoordinates(dag: Record<NodeKey, unknown>, root: NodeKey): CoordinateMap {
-  return buildCoordinatesFromRoots(dag, [root]);
-}
-
-function buildCoordinatesFromRoots(dag: Record<NodeKey, unknown>, roots: NodeKey[]): CoordinateMap {
-  const coordinates: CoordinateMap = new Map();
-  const queue = roots.slice();
-  const visited = new Set(queue);
-  let level = -1;
-
-  while (queue.length) {
-    const levelCount = queue.length;
-    level += 1;
-    for (let index = 0; index < levelCount; index += 1) {
-      const key = queue.shift()!;
-      const node = dag[key] as { children?: unknown } | undefined;
-      if (!node) {
-        continue;
-      }
-      coordinates.set(key, [level, index]);
-      getRelationKeys(node.children).forEach((childKey) => {
-        if (dag[childKey] && !visited.has(childKey)) {
-          visited.add(childKey);
-          queue.push(childKey);
-        }
-      });
-    }
-  }
-
-  return coordinates;
 }
 
 function collectReachableNodes(dag: Record<NodeKey, unknown>, root: NodeKey): Set<NodeKey> {

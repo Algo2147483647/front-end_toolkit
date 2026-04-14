@@ -14,6 +14,7 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           dirty: false,
         },
         selection: action.selection,
+        layout: state.layout,
         ui: {
           ...initialGraphAppState.ui,
           status: action.status,
@@ -83,6 +84,16 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           ...state.ui,
           contextMenu: null,
           status: state.dag ? `Mode: ${action.mode === "edit" ? "Edit" : "Preview"}.` : state.ui.status,
+        },
+      };
+    case "layoutModeChanged":
+      return {
+        ...state,
+        layout: { ...state.layout, mode: action.mode },
+        ui: {
+          ...state.ui,
+          contextMenu: null,
+          status: state.dag ? `Layout: ${action.mode === "sugiyama" ? "Sugiyama layered" : "BFS"}.` : state.ui.status,
         },
       };
     case "zoomChanged":

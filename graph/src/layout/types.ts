@@ -28,6 +28,15 @@ export interface StageLane {
   width: number;
 }
 
+export type LayoutCoordinate = [number, number];
+
+export type LayoutCoordinateMap = Map<NodeKey, LayoutCoordinate>;
+
+export interface LayoutResult {
+  coordinates: LayoutCoordinateMap;
+  warnings: string[];
+}
+
 export interface ResolvedStageSelection {
   rootKey: NodeKey;
   topLevelKeys: NodeKey[];

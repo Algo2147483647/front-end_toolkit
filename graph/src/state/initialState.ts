@@ -1,4 +1,4 @@
-import type { GraphMode, GraphSelection, NodeKey, NormalizedDag } from "../graph/types";
+import type { GraphLayoutMode, GraphMode, GraphSelection, NodeKey, NormalizedDag } from "../graph/types";
 
 export interface GraphAppState {
   dag: NormalizedDag | null;
@@ -10,6 +10,9 @@ export interface GraphAppState {
   selection: GraphSelection | null;
   history: GraphSelection[];
   mode: GraphMode;
+  layout: {
+    mode: GraphLayoutMode;
+  };
   zoom: {
     scale: number;
     minScale: number;
@@ -35,6 +38,9 @@ export const initialGraphAppState: GraphAppState = {
   selection: null,
   history: [],
   mode: "preview",
+  layout: {
+    mode: "bfs",
+  },
   zoom: {
     scale: 1,
     minScale: 1,
