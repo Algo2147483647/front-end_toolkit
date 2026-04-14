@@ -83,7 +83,7 @@ export default function Topbar({
             >
               Controls
             </button>
-            <div id="settings-panel" className={`settings-panel${settingsOpen ? " is-visible" : ""}`}>
+            <div id="settings-panel" className={`settings-panel${settingsOpen ? " settings-panel-visible" : ""}`}>
               <p className="control-label">Mode</p>
               <div className="mode-toggle" role="group" aria-label="Graph mode">
                 <button id="mode-preview-btn" className={`mode-toggle-btn${mode === "preview" ? " is-active" : ""}`} type="button" data-mode="preview" aria-pressed={mode === "preview"} onClick={() => onModeChange("preview")}>Preview</button>
