@@ -19,6 +19,7 @@ export interface StageEdge {
   target: NodeKey;
   weight: RelationValue | 1 | undefined;
   label: string;
+  points?: StageRoutePoint[];
 }
 
 export interface StageLane {
@@ -32,9 +33,28 @@ export type LayoutCoordinate = [number, number];
 
 export type LayoutCoordinateMap = Map<NodeKey, LayoutCoordinate>;
 
+export interface LayoutRoutePoint {
+  layer: number;
+  order: number;
+}
+
+export interface LayoutEdgeRoute {
+  source: NodeKey;
+  target: NodeKey;
+  points: LayoutRoutePoint[];
+  reversedForLayout?: boolean;
+}
+
+export interface StageRoutePoint extends LayoutRoutePoint {
+  x: number;
+  y: number;
+}
+
 export interface LayoutResult {
   coordinates: LayoutCoordinateMap;
   warnings: string[];
+  layerSlotCounts?: Map<number, number>;
+  edgeRoutes?: Map<string, LayoutEdgeRoute>;
 }
 
 export interface ResolvedStageSelection {

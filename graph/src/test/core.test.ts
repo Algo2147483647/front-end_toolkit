@@ -138,3 +138,58 @@ test("Sugiyama layout warns and continues when a visible cycle is present", () =
   assert.ok(stage.nodeMap.C);
   assert.ok(stage.warnings.length > 0);
 });
+
+test("Sugiyama layout routes long edges through intermediate layer slots", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["C"] },
+    C: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(stage);
+  const longEdge = stage.edges.find((edge) => edge.id === "A-->C");
+  assert.ok(longEdge);
+  assert.ok(longEdge.points && longEdge.points.length > 0);
+  assert.equal(longEdge.points[0].layer, 1);
+});
+
+test("Sugiyama cycle handling marks reversed layout edges without dropping semantic edges", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: { children: ["C"] },
+    C: { children: ["B"] },
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(stage);
+  assert.equal(stage.edges.length, 3);
+  assert.ok(stage.warnings.some((warning) => warning.includes("cycle")));
+});
+
+test("Sugiyama long-edge route points are deterministic", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["C"] },
+    C: {},
+  });
+  const first = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+  const second = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "sugiyama" });
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.deepEqual(first.edges, second.edges);
+});
+
+test("Sugiyama crossing reduction orders adjacent layer to reduce crossings", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["D"] },
+    B: { children: ["C"] },
+    C: {},
+    D: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "forest", keys: ["A", "B"], label: "Roots" }, layoutMode: "sugiyama" });
+
+  assert.ok(stage);
+  assert.ok(stage.nodeMap.C.order < stage.nodeMap.D.order);
+});

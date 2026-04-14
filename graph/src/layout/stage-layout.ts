@@ -4,7 +4,7 @@ import { getRelationKeys } from "../graph/relations";
 import { structuredCloneValue } from "../graph/serialize";
 import { getNodeVisual } from "./text";
 import { resolveStageSelection, withSyntheticSelectionRoot } from "./selection";
-import type { StageData, StageNode } from "./types";
+import type { LayoutRoutePoint, StageData, StageNode, StageRoutePoint } from "./types";
 import { buildBfsLayout } from "./algorithms/bfs";
 import { buildSugiyamaLayout } from "./algorithms/sugiyama";
 
@@ -67,11 +67,13 @@ export function buildStageData(input: {
     nodeMap[nodeKey] = nodeData;
   });
 
-  const sortedLayers = Array.from(nodesByLayer.keys()).sort((a, b) => a - b);
-  const stageInnerHeight = measureStageInnerHeight(nodesByLayer, theme);
+  const fallbackSlotCounts = new Map(Array.from(nodesByLayer.entries()).map(([layer, layerNodes]) => [layer, layerNodes.length]));
+  const slotCountsByLayer = layoutResult.layerSlotCounts || fallbackSlotCounts;
+  const sortedLayers = Array.from(new Set([...nodesByLayer.keys(), ...slotCountsByLayer.keys()])).sort((a, b) => a - b);
+  const stageInnerHeight = measureStageInnerHeight(slotCountsByLayer, theme);
 
   sortedLayers.forEach((layer) => {
-    const layerNodes = nodesByLayer.get(layer)!.sort((a, b) => a.order - b.order);
+    const layerNodes = (nodesByLayer.get(layer) || []).sort((a, b) => a.order - b.order);
     if (layoutMode === "bfs" && layer > 0) {
       layerNodes.sort((a, b) => {
         const aScore = getBarycentricScore(a.key, incomingMap, nodeMap);
@@ -80,25 +82,33 @@ export function buildStageData(input: {
       });
     }
 
-    layerNodes.forEach((nodeData, index) => {
-      nodeData.order = index;
-    });
+    if (layoutMode === "bfs") {
+      layerNodes.forEach((nodeData, index) => {
+        nodeData.order = index;
+      });
+    }
 
-    const layerHeight = layerNodes.length * theme.nodeHeight + Math.max(layerNodes.length - 1, 0) * theme.rowGap;
+    const slotCount = slotCountsByLayer.get(layer) || layerNodes.length || 1;
+    const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
     const startY = theme.stagePaddingY + (stageInnerHeight - layerHeight) / 2;
-    layerNodes.forEach((nodeData, index) => {
-      nodeData.y = startY + index * (theme.nodeHeight + theme.rowGap) + theme.nodeHeight / 2;
+    layerNodes.forEach((nodeData) => {
+      nodeData.y = startY + nodeData.order * (theme.nodeHeight + theme.rowGap) + theme.nodeHeight / 2;
     });
   });
 
-  const columnWidths = sortedLayers.map((layer) => Math.max(...nodesByLayer.get(layer)!.map((node) => node.width)));
+  const columnWidths = sortedLayers.map((layer) => {
+    const layerNodes = nodesByLayer.get(layer) || [];
+    return layerNodes.length ? Math.max(...layerNodes.map((node) => node.width)) : theme.minNodeWidth;
+  });
   let cursorX = theme.stagePaddingX;
   const lanes: StageData["lanes"] = [];
+  const laneCenters = new Map<number, number>();
 
   sortedLayers.forEach((layer, index) => {
     const layerWidth = columnWidths[index];
-    const layerNodes = nodesByLayer.get(layer)!;
+    const layerNodes = nodesByLayer.get(layer) || [];
     const laneCenter = cursorX + layerWidth / 2;
+    laneCenters.set(layer, laneCenter);
     layerNodes.forEach((nodeData) => {
       nodeData.x = laneCenter;
     });
@@ -120,12 +130,15 @@ export function buildStageData(input: {
         return;
       }
       const weight = Array.isArray(children) ? 1 : (children as Record<NodeKey, RelationValue>)[targetKey];
+      const route = layoutResult.edgeRoutes?.get(`${sourceKey}-->${targetKey}`);
+      const points = route?.points.map((point) => getRoutePointPosition(point, laneCenters, slotCountsByLayer, stageInnerHeight, theme));
       edges.push({
         id: `${sourceKey}-->${targetKey}`,
         source: sourceKey,
         target: targetKey,
         weight,
         label: getEdgeLabel(weight),
+        points: points && points.length ? points : undefined,
       });
     });
   });
@@ -193,13 +206,31 @@ function getBarycentricScore(nodeKey: NodeKey, incomingMap: Record<NodeKey, Node
   return total / parents.length;
 }
 
-function measureStageInnerHeight(nodesByLayer: Map<number, StageNode[]>, theme: GraphTheme): number {
+function measureStageInnerHeight(slotCountsByLayer: Map<number, number>, theme: GraphTheme): number {
   let maxHeight = 0;
-  nodesByLayer.forEach((layerNodes) => {
-    const layerHeight = layerNodes.length * theme.nodeHeight + Math.max(layerNodes.length - 1, 0) * theme.rowGap;
+  slotCountsByLayer.forEach((slotCount) => {
+    const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
     maxHeight = Math.max(maxHeight, layerHeight);
   });
   return Math.max(maxHeight, theme.nodeHeight * 3.4);
+}
+
+function getRoutePointPosition(
+  point: LayoutRoutePoint,
+  laneCenters: Map<number, number>,
+  slotCountsByLayer: Map<number, number>,
+  stageInnerHeight: number,
+  theme: GraphTheme,
+): StageRoutePoint {
+  const slotCount = slotCountsByLayer.get(point.layer) || 1;
+  const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
+  const startY = theme.stagePaddingY + (stageInnerHeight - layerHeight) / 2;
+  return {
+    layer: point.layer,
+    order: point.order,
+    x: laneCenters.get(point.layer) || theme.stagePaddingX,
+    y: startY + point.order * (theme.nodeHeight + theme.rowGap) + theme.nodeHeight / 2,
+  };
 }
 
 function getEdgeLabel(weight: unknown): string {

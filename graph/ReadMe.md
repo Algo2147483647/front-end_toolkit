@@ -49,6 +49,11 @@ npm run build
 - export current view as SVG
 - save graph JSON as overwrite or as a new timestamped file
 
+## Layout Modes
+
+- `BFS`: keeps the selected root traversal close to breadth-first discovery order.
+- `Sugiyama layered`: ranks nodes by directed dependency depth, breaks visible cycles for layout, inserts virtual route points for long edges, and applies crossing-reduction sweeps before rendering.
+
 ## How Navigation Works
 
 After loading JSON, the renderer first looks for nodes with no parents.
