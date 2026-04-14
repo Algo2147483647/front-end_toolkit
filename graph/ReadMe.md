@@ -12,20 +12,28 @@ It is designed for:
 
 ## Run
 
-The simplest way to use the tool is to serve the repository with a local static server:
+DAG Studio is now a Vite React and TypeScript app:
 
 ```powershell
-cd D:\Algo\Projects\front-end_toolkit
-python -m http.server 8080
+cd D:\Algo\Projects\front-end_toolkit\graph
+npm install
+npm run dev
 ```
 
 Then open:
 
 ```text
-http://localhost:8080/graph/
+http://localhost:5173/graph/index.html
 ```
 
-When the page loads, it automatically reads [`example.json`](D:\Algo\Projects\front-end_toolkit\graph\example.json).
+When the page loads, it automatically reads [`public/example.json`](D:\Algo\Projects\front-end_toolkit\graph\public\example.json).
+
+Build and run the graph core tests with:
+
+```powershell
+npm test
+npm run build
+```
 
 ## Main Features
 
@@ -317,6 +325,6 @@ If you want the smallest useful file, start here:
 ## Files
 
 - main page: [`index.html`](D:\Algo\Projects\front-end_toolkit\graph\index.html)
-- styles: [`styles.css`](D:\Algo\Projects\front-end_toolkit\graph\styles.css)
-- sample data: [`example.json`](D:\Algo\Projects\front-end_toolkit\graph\example.json)
-- scripts: `graph/scripts/`
+- React source: `graph/src/`
+- styles: [`styles.css`](D:\Algo\Projects\front-end_toolkit\graph\styles.css) plus `graph/src/styles.css`
+- sample data: [`public/example.json`](D:\Algo\Projects\front-end_toolkit\graph\public\example.json)

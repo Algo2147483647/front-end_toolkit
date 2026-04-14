@@ -1,0 +1,34 @@
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.context-menu-item:disabled,
+.ghost-btn:disabled,
+.primary-btn:disabled {
+  cursor: not-allowed;
+}
+
+.node-detail-error,
+.relation-editor-error {
+  margin: 8px 0 0;
+  color: #a23434;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.node-detail-field__label {
+  word-break: break-word;
+}
+
+.node-detail-editor-wrap {
+  width: 100%;
+}
+
+.node-detail-editor {
+  width: 100%;
+}
+
+.graph-node {
+  outline: none;
+}

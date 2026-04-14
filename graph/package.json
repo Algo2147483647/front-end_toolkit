@@ -1,0 +1,26 @@
+{
+  "name": "dag-studio-react",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "node --loader ts-node/esm --experimental-specifier-resolution=node src/test/core.test.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^4.5.3",
+    "typescript": "^5.7.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.13",
+    "@types/node": "^16.18.126",
+    "@types/react-dom": "^18.3.5",
+    "ts-node": "^10.9.2"
+  }
+}
