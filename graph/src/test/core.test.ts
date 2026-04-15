@@ -1,4 +1,5 @@
 import assert from "assert/strict";
+import { performance } from "perf_hooks";
 import { applyGraphCommand } from "../graph/commands";
 import { normalizeDagInput } from "../graph/normalize";
 import { getRelationKeys } from "../graph/relations";
@@ -192,4 +193,26 @@ test("Sugiyama crossing reduction orders adjacent layer to reduce crossings", ()
 
   assert.ok(stage);
   assert.ok(stage.nodeMap.C.order < stage.nodeMap.D.order);
+});
+
+test("Sugiyama layout handles long root fanout chains within the performance budget", () => {
+  const layerCount = 40;
+  const input: Record<string, { children?: string[] }> = {
+    Root: { children: [] },
+  };
+
+  for (let index = 1; index <= layerCount; index += 1) {
+    const key = `N${index}`;
+    input[key] = index < layerCount ? { children: [`N${index + 1}`] } : {};
+    input.Root.children!.push(key);
+  }
+
+  const dag = normalizeDagInput(input);
+  const startedAt = performance.now();
+  const stage = buildStageData({ dag, selection: { type: "node", key: "Root" }, layoutMode: "sugiyama" });
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.ok(stage);
+  assert.equal(stage.nodeMap.N40.layer, 40);
+  assert.ok(elapsedMs < 250, `Expected long-edge fanout layout under 250ms, got ${elapsedMs.toFixed(1)}ms`);
 });

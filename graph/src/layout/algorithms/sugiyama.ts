@@ -28,6 +28,18 @@ interface NormalizedRoute {
   reversedForLayout: boolean;
 }
 
+interface LayerSegment {
+  source: NodeKey;
+  target: NodeKey;
+}
+
+interface CrossingIndex {
+  incoming: Record<NodeKey, NodeKey[]>;
+  outgoing: Record<NodeKey, NodeKey[]>;
+  segmentsByUpperLayer: Map<number, LayerSegment[]>;
+  itemById: Record<NodeKey, LayoutItem>;
+}
+
 export function buildSugiyamaLayout(dag: Record<NodeKey, LayoutGraphNode | undefined>, roots: NodeKey[]): LayoutResult {
   const graph = buildVisibleGraph(dag, roots);
   const rootSet = new Set(getExistingRoots(dag, roots));
@@ -259,30 +271,29 @@ function reduceCrossings(layers: Map<number, LayoutItem[]>, segments: LayoutEdge
     return;
   }
 
-  const incoming = buildNeighborMap(segments, "incoming");
-  const outgoing = buildNeighborMap(segments, "outgoing");
-  let bestCrossings = countTotalCrossings(layers, segments);
+  const crossingIndex = buildCrossingIndex(layers, segments);
+  let bestCrossings = countTotalCrossings(layers, crossingIndex);
 
   for (let pass = 0; pass < CROSSING_REDUCTION_PASSES; pass += 1) {
     [...sortedLayerIndexes].reverse().forEach((layer) => {
       if (layer === sortedLayerIndexes[sortedLayerIndexes.length - 1]) {
         return;
       }
-      sortLayerByNeighbors(layers.get(layer)!, outgoing, getOrderById(layers), originalOrder);
+      sortLayerByNeighbors(layers.get(layer)!, crossingIndex.outgoing, crossingIndex, originalOrder);
       refreshItemOrders(layers);
-      transposeLayer(layers, layer, segments);
+      transposeLayer(layers, layer, crossingIndex);
     });
 
     sortedLayerIndexes.forEach((layer) => {
       if (layer === sortedLayerIndexes[0]) {
         return;
       }
-      sortLayerByNeighbors(layers.get(layer)!, incoming, getOrderById(layers), originalOrder);
+      sortLayerByNeighbors(layers.get(layer)!, crossingIndex.incoming, crossingIndex, originalOrder);
       refreshItemOrders(layers);
-      transposeLayer(layers, layer, segments);
+      transposeLayer(layers, layer, crossingIndex);
     });
 
-    const nextCrossings = countTotalCrossings(layers, segments);
+    const nextCrossings = countTotalCrossings(layers, crossingIndex);
     if (nextCrossings >= bestCrossings) {
       if (nextCrossings === bestCrossings) {
         bestCrossings = nextCrossings;
@@ -293,28 +304,54 @@ function reduceCrossings(layers: Map<number, LayoutItem[]>, segments: LayoutEdge
   }
 }
 
-function buildNeighborMap(segments: LayoutEdge[], direction: "incoming" | "outgoing"): Record<NodeKey, NodeKey[]> {
-  const neighbors: Record<NodeKey, NodeKey[]> = {};
-  segments.forEach((edge) => {
-    const key = direction === "incoming" ? edge.target : edge.source;
-    const neighbor = direction === "incoming" ? edge.source : edge.target;
-    if (!neighbors[key]) {
-      neighbors[key] = [];
-    }
-    neighbors[key].push(neighbor);
+function buildCrossingIndex(layers: Map<number, LayoutItem[]>, segments: LayoutEdge[]): CrossingIndex {
+  const layerById: Record<NodeKey, number> = {};
+  const itemById: Record<NodeKey, LayoutItem> = {};
+  layers.forEach((layerItems, layer) => {
+    layerItems.forEach((item) => {
+      layerById[item.id] = layer;
+      itemById[item.id] = item;
+    });
   });
-  return neighbors;
+
+  const incoming: Record<NodeKey, NodeKey[]> = {};
+  const outgoing: Record<NodeKey, NodeKey[]> = {};
+  const segmentsByUpperLayer = new Map<number, LayerSegment[]>();
+
+  segments.forEach((edge) => {
+    const sourceLayer = layerById[edge.source];
+    const targetLayer = layerById[edge.target];
+    if (sourceLayer === undefined || targetLayer === undefined || targetLayer !== sourceLayer + 1) {
+      return;
+    }
+
+    if (!incoming[edge.target]) {
+      incoming[edge.target] = [];
+    }
+    if (!outgoing[edge.source]) {
+      outgoing[edge.source] = [];
+    }
+    incoming[edge.target].push(edge.source);
+    outgoing[edge.source].push(edge.target);
+
+    if (!segmentsByUpperLayer.has(sourceLayer)) {
+      segmentsByUpperLayer.set(sourceLayer, []);
+    }
+    segmentsByUpperLayer.get(sourceLayer)!.push({ source: edge.source, target: edge.target });
+  });
+
+  return { incoming, outgoing, segmentsByUpperLayer, itemById };
 }
 
 function sortLayerByNeighbors(
   layerItems: LayoutItem[],
   neighborMap: Record<NodeKey, NodeKey[]>,
-  orderById: Record<NodeKey, number>,
+  crossingIndex: CrossingIndex,
   originalOrder: Record<NodeKey, number>,
 ): void {
   layerItems.sort((a, b) => {
-    const aScore = getNeighborScore(a.id, neighborMap, orderById);
-    const bScore = getNeighborScore(b.id, neighborMap, orderById);
+    const aScore = getNeighborScore(a.id, neighborMap, crossingIndex);
+    const bScore = getNeighborScore(b.id, neighborMap, crossingIndex);
     if (aScore.median !== bScore.median) {
       return aScore.median - bScore.median;
     }
@@ -328,11 +365,11 @@ function sortLayerByNeighbors(
 function getNeighborScore(
   itemId: NodeKey,
   neighborMap: Record<NodeKey, NodeKey[]>,
-  orderById: Record<NodeKey, number>,
+  crossingIndex: CrossingIndex,
 ): { median: number; average: number } {
-  const orders = (neighborMap[itemId] || []).map((neighborKey) => orderById[neighborKey]).filter((order) => order !== undefined).sort((a, b) => a - b);
+  const orders = (neighborMap[itemId] || []).map((neighborKey) => getItemOrder(neighborKey, crossingIndex)).sort((a, b) => a - b);
   if (!orders.length) {
-    const ownOrder = orderById[itemId] ?? 0;
+    const ownOrder = getItemOrder(itemId, crossingIndex);
     return { median: ownOrder, average: ownOrder };
   }
 
@@ -342,7 +379,7 @@ function getNeighborScore(
   return { median, average };
 }
 
-function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, segments: LayoutEdge[]): void {
+function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, crossingIndex: CrossingIndex): void {
   const layerItems = layers.get(layer);
   if (!layerItems || layerItems.length < 2) {
     return;
@@ -352,63 +389,85 @@ function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, segmen
   while (improved) {
     improved = false;
     for (let index = 0; index < layerItems.length - 1; index += 1) {
-      const before = countCrossingsAroundLayer(layers, layer, segments);
-      [layerItems[index], layerItems[index + 1]] = [layerItems[index + 1], layerItems[index]];
-      refreshLayerOrder(layerItems);
-      const after = countCrossingsAroundLayer(layers, layer, segments);
-      if (after < before) {
+      const first = layerItems[index];
+      const second = layerItems[index + 1];
+      const delta = countAdjacentSwapCrossingDelta(first.id, second.id, crossingIndex);
+      if (delta < 0) {
+        layerItems[index] = second;
+        layerItems[index + 1] = first;
+        second.order = index;
+        first.order = index + 1;
         improved = true;
-      } else {
-        [layerItems[index], layerItems[index + 1]] = [layerItems[index + 1], layerItems[index]];
-        refreshLayerOrder(layerItems);
       }
     }
   }
 }
 
-function countCrossingsAroundLayer(layers: Map<number, LayoutItem[]>, layer: number, segments: LayoutEdge[]): number {
-  const previous = layers.get(layer - 1);
-  const current = layers.get(layer);
-  const next = layers.get(layer + 1);
-  let crossings = 0;
-
-  if (previous && current) {
-    crossings += countCrossingsBetweenLayers(previous, current, segments);
-  }
-  if (current && next) {
-    crossings += countCrossingsBetweenLayers(current, next, segments);
-  }
-  return crossings;
+function countAdjacentSwapCrossingDelta(firstId: NodeKey, secondId: NodeKey, crossingIndex: CrossingIndex): number {
+  return (
+    countNeighborSwapDelta(crossingIndex.incoming[firstId] || [], crossingIndex.incoming[secondId] || [], crossingIndex) +
+    countNeighborSwapDelta(crossingIndex.outgoing[firstId] || [], crossingIndex.outgoing[secondId] || [], crossingIndex)
+  );
 }
 
-function countTotalCrossings(layers: Map<number, LayoutItem[]>, segments: LayoutEdge[]): number {
+function countNeighborSwapDelta(firstNeighbors: NodeKey[], secondNeighbors: NodeKey[], crossingIndex: CrossingIndex): number {
+  let before = 0;
+  let after = 0;
+  firstNeighbors.forEach((firstNeighbor) => {
+    secondNeighbors.forEach((secondNeighbor) => {
+      const difference = getItemOrder(firstNeighbor, crossingIndex) - getItemOrder(secondNeighbor, crossingIndex);
+      if (difference > 0) {
+        before += 1;
+      } else if (difference < 0) {
+        after += 1;
+      }
+    });
+  });
+  return after - before;
+}
+
+function countTotalCrossings(layers: Map<number, LayoutItem[]>, crossingIndex: CrossingIndex): number {
   const sortedLayerIndexes = Array.from(layers.keys()).sort((a, b) => a - b);
   let crossings = 0;
   for (let index = 0; index < sortedLayerIndexes.length - 1; index += 1) {
-    const upper = layers.get(sortedLayerIndexes[index])!;
-    const lower = layers.get(sortedLayerIndexes[index + 1])!;
-    crossings += countCrossingsBetweenLayers(upper, lower, segments);
+    crossings += countCrossingsBetweenLayerSegments(crossingIndex.segmentsByUpperLayer.get(sortedLayerIndexes[index]) || [], crossingIndex);
   }
   return crossings;
 }
 
-function countCrossingsBetweenLayers(upper: LayoutItem[], lower: LayoutItem[], segments: LayoutEdge[]): number {
-  const upperOrder = Object.fromEntries(upper.map((item, index) => [item.id, index]));
-  const lowerOrder = Object.fromEntries(lower.map((item, index) => [item.id, index]));
-  const layerEdges = segments
-    .filter((edge) => upperOrder[edge.source] !== undefined && lowerOrder[edge.target] !== undefined)
-    .map((edge) => ({ sourceOrder: upperOrder[edge.source], targetOrder: lowerOrder[edge.target] }));
-
-  let crossings = 0;
-  for (let i = 0; i < layerEdges.length; i += 1) {
-    for (let j = i + 1; j < layerEdges.length; j += 1) {
-      const a = layerEdges[i];
-      const b = layerEdges[j];
-      if ((a.sourceOrder - b.sourceOrder) * (a.targetOrder - b.targetOrder) < 0) {
-        crossings += 1;
-      }
-    }
+function countCrossingsBetweenLayerSegments(segments: LayerSegment[], crossingIndex: CrossingIndex): number {
+  if (segments.length < 2) {
+    return 0;
   }
+
+  const orderedSegments = segments
+    .map((edge) => ({ sourceOrder: getItemOrder(edge.source, crossingIndex), targetOrder: getItemOrder(edge.target, crossingIndex) }))
+    .sort((a, b) => (a.sourceOrder === b.sourceOrder ? a.targetOrder - b.targetOrder : a.sourceOrder - b.sourceOrder));
+
+  const maxTargetOrder = orderedSegments.reduce((maxOrder, edge) => Math.max(maxOrder, edge.targetOrder), 0);
+  const tree = new FenwickTree(maxTargetOrder + 2);
+  let crossings = 0;
+  let processed = 0;
+
+  for (let index = 0; index < orderedSegments.length;) {
+    const sourceOrder = orderedSegments[index].sourceOrder;
+    let nextIndex = index;
+    while (nextIndex < orderedSegments.length && orderedSegments[nextIndex].sourceOrder === sourceOrder) {
+      nextIndex += 1;
+    }
+
+    for (let groupIndex = index; groupIndex < nextIndex; groupIndex += 1) {
+      const targetOrder = orderedSegments[groupIndex].targetOrder;
+      crossings += processed - tree.sum(targetOrder + 1);
+    }
+    for (let groupIndex = index; groupIndex < nextIndex; groupIndex += 1) {
+      tree.add(orderedSegments[groupIndex].targetOrder + 1, 1);
+      processed += 1;
+    }
+
+    index = nextIndex;
+  }
+
   return crossings;
 }
 
@@ -422,12 +481,28 @@ function refreshLayerOrder(layerItems: LayoutItem[]): void {
   });
 }
 
-function getOrderById(layers: Map<number, LayoutItem[]>): Record<NodeKey, number> {
-  const orderById: Record<NodeKey, number> = {};
-  layers.forEach((layerItems) => {
-    layerItems.forEach((item) => {
-      orderById[item.id] = item.order;
-    });
-  });
-  return orderById;
+function getItemOrder(itemId: NodeKey, crossingIndex: CrossingIndex): number {
+  return crossingIndex.itemById[itemId]?.order ?? 0;
+}
+
+class FenwickTree {
+  private readonly values: number[];
+
+  constructor(size: number) {
+    this.values = new Array(size + 1).fill(0);
+  }
+
+  add(index: number, value: number): void {
+    for (let cursor = index; cursor < this.values.length; cursor += cursor & -cursor) {
+      this.values[cursor] += value;
+    }
+  }
+
+  sum(index: number): number {
+    let total = 0;
+    for (let cursor = index; cursor > 0; cursor -= cursor & -cursor) {
+      total += this.values[cursor];
+    }
+    return total;
+  }
 }
