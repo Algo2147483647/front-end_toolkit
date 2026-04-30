@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { DagNode, GraphMode, NodeKey } from "../graph/types";
 import { getRelationKeys } from "../graph/relations";
-import NodeFieldEditor, { buildEditableFields, formatEditorValue, parseNodeFieldValue } from "./NodeFieldEditor";
+import NodeFieldEditor, { buildEditableFields, formatEditorValue, parseNodeFieldValue, type EditableField } from "./NodeFieldEditor";
+import { buildRawNodeEditorValue, parseRawNodeEditorValue } from "./nodeDetailRawJson";
 
 interface NodeDetailModalProps {
   open: boolean;
@@ -13,22 +14,29 @@ interface NodeDetailModalProps {
 }
 
 export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onClose }: NodeDetailModalProps) {
-  const fields = useMemo(() => node && nodeKey ? buildEditableFields(nodeKey, node) : [], [node, nodeKey]);
+  const [fields, setFields] = useState<EditableField[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [rawJsonValue, setRawJsonValue] = useState("");
+  const [lastEdited, setLastEdited] = useState<"fields" | "raw">("fields");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (open) {
-      setValues(Object.fromEntries(fields.map((field) => [field.name, formatEditorValue(field)])));
+    if (open && node && nodeKey) {
+      const nextFields = buildEditableFields(nodeKey, node);
+      setFields(nextFields);
+      setValues(Object.fromEntries(nextFields.map((field) => [field.name, formatEditorValue(field)])));
+      setRawJsonValue(buildRawNodeEditorValue(nodeKey, node));
+      setLastEdited("fields");
       setError("");
     }
-  }, [fields, open]);
+  }, [node, nodeKey, open]);
 
   if (!open || !node || !nodeKey) {
     return null;
   }
 
-  const rawJson = JSON.stringify({ [nodeKey]: buildSerializableNode(nodeKey, node) }, null, 2);
+  const currentNodeKey = nodeKey;
+  const draftKey = String(values.key || currentNodeKey).trim() || currentNodeKey;
 
   return (
     <div id="node-detail-modal" className="node-detail-modal is-visible" aria-hidden="false" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -37,9 +45,11 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
           <div className="node-detail-header-main">
             <div>
               <p className="node-detail-eyebrow">Node Viewer</p>
-              <h3 id="node-detail-title">{nodeKey}</h3>
+              <h3 id="node-detail-title">{draftKey}</h3>
               <p id="node-detail-subtitle" className="node-detail-subtitle">
-                {mode === "edit" ? `Editing ${fields.length} key-value pairs in this node.` : `Generic field view for ${fields.length} key-value pairs in this node.`}
+                {mode === "edit"
+                  ? `Editing ${Math.max(fields.length - 1, 0)} key-value pairs in this node. Raw JSON edits can also add or remove fields.`
+                  : `Generic field view for ${Math.max(fields.length - 1, 0)} key-value pairs in this node.`}
               </p>
             </div>
           </div>
@@ -59,7 +69,7 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
                     field={field}
                     mode={mode}
                     value={values[field.name] ?? ""}
-                    onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))}
+                    onChange={(value) => handleFieldChange(field.name, value)}
                   />
                 </article>
               )) : <p className="node-detail-empty">No fields are available for this node.</p>}
@@ -68,14 +78,69 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
           </section>
           <section className="node-detail-section">
             <h4>Raw JSON</h4>
-            <pre id="node-detail-json" className="node-detail-json">{rawJson}</pre>
+            {mode === "edit" ? (
+              <div className="node-detail-editor-wrap">
+                <textarea
+                  id="node-detail-json"
+                  className="node-detail-editor node-detail-editor--textarea node-detail-editor--json"
+                  rows={16}
+                  spellCheck={false}
+                  value={rawJsonValue}
+                  onChange={(event) => handleRawJsonChange(event.currentTarget.value)}
+                />
+                <p className="node-detail-editor-hint">Edit a wrapped single-node JSON object here. Save uses this raw payload when it is the latest thing you changed.</p>
+              </div>
+            ) : (
+              <pre id="node-detail-json" className="node-detail-json">{rawJsonValue}</pre>
+            )}
           </section>
         </div>
       </div>
     </div>
   );
 
+  function handleFieldChange(fieldName: string, value: string) {
+    const nextValues = { ...values, [fieldName]: value };
+    setValues(nextValues);
+    setLastEdited("fields");
+    setError("");
+
+    const nextRawJson = tryBuildRawJsonFromFieldValues(fields, nextValues, currentNodeKey);
+    if (nextRawJson) {
+      setRawJsonValue(nextRawJson);
+    }
+  }
+
+  function handleRawJsonChange(nextRawJson: string) {
+    setRawJsonValue(nextRawJson);
+    setLastEdited("raw");
+    setError("");
+
+    const parsed = parseRawNodeEditorValue(nextRawJson, currentNodeKey);
+    if (!parsed.ok) {
+      return;
+    }
+
+    const nextFields = buildEditableFields(parsed.nextKey, { ...parsed.fields, key: parsed.nextKey });
+    setFields(nextFields);
+    setValues(Object.fromEntries(nextFields.map((field) => [field.name, formatEditorValue(field)])));
+  }
+
   function handleSave() {
+    if (lastEdited === "raw") {
+      const parsed = parseRawNodeEditorValue(rawJsonValue, currentNodeKey);
+      if (!parsed.ok) {
+        setError(parsed.message);
+        return;
+      }
+      if (!validateNodeRelations(parsed.nextKey, parsed.fields)) {
+        setError("A node cannot reference itself.");
+        return;
+      }
+      onSave(parsed.nextKey, parsed.fields);
+      return;
+    }
+
     const nextKey = String(values.key || "").trim();
     if (!nextKey) {
       setError("Node key cannot be empty.");
@@ -99,9 +164,7 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
       patch[field.name] = parsed.value;
     }
 
-    const nextParentKeys = getRelationKeys(patch.parents);
-    const nextChildKeys = getRelationKeys(patch.children);
-    if (nextParentKeys.includes(nextKey) || nextChildKeys.includes(nextKey)) {
+    if (!validateNodeRelations(nextKey, patch)) {
       setError("A node cannot reference itself.");
       return;
     }
@@ -109,10 +172,37 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
   }
 }
 
-function buildSerializableNode(nodeKey: NodeKey, node: DagNode): Record<string, unknown> {
-  const clonedNode: Record<string, unknown> = { ...node };
-  if (clonedNode.key === nodeKey) {
-    delete clonedNode.key;
+function tryBuildRawJsonFromFieldValues(
+  fields: EditableField[],
+  values: Record<string, string>,
+  fallbackKey: NodeKey,
+): string | null {
+  const nextKey = String(values.key ?? fallbackKey).trim();
+  if (!nextKey || nextKey.includes("\n") || nextKey.includes(",")) {
+    return null;
   }
-  return clonedNode;
+
+  const patch: Record<string, unknown> = {};
+  for (const field of fields) {
+    if (field.name === "key") {
+      continue;
+    }
+    const parsed = parseNodeFieldValue(field, values[field.name] ?? "");
+    if (!parsed.ok) {
+      return null;
+    }
+    patch[field.name] = parsed.value;
+  }
+
+  if (!validateNodeRelations(nextKey, patch)) {
+    return null;
+  }
+
+  return buildRawNodeEditorValue(nextKey, patch);
+}
+
+function validateNodeRelations(nextKey: NodeKey, fields: Record<string, unknown>): boolean {
+  const parentKeys = getRelationKeys(fields.parents);
+  const childKeys = getRelationKeys(fields.children);
+  return !parentKeys.includes(nextKey) && !childKeys.includes(nextKey);
 }

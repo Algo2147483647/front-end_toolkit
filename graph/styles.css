@@ -1038,10 +1038,24 @@ body::before {
   resize: vertical;
 }
 
+.node-detail-editor--json {
+  min-height: 280px;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  line-height: 1.65;
+}
+
 .node-detail-editor-hint {
   margin: 0;
   color: var(--text-soft);
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.node-detail-error {
+  margin: 0;
+  color: #b03a2e;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.5;
 }
 

@@ -5,6 +5,7 @@ import { normalizeDagInput } from "../graph/normalize";
 import { getRelationKeys } from "../graph/relations";
 import { serializeDag } from "../graph/serialize";
 import { getInitialSelection } from "../graph/selectors";
+import { buildRawNodeEditorValue, parseRawNodeEditorValue } from "../components/nodeDetailRawJson";
 import { buildStageData } from "../layout/stage-layout";
 import { repairSelectionAfterCommand } from "../state/derived";
 import { graphReducer, repairHistoryAfterCommand } from "../state/graphReducer";
@@ -55,6 +56,24 @@ test("page preference loading falls back safely when storage data is missing", (
   };
   assert.deepEqual(loadGraphPagePreferences(storage), { mode: "edit", layoutMode: "sugiyama" });
   assert.deepEqual(loadGraphPagePreferences(null), { mode: "preview", layoutMode: "bfs" });
+});
+
+test("raw node JSON parser supports wrapped node objects and bare node objects", () => {
+  assert.deepEqual(
+    parseRawNodeEditorValue(JSON.stringify({ Beta: { define: "Updated", extra: true } }), "A"),
+    { ok: true, nextKey: "Beta", fields: { define: "Updated", extra: true } },
+  );
+  assert.deepEqual(
+    parseRawNodeEditorValue(JSON.stringify({ key: "Gamma", define: "Inline" }), "A"),
+    { ok: true, nextKey: "Gamma", fields: { define: "Inline" } },
+  );
+});
+
+test("raw node JSON builder omits duplicate key field and parser rejects invalid payloads", () => {
+  const built = buildRawNodeEditorValue("A", { key: "A", define: "Root" });
+  assert.equal(built.includes('"key"'), false);
+  assert.equal(parseRawNodeEditorValue("{", "A").ok, false);
+  assert.equal(parseRawNodeEditorValue(JSON.stringify(["A"]), "A").ok, false);
 });
 
 test("commands keep parent child symmetry after setParents and setChildren", () => {

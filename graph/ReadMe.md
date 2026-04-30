@@ -48,6 +48,7 @@ npm run build
 - `Up` to move to the parent level
 - right-click a node to open the node menu
 - generic `View Node` page for all node fields
+- edit-mode node details support both field-by-field editing and direct raw JSON editing
 - edit relationships and rerender immediately
 - `Undo / Redo` for graph edits in edit mode
 - export current view as SVG
@@ -286,6 +287,7 @@ Behavior notes:
 - `Delete Node` removes that node and clears references from other nodes
 - `Delete Subtree` removes the selected node and all descendants
 - `Edit Parents` and `Edit Children` update JSON and rerender immediately
+- `View Node` in edit mode also lets you edit the node's raw JSON directly, including adding or removing custom fields
 - `Add Node` creates a node and links it as a child when opened from a node context menu
 - delete actions run immediately without an extra confirm dialog
 
