@@ -275,9 +275,9 @@ function normalizeTypeLabel(value: unknown): string | undefined {
 function createNodeColorTokens(hue: number): StageNodeColorTokens {
   return {
     glow: hsla(hue, 74, 48, 0.12),
-    fill: hsla(hue, 44, 97, 0.94),
-    rootFill: hsla(hue, 52, 98, 0.97),
-    activeFill: hsla(hue, 58, 96, 0.99),
+    fill: "rgba(252, 253, 255, 0.88)",
+    rootFill: "rgba(252, 254, 255, 0.94)",
+    activeFill: "rgba(251, 253, 255, 0.96)",
     border: hsla(hue, 34, 48, 0.26),
     borderStrong: hsla(hue, 42, 40, 0.38),
     activeBorder: hsla(hue, 56, 42, 0.5),
