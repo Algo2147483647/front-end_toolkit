@@ -7,6 +7,7 @@ interface WorkspaceProps {
   svgRef: React.RefObject<SVGSVGElement>;
   stage: StageData | null;
   status: string;
+  onInitializeCanvas: () => void;
   hoveredKey: string | null;
   focusedKey: string | null;
   onNodeClick: (key: string) => void;
@@ -16,10 +17,10 @@ interface WorkspaceProps {
   onScroll: () => void;
 }
 
-export default function Workspace({ containerRef, svgRef, stage, status, hoveredKey, focusedKey, onNodeClick, onNodeContextMenu, onHoverChange, onFocusChange, onScroll }: WorkspaceProps) {
+export default function Workspace({ containerRef, svgRef, stage, status, onInitializeCanvas, hoveredKey, focusedKey, onNodeClick, onNodeContextMenu, onHoverChange, onFocusChange, onScroll }: WorkspaceProps) {
   return (
     <main id="workspace" className="workspace">
-      <EmptyState message={status || "Loading graph data..."} hidden={Boolean(stage)} />
+      <EmptyState message={status || "Loading graph data..."} hidden={Boolean(stage)} actionLabel="Initialize Canvas" onAction={onInitializeCanvas} />
       <div id="main-content" ref={containerRef} className={stage ? "is-ready" : ""} aria-live="polite" onScroll={onScroll}>
         {stage ? (
           <GraphStage

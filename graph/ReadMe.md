@@ -41,6 +41,7 @@ npm run build
 - `Preview / Edit` mode switch
 - remembers page preferences such as `Preview / Edit` mode and layout selection across refreshes
 - auto-load default sample data from `example.json`
+- initialize a fresh canvas with one starting node for blank-slate editing
 - forest rendering for multiple root nodes
 - optional node color grouping by `type`
 - click a node to focus on that node or subtree
@@ -53,6 +54,14 @@ npm run build
 - `Undo / Redo` for graph edits in edit mode
 - export current view as SVG
 - save graph JSON as overwrite or as a new timestamped file
+
+## Initialize Canvas
+
+Use `Initialize Canvas` from the empty state or the `Controls` panel to start from a blank graph.
+
+- the app creates a single centered root node named `Initial_Node`
+- the canvas switches into `Edit` mode automatically
+- the new graph is treated as unsaved until you export or save it as JSON
 
 ## Layout Modes
 

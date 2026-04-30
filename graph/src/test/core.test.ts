@@ -1,6 +1,7 @@
 import assert from "assert/strict";
 import { performance } from "perf_hooks";
 import { applyGraphCommand } from "../graph/commands";
+import { createInitialCanvasDag, INITIAL_CANVAS_FILE_NAME, INITIAL_CANVAS_NODE_KEY } from "../graph/initialCanvas";
 import { normalizeDagInput } from "../graph/normalize";
 import { getRelationKeys } from "../graph/relations";
 import { serializeDag } from "../graph/serialize";
@@ -74,6 +75,13 @@ test("raw node JSON builder omits duplicate key field and parser rejects invalid
   assert.equal(built.includes('"key"'), false);
   assert.equal(parseRawNodeEditorValue("{", "A").ok, false);
   assert.equal(parseRawNodeEditorValue(JSON.stringify(["A"]), "A").ok, false);
+});
+
+test("initial canvas factory creates a single starting node", () => {
+  const dag = createInitialCanvasDag();
+  assert.deepEqual(Object.keys(dag), [INITIAL_CANVAS_NODE_KEY]);
+  assert.equal(dag[INITIAL_CANVAS_NODE_KEY].label, "Initial Node");
+  assert.deepEqual(getRelationKeys(dag[INITIAL_CANVAS_NODE_KEY].children), []);
 });
 
 test("commands keep parent child symmetry after setParents and setChildren", () => {
@@ -314,6 +322,24 @@ test("graph reload preserves the active mode and layout configuration", () => {
 
   assert.equal(state.mode, "edit");
   assert.equal(state.layout.mode, "dagre");
+});
+
+test("canvas initialization enters edit mode with a single unsaved root node", () => {
+  const dag = createInitialCanvasDag();
+  const state = graphReducer(initialGraphAppState, {
+    type: "canvasInitialized",
+    dag,
+    fileName: INITIAL_CANVAS_FILE_NAME,
+    selection: getInitialSelection(dag),
+    status: "Initialized",
+  });
+
+  assert.equal(state.mode, "edit");
+  assert.equal(state.source.fileName, INITIAL_CANVAS_FILE_NAME);
+  assert.equal(state.source.dirty, true);
+  assert.equal(state.editHistory.savedRevision, -1);
+  assert.deepEqual(Object.keys(state.dag || {}), [INITIAL_CANVAS_NODE_KEY]);
+  assert.deepEqual(state.selection, { type: "node", key: INITIAL_CANVAS_NODE_KEY });
 });
 
 test("BFS layout remains the default layout mode", () => {

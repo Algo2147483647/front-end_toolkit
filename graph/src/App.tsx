@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { buildStageData } from "./layout/stage-layout";
 import { applyGraphCommand, type GraphCommand } from "./graph/commands";
+import { createInitialCanvasDag, INITIAL_CANVAS_FILE_NAME } from "./graph/initialCanvas";
 import { normalizeDagInput } from "./graph/normalize";
 import { getFullGraphSelection, getInitialSelection, getParentLevelSelection, sanitizeNodeLabel } from "./graph/selectors";
 import { serializeDag } from "./graph/serialize";
@@ -31,11 +32,12 @@ export default function App() {
   const [state, dispatch] = useReducer(graphReducer, initialGraphAppState);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const suppressDefaultGraphRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const topbarRef = useRef<HTMLElement>(null);
 
-  useDefaultGraph(dispatch);
+  useDefaultGraph(dispatch, suppressDefaultGraphRef);
 
   useEffect(() => {
     saveGraphPagePreferences({
@@ -157,6 +159,7 @@ export default function App() {
   }
 
   async function loadFile(file: File, fileHandle: FileSystemFileHandle | null) {
+    suppressDefaultGraphRef.current = true;
     try {
       const payload = await readJsonFile(file);
       const dag = normalizeDagInput(payload);
@@ -172,6 +175,18 @@ export default function App() {
       console.error(error);
       dispatch({ type: "statusChanged", status: "The selected file could not be parsed as JSON." });
     }
+  }
+
+  function initializeCanvas() {
+    suppressDefaultGraphRef.current = true;
+    const dag = createInitialCanvasDag();
+    dispatch({
+      type: "canvasInitialized",
+      dag,
+      fileName: INITIAL_CANVAS_FILE_NAME,
+      selection: getInitialSelection(dag),
+      status: "Initialized a new canvas with one starting node. Edit mode enabled.",
+    });
   }
 
   function handleNodeClick(nodeKey: string) {
@@ -326,6 +341,7 @@ export default function App() {
         onLayoutModeChange={handleLayoutModeChange}
         onFileInputClick={handleFileInputClick}
         onFileInputChange={handleFileInputChange}
+        onInitializeCanvas={initializeCanvas}
         onExport={handleExportSvg}
         onSaveJson={() => state.dag ? dispatch({ type: "saveDialogOpened" }) : dispatch({ type: "statusChanged", status: "Load or render a graph before saving JSON." })}
       />
@@ -335,6 +351,7 @@ export default function App() {
         svgRef={svgRef}
         stage={stage}
         status={status}
+        onInitializeCanvas={initializeCanvas}
         hoveredKey={hoveredKey}
         focusedKey={focusedKey}
         onNodeClick={handleNodeClick}

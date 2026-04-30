@@ -29,6 +29,7 @@ interface TopbarProps {
   onLayoutModeChange: (mode: GraphLayoutMode) => void;
   onFileInputClick: (event: React.MouseEvent<HTMLInputElement>) => void;
   onFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onInitializeCanvas: () => void;
   onExport: () => void;
   onSaveJson: () => void;
 }
@@ -62,6 +63,7 @@ export default function Topbar({
   onLayoutModeChange,
   onFileInputClick,
   onFileInputChange,
+  onInitializeCanvas,
   onExport,
   onSaveJson,
 }: TopbarProps) {
@@ -127,6 +129,7 @@ export default function Topbar({
                 <span className="file-input-text">{truncateFileName(fileName)}</span>
                 <input type="file" id="fileInput" accept=".json" onClick={onFileInputClick} onChange={onFileInputChange} />
               </label>
+              <button id="init-canvas-btn" className="ghost-btn settings-action-btn" type="button" onClick={onInitializeCanvas}>Initialize Canvas</button>
               <button id="export-btn" className="primary-btn" type="button" disabled={!hasGraph} onClick={onExport}>Export SVG</button>
               <p id="graph-summary" className="graph-summary">{status}</p>
             </div>

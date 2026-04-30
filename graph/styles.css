@@ -292,6 +292,11 @@ body::before {
   line-height: 1.72;
 }
 
+.empty-state__action {
+  margin-top: 18px;
+  min-width: 220px;
+}
+
 .control-dock {
   position: relative;
   z-index: 4;
@@ -720,6 +725,12 @@ body::before {
 .layout-select:focus {
   border-color: rgba(40, 95, 223, 0.45);
   box-shadow: 0 0 0 3px rgba(40, 95, 223, 0.12);
+}
+
+.settings-action-btn {
+  width: 100%;
+  min-height: 38px;
+  justify-content: center;
 }
 
 .topbar-save-btn {

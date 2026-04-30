@@ -4,14 +4,14 @@ import { getInitialSelection } from "../graph/selectors";
 import { loadDefaultSample } from "../adapters/sampleLoader";
 import type { GraphAction } from "../state/graphActions";
 
-export function useDefaultGraph(dispatch: React.Dispatch<GraphAction>): void {
+export function useDefaultGraph(dispatch: React.Dispatch<GraphAction>, suppressAutoLoadRef: React.MutableRefObject<boolean>): void {
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
         const payload = await loadDefaultSample("example.json");
-        if (cancelled) {
+        if (cancelled || suppressAutoLoadRef.current) {
           return;
         }
         const dag = normalizeDagInput(payload);
@@ -25,7 +25,7 @@ export function useDefaultGraph(dispatch: React.Dispatch<GraphAction>): void {
           status: `${Object.keys(dag).length} nodes loaded from example.json.`,
         });
       } catch (error) {
-        if (cancelled) {
+        if (cancelled || suppressAutoLoadRef.current) {
           return;
         }
         console.error(error);
@@ -37,5 +37,5 @@ export function useDefaultGraph(dispatch: React.Dispatch<GraphAction>): void {
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [dispatch, suppressAutoLoadRef]);
 }

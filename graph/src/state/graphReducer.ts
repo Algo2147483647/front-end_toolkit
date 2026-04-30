@@ -31,6 +31,30 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           status: action.status,
         },
       };
+    case "canvasInitialized":
+      return {
+        ...initialGraphAppState,
+        dag: action.dag,
+        source: {
+          fileName: action.fileName,
+          fileHandle: null,
+          dirty: true,
+        },
+        selection: action.selection,
+        history: [],
+        editHistory: {
+          undoStack: [],
+          redoStack: [],
+          revision: 0,
+          savedRevision: -1,
+        },
+        mode: "edit",
+        layout: state.layout,
+        ui: {
+          ...initialGraphAppState.ui,
+          status: action.status,
+        },
+      };
     case "graphLoadFailed":
       return { ...state, dag: null, ui: { ...state.ui, status: action.status } };
     case "selectionChanged": {

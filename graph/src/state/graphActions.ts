@@ -4,6 +4,7 @@ import type { EditTransaction } from "./initialState";
 
 export type GraphAction =
   | { type: "graphLoaded"; dag: NormalizedDag; fileName: string; fileHandle?: FileSystemFileHandle | null; selection: GraphSelection; status: string }
+  | { type: "canvasInitialized"; dag: NormalizedDag; fileName: string; selection: GraphSelection; status: string }
   | { type: "graphLoadFailed"; status: string }
   | { type: "graphCommandCommitted"; result: CommandResult; transaction: EditTransaction; status?: string }
   | { type: "undoRequested" }
