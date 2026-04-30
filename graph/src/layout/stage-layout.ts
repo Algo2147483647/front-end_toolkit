@@ -179,6 +179,7 @@ export function buildStageData(input: {
 
   return {
     dag: layoutDag,
+    layoutMode,
     root: selection.rootKey,
     selection,
     topLevelKeys: selection.topLevelKeys,

@@ -474,6 +474,7 @@ body::before {
   fill: none;
   stroke: var(--edge);
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 1.65;
   transition: stroke 0.18s ease, stroke-width 0.18s ease, opacity 0.18s ease;
 }
