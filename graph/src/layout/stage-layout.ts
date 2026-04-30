@@ -6,6 +6,7 @@ import { getNodeVisual } from "./text";
 import { resolveStageSelection, withSyntheticSelectionRoot } from "./selection";
 import type { LayoutRoutePoint, StageData, StageNode, StageNodeColorTokens, StageRoutePoint } from "./types";
 import { buildBfsLayout } from "./algorithms/bfs";
+import { buildDagreLayout } from "./algorithms/dagre";
 import { buildSugiyamaLayout } from "./algorithms/sugiyama";
 
 export function buildStageData(input: {
@@ -24,15 +25,13 @@ export function buildStageData(input: {
   const layoutDag = withSyntheticSelectionRoot(dag, selection);
   const forestTopLevelSet = new Set(selection.topLevelKeys);
   const layoutRoots = selection.isForest ? selection.topLevelKeys : [selection.rootKey];
-  const layoutResult = layoutMode === "sugiyama"
-    ? buildSugiyamaLayout(layoutDag, layoutRoots)
-    : buildBfsLayout(layoutDag, layoutRoots);
-  const coordinates = layoutResult.coordinates;
-  const typeColorMap = buildTypeColorMap(sourceDag);
-
   const reachable = selection.isForest
     ? collectReachableFromRoots(layoutDag, selection.topLevelKeys)
     : collectReachableNodes(layoutDag, selection.rootKey);
+  const typeColorMap = buildTypeColorMap(sourceDag);
+  const visualByKey = buildNodeVisualMap(layoutDag, reachable, theme);
+  const layoutResult = resolveLayout(layoutMode, layoutDag, layoutRoots, visualByKey, theme);
+  const coordinates = layoutResult.coordinates;
   const nodeKeys = Array.from(reachable).filter((key) => layoutDag[key] && coordinates.has(key));
   const nodesByLayer = new Map<number, StageNode[]>();
   const nodeMap: Record<NodeKey, StageNode> = {};
@@ -42,12 +41,12 @@ export function buildStageData(input: {
   nodeKeys.forEach((nodeKey) => {
     const node = layoutDag[nodeKey];
     const coordinate = coordinates.get(nodeKey);
-    if (!coordinate) {
+    const visual = visualByKey.get(nodeKey);
+    if (!coordinate || !visual) {
       return;
     }
 
     const [layer, order] = coordinate;
-    const visual = getNodeVisual(nodeKey, node, theme.minNodeWidth, theme.maxNodeWidth);
     const typeLabel = normalizeTypeLabel(node.type);
     const nodeData: StageNode = {
       key: nodeKey,
@@ -72,58 +71,87 @@ export function buildStageData(input: {
   });
 
   const fallbackSlotCounts = new Map(Array.from(nodesByLayer.entries()).map(([layer, layerNodes]) => [layer, layerNodes.length]));
-  const slotCountsByLayer = layoutResult.layerSlotCounts || fallbackSlotCounts;
-  const sortedLayers = Array.from(new Set([...nodesByLayer.keys(), ...slotCountsByLayer.keys()])).sort((a, b) => a - b);
-  const stageInnerHeight = measureStageInnerHeight(slotCountsByLayer, theme);
+  const sortedLayers = Array.from(new Set([
+    ...nodesByLayer.keys(),
+    ...(layoutResult.layerSlotCounts?.keys() || []),
+  ])).sort((a, b) => a - b);
 
-  sortedLayers.forEach((layer) => {
-    const layerNodes = (nodesByLayer.get(layer) || []).sort((a, b) => a.order - b.order);
-    if (layoutMode === "bfs" && layer > 0) {
-      layerNodes.sort((a, b) => {
-        const aScore = getBarycentricScore(a.key, incomingMap, nodeMap);
-        const bScore = getBarycentricScore(b.key, incomingMap, nodeMap);
-        return aScore === bScore ? a.order - b.order : aScore - bScore;
+  let laneCenters = new Map<number, number>();
+  let lanes: StageData["lanes"] = [];
+  let slotCountsByLayer = layoutResult.layerSlotCounts || fallbackSlotCounts;
+  let stageInnerHeight = measureStageInnerHeight(slotCountsByLayer, theme);
+  let stageWidth = 0;
+  let stageHeight = 0;
+  let absoluteOffset: { x: number; y: number } | undefined;
+
+  if (layoutResult.nodePositions?.size) {
+    const absoluteGeometry = applyAbsoluteLayoutGeometry({
+      nodeKeys,
+      nodeMap,
+      nodesByLayer,
+      sortedLayers,
+      nodePositions: layoutResult.nodePositions,
+      theme,
+      selection,
+    });
+    lanes = absoluteGeometry.lanes;
+    laneCenters = absoluteGeometry.laneCenters;
+    slotCountsByLayer = absoluteGeometry.slotCountsByLayer;
+    stageInnerHeight = absoluteGeometry.stageInnerHeight;
+    stageWidth = absoluteGeometry.stageWidth;
+    stageHeight = absoluteGeometry.stageHeight;
+    absoluteOffset = absoluteGeometry.absoluteOffset;
+  } else {
+    sortedLayers.forEach((layer) => {
+      const layerNodes = (nodesByLayer.get(layer) || []).sort((a, b) => a.order - b.order);
+      if (layoutMode === "bfs" && layer > 0) {
+        layerNodes.sort((a, b) => {
+          const aScore = getBarycentricScore(a.key, incomingMap, nodeMap);
+          const bScore = getBarycentricScore(b.key, incomingMap, nodeMap);
+          return aScore === bScore ? a.order - b.order : aScore - bScore;
+        });
+      }
+
+      if (layoutMode === "bfs") {
+        layerNodes.forEach((nodeData, index) => {
+          nodeData.order = index;
+        });
+      }
+
+      const slotCount = slotCountsByLayer.get(layer) || layerNodes.length || 1;
+      const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
+      const startY = theme.stagePaddingY + (stageInnerHeight - layerHeight) / 2;
+      layerNodes.forEach((nodeData) => {
+        nodeData.y = startY + nodeData.order * (theme.nodeHeight + theme.rowGap) + theme.nodeHeight / 2;
       });
-    }
+    });
 
-    if (layoutMode === "bfs") {
-      layerNodes.forEach((nodeData, index) => {
-        nodeData.order = index;
+    const columnWidths = sortedLayers.map((layer) => {
+      const layerNodes = nodesByLayer.get(layer) || [];
+      return layerNodes.length ? Math.max(...layerNodes.map((node) => node.width)) : theme.minNodeWidth;
+    });
+    let cursorX = theme.stagePaddingX;
+
+    sortedLayers.forEach((layer, index) => {
+      const layerWidth = columnWidths[index];
+      const layerNodes = nodesByLayer.get(layer) || [];
+      const laneCenter = cursorX + layerWidth / 2;
+      laneCenters.set(layer, laneCenter);
+      layerNodes.forEach((nodeData) => {
+        nodeData.x = laneCenter;
       });
-    }
-
-    const slotCount = slotCountsByLayer.get(layer) || layerNodes.length || 1;
-    const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
-    const startY = theme.stagePaddingY + (stageInnerHeight - layerHeight) / 2;
-    layerNodes.forEach((nodeData) => {
-      nodeData.y = startY + nodeData.order * (theme.nodeHeight + theme.rowGap) + theme.nodeHeight / 2;
+      lanes.push({
+        layer,
+        label: layer === 0 ? (selection.isForest ? "Root" : "Focus") : `Tier ${layer}`,
+        x: laneCenter,
+        width: layerWidth,
+      });
+      cursorX += layerWidth + theme.columnGap;
     });
-  });
 
-  const columnWidths = sortedLayers.map((layer) => {
-    const layerNodes = nodesByLayer.get(layer) || [];
-    return layerNodes.length ? Math.max(...layerNodes.map((node) => node.width)) : theme.minNodeWidth;
-  });
-  let cursorX = theme.stagePaddingX;
-  const lanes: StageData["lanes"] = [];
-  const laneCenters = new Map<number, number>();
-
-  sortedLayers.forEach((layer, index) => {
-    const layerWidth = columnWidths[index];
-    const layerNodes = nodesByLayer.get(layer) || [];
-    const laneCenter = cursorX + layerWidth / 2;
-    laneCenters.set(layer, laneCenter);
-    layerNodes.forEach((nodeData) => {
-      nodeData.x = laneCenter;
-    });
-    lanes.push({
-      layer,
-      label: layer === 0 ? (selection.isForest ? "Root" : "Focus") : `Tier ${layer}`,
-      x: laneCenter,
-      width: layerWidth,
-    });
-    cursorX += layerWidth + theme.columnGap;
-  });
+    stageWidth = cursorX - theme.columnGap + theme.stagePaddingX;
+    stageHeight = stageInnerHeight + theme.stagePaddingY * 2;
+  }
 
   nodeKeys.forEach((sourceKey) => {
     const sourceNode = layoutDag[sourceKey];
@@ -135,7 +163,9 @@ export function buildStageData(input: {
       }
       const weight = Array.isArray(children) ? 1 : (children as Record<NodeKey, RelationValue>)[targetKey];
       const route = layoutResult.edgeRoutes?.get(`${sourceKey}-->${targetKey}`);
-      const points = route?.points.map((point) => getRoutePointPosition(point, laneCenters, slotCountsByLayer, stageInnerHeight, theme));
+      const points = route?.points.map((point) => (
+        getRoutePointPosition(point, laneCenters, slotCountsByLayer, stageInnerHeight, theme, absoluteOffset)
+      ));
       edges.push({
         id: `${sourceKey}-->${targetKey}`,
         source: sourceKey,
@@ -146,9 +176,6 @@ export function buildStageData(input: {
       });
     });
   });
-
-  const stageWidth = cursorX - theme.columnGap + theme.stagePaddingX;
-  const stageHeight = stageInnerHeight + theme.stagePaddingY * 2;
 
   return {
     dag: layoutDag,
@@ -164,6 +191,42 @@ export function buildStageData(input: {
     stageHeight: Math.max(stageHeight, 600),
     warnings: layoutResult.warnings,
   };
+}
+
+function resolveLayout(
+  layoutMode: GraphLayoutMode,
+  layoutDag: Record<NodeKey, NormalizedDag[NodeKey] | undefined>,
+  layoutRoots: NodeKey[],
+  visualByKey: Map<NodeKey, { width: number }>,
+  theme: GraphTheme,
+) {
+  if (layoutMode === "sugiyama") {
+    return buildSugiyamaLayout(layoutDag, layoutRoots);
+  }
+  if (layoutMode === "dagre") {
+    const nodeSizes = new Map<NodeKey, { width: number; height: number }>();
+    visualByKey.forEach((visual, nodeKey) => {
+      nodeSizes.set(nodeKey, { width: visual.width, height: theme.nodeHeight });
+    });
+    return buildDagreLayout(layoutDag, layoutRoots, nodeSizes);
+  }
+  return buildBfsLayout(layoutDag, layoutRoots);
+}
+
+function buildNodeVisualMap(
+  dag: Record<NodeKey, NormalizedDag[NodeKey] | undefined>,
+  nodeKeys: Set<NodeKey>,
+  theme: GraphTheme,
+): Map<NodeKey, ReturnType<typeof getNodeVisual>> {
+  const visuals = new Map<NodeKey, ReturnType<typeof getNodeVisual>>();
+  nodeKeys.forEach((nodeKey) => {
+    const node = dag[nodeKey];
+    if (!node) {
+      return;
+    }
+    visuals.set(nodeKey, getNodeVisual(nodeKey, node, theme.minNodeWidth, theme.maxNodeWidth));
+  });
+  return visuals;
 }
 
 function collectReachableNodes(dag: Record<NodeKey, unknown>, root: NodeKey): Set<NodeKey> {
@@ -219,13 +282,115 @@ function measureStageInnerHeight(slotCountsByLayer: Map<number, number>, theme: 
   return Math.max(maxHeight, theme.nodeHeight * 3.4);
 }
 
+function applyAbsoluteLayoutGeometry(input: {
+  nodeKeys: NodeKey[];
+  nodeMap: Record<NodeKey, StageNode>;
+  nodesByLayer: Map<number, StageNode[]>;
+  sortedLayers: number[];
+  nodePositions: Map<NodeKey, { x: number; y: number }>;
+  theme: GraphTheme;
+  selection: StageData["selection"];
+}): {
+  lanes: StageData["lanes"];
+  laneCenters: Map<number, number>;
+  slotCountsByLayer: Map<number, number>;
+  stageInnerHeight: number;
+  stageWidth: number;
+  stageHeight: number;
+  absoluteOffset: { x: number; y: number };
+} {
+  const { nodeKeys, nodeMap, nodesByLayer, sortedLayers, nodePositions, theme, selection } = input;
+  let minLeft = Infinity;
+  let maxRight = -Infinity;
+  let minTop = Infinity;
+  let maxBottom = -Infinity;
+
+  nodeKeys.forEach((nodeKey) => {
+    const node = nodeMap[nodeKey];
+    const position = nodePositions.get(nodeKey);
+    if (!node || !position) {
+      return;
+    }
+    minLeft = Math.min(minLeft, position.x - node.width / 2);
+    maxRight = Math.max(maxRight, position.x + node.width / 2);
+    minTop = Math.min(minTop, position.y - node.height / 2);
+    maxBottom = Math.max(maxBottom, position.y + node.height / 2);
+  });
+
+  if (!Number.isFinite(minLeft) || !Number.isFinite(minTop) || !Number.isFinite(maxRight) || !Number.isFinite(maxBottom)) {
+    minLeft = 0;
+    minTop = 0;
+    maxRight = theme.minNodeWidth;
+    maxBottom = theme.nodeHeight * 2;
+  }
+
+  const absoluteOffset = {
+    x: theme.stagePaddingX - minLeft,
+    y: theme.stagePaddingY - minTop,
+  };
+
+  nodeKeys.forEach((nodeKey) => {
+    const node = nodeMap[nodeKey];
+    const position = nodePositions.get(nodeKey);
+    if (!node || !position) {
+      return;
+    }
+    node.x = position.x + absoluteOffset.x;
+    node.y = position.y + absoluteOffset.y;
+  });
+
+  const lanes: StageData["lanes"] = [];
+  const laneCenters = new Map<number, number>();
+  const slotCountsByLayer = new Map<number, number>();
+
+  sortedLayers.forEach((layer) => {
+    const layerNodes = nodesByLayer.get(layer) || [];
+    slotCountsByLayer.set(layer, layerNodes.length);
+    if (!layerNodes.length) {
+      return;
+    }
+
+    const laneCenter = layerNodes.reduce((sum, node) => sum + node.x, 0) / layerNodes.length;
+    laneCenters.set(layer, laneCenter);
+    lanes.push({
+      layer,
+      label: layer === 0 ? (selection.isForest ? "Root" : "Focus") : `Tier ${layer}`,
+      x: laneCenter,
+      width: Math.max(...layerNodes.map((node) => node.width)),
+    });
+  });
+
+  const stageWidth = maxRight - minLeft + theme.stagePaddingX * 2;
+  const stageHeight = maxBottom - minTop + theme.stagePaddingY * 2;
+
+  return {
+    lanes,
+    laneCenters,
+    slotCountsByLayer,
+    stageInnerHeight: Math.max(stageHeight - theme.stagePaddingY * 2, theme.nodeHeight * 3.4),
+    stageWidth,
+    stageHeight,
+    absoluteOffset,
+  };
+}
+
 function getRoutePointPosition(
   point: LayoutRoutePoint,
   laneCenters: Map<number, number>,
   slotCountsByLayer: Map<number, number>,
   stageInnerHeight: number,
   theme: GraphTheme,
+  absoluteOffset?: { x: number; y: number },
 ): StageRoutePoint {
+  if (typeof point.x === "number" && typeof point.y === "number") {
+    return {
+      layer: point.layer,
+      order: point.order,
+      x: point.x + (absoluteOffset?.x || 0),
+      y: point.y + (absoluteOffset?.y || 0),
+    };
+  }
+
   const slotCount = slotCountsByLayer.get(point.layer) || 1;
   const layerHeight = slotCount * theme.nodeHeight + Math.max(slotCount - 1, 0) * theme.rowGap;
   const startY = theme.stagePaddingY + (stageInnerHeight - layerHeight) / 2;

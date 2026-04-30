@@ -1,4 +1,5 @@
 import { areSelectionsEqual, isSelectionValid, remapSelectionKeys, removeSelectionKeys } from "../graph/selectors";
+import { getGraphLayoutLabel } from "../graph/types";
 import { initialGraphAppState, type GraphAppState } from "./initialState";
 import type { GraphAction } from "./graphActions";
 
@@ -178,7 +179,7 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
         ui: {
           ...state.ui,
           contextMenu: null,
-          status: state.dag ? `Layout: ${action.mode === "sugiyama" ? "Sugiyama layered" : "BFS"}.` : state.ui.status,
+          status: state.dag ? `Layout: ${getGraphLayoutLabel(action.mode)}.` : state.ui.status,
         },
       };
     case "zoomChanged":

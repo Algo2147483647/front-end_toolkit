@@ -56,6 +56,7 @@ npm run build
 
 - `BFS`: keeps the selected root traversal close to breadth-first discovery order.
 - `Sugiyama layered`: ranks nodes by directed dependency depth, breaks visible cycles for layout, inserts virtual route points for long edges, and applies crossing-reduction sweeps before rendering.
+- `Dagre layered`: uses the Dagre layered engine with `network-simplex` ranking and absolute routed points for a more industrial, library-backed dependency layout.
 
 ## How Navigation Works
 

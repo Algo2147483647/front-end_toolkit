@@ -23,6 +23,7 @@ import SaveJsonModal from "./components/SaveJsonModal";
 import Topbar from "./components/Topbar";
 import Workspace from "./components/Workspace";
 import type { GraphLayoutMode, GraphMode, NodeKey } from "./graph/types";
+import { getGraphLayoutLabel } from "./graph/types";
 import type { EditTransaction } from "./state/initialState";
 
 export default function App() {
@@ -44,7 +45,7 @@ export default function App() {
     const focusNode = stage.dag[stage.root];
     const focusLabel = focusNode?.synthetic ? focusNode.label || "Selected roots" : sanitizeNodeLabel(focusNode?.label || focusNode?.title || focusNode?.name || stage.root);
     const modeLabel = state.mode === "edit" ? "Edit" : "Preview";
-    const layoutLabel = state.layout.mode === "sugiyama" ? "Sugiyama layered" : "BFS";
+    const layoutLabel = getGraphLayoutLabel(state.layout.mode);
     const warningText = stage.warnings.length ? ` ${stage.warnings[0]}` : "";
     return state.ui.status
       && !state.ui.status.includes("loaded from")

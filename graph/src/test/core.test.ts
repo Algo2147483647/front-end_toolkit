@@ -266,6 +266,56 @@ test("BFS layout remains the default layout mode", () => {
   assert.equal(bfsStage.nodeMap.E.layer, 2);
 });
 
+test("Dagre layout ranks simple chains left to right", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: { children: ["C"] },
+    C: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "dagre" });
+
+  assert.ok(stage);
+  assert.equal(stage.nodeMap.A.layer, 0);
+  assert.equal(stage.nodeMap.B.layer, 1);
+  assert.equal(stage.nodeMap.C.layer, 2);
+  assert.ok(stage.nodeMap.A.x < stage.nodeMap.B.x);
+  assert.ok(stage.nodeMap.B.x < stage.nodeMap.C.x);
+});
+
+test("Dagre layout keeps deterministic node and edge routes", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["D"] },
+    C: { children: ["D"] },
+    D: {},
+  });
+  const first = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "dagre" });
+  const second = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "dagre" });
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.deepEqual(
+    first.nodes.map((node) => [node.key, node.layer, node.order, node.x, node.y]),
+    second.nodes.map((node) => [node.key, node.layer, node.order, node.x, node.y]),
+  );
+  assert.deepEqual(first.edges, second.edges);
+});
+
+test("Dagre layout emits absolute route points for long edges", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B", "C"] },
+    B: { children: ["C"] },
+    C: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" }, layoutMode: "dagre" });
+
+  assert.ok(stage);
+  const longEdge = stage.edges.find((edge) => edge.id === "A-->C");
+  assert.ok(longEdge);
+  assert.ok(longEdge.points && longEdge.points.length > 0);
+  assert.ok(longEdge.points.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)));
+});
+
 test("Sugiyama layout ranks multi-parent nodes after their deepest visible parent", () => {
   const dag = normalizeDagInput({
     A: { children: ["B", "C"] },

@@ -118,6 +118,7 @@ export default function Topbar({
                 >
                   <option value="bfs">BFS</option>
                   <option value="sugiyama">Sugiyama layered</option>
+                  <option value="dagre">Dagre layered</option>
                 </select>
               </label>
 

@@ -36,7 +36,18 @@ export type GraphSelection =
 
 export type GraphMode = "preview" | "edit";
 
-export type GraphLayoutMode = "bfs" | "sugiyama";
+export type GraphLayoutMode = "bfs" | "sugiyama" | "dagre";
+
+export function getGraphLayoutLabel(mode: GraphLayoutMode): string {
+  switch (mode) {
+    case "sugiyama":
+      return "Sugiyama layered";
+    case "dagre":
+      return "Dagre layered";
+    default:
+      return "BFS";
+  }
+}
 
 export interface GraphTheme {
   stagePaddingX: number;

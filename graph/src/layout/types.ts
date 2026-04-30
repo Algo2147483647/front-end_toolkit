@@ -53,6 +53,8 @@ export type LayoutCoordinateMap = Map<NodeKey, LayoutCoordinate>;
 export interface LayoutRoutePoint {
   layer: number;
   order: number;
+  x?: number;
+  y?: number;
 }
 
 export interface LayoutEdgeRoute {
@@ -72,6 +74,7 @@ export interface LayoutResult {
   warnings: string[];
   layerSlotCounts?: Map<number, number>;
   edgeRoutes?: Map<string, LayoutEdgeRoute>;
+  nodePositions?: Map<NodeKey, { x: number; y: number }>;
 }
 
 export interface ResolvedStageSelection {
