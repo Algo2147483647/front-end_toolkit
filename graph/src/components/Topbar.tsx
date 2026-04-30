@@ -75,7 +75,7 @@ export default function Topbar({
           <button id="zoom-in-btn" className="ghost-btn zoom-btn" type="button" disabled={!canZoomIn} aria-label="Zoom in" onClick={onZoomIn}>+</button>
         </div>
         <div className="topbar-group file-controls" aria-label="Graph file controls">
-          <button id="save-json-btn" className="primary-btn topbar-save-btn" type="button" disabled={!hasGraph} onClick={onSaveJson}>Save JSON</button>
+          <button id="save-json-btn" className="ghost-btn topbar-save-btn" type="button" disabled={!hasGraph} onClick={onSaveJson}>Save JSON</button>
           <div id="floating-controls" className="control-dock">
             <button
               id="settings-btn"
