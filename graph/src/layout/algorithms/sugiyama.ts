@@ -2,7 +2,9 @@ import type { NodeKey } from "../../graph/types";
 import type { LayoutEdgeRoute, LayoutResult } from "../types";
 import { buildVisibleGraph, getExistingRoots, type LayoutGraphNode, type VisibleGraph } from "./shared";
 
-const CROSSING_REDUCTION_PASSES = 6;
+const CROSSING_REDUCTION_MAX_PASSES = 12;
+const POSITION_COMPACTION_PASSES = 8;
+const MIN_POSITION_GAP = 1;
 
 interface LayoutEdge {
   source: NodeKey;
@@ -45,14 +47,18 @@ export function buildSugiyamaLayout(dag: Record<NodeKey, LayoutGraphNode | undef
   const rootSet = new Set(getExistingRoots(dag, roots));
   const stableOrderByKey = buildStableOrderByKey(dag, graph);
   const layoutEdges = buildLayoutEdges(graph);
-  const cycleResult = breakCyclesForLayout(graph.nodeKeys, layoutEdges);
-  const layerByKey = assignLayers(graph.nodeKeys, cycleResult.edges, rootSet);
+  const cycleResult = breakCyclesForLayout(graph.nodeKeys, layoutEdges, stableOrderByKey);
+  const topologicalOrder = buildTopologicalOrder(graph.nodeKeys, cycleResult.edges, stableOrderByKey);
+  const layerByKey = assignBalancedLayers(graph.nodeKeys, topologicalOrder, cycleResult.edges, rootSet);
   const normalized = normalizeLongEdges(cycleResult.edges, layerByKey);
   const originalOrderById = buildOriginalOrderById(normalized.items, stableOrderByKey);
   const layers = buildLayers(normalized.items, originalOrderById);
 
   reduceCrossings(layers, normalized.segments, originalOrderById);
-  refreshItemOrders(layers);
+
+  const crossingIndex = buildCrossingIndex(layers, normalized.segments);
+  const compactedPositions = compactLayerPositions(layers, crossingIndex);
+  applyCompactedPositions(layers, compactedPositions);
 
   const coordinates: LayoutResult["coordinates"] = new Map();
   normalized.items.forEach((item) => {
@@ -89,83 +95,218 @@ function buildLayoutEdges(graph: VisibleGraph): LayoutEdge[] {
   return edges;
 }
 
-function breakCyclesForLayout(nodeKeys: NodeKey[], edges: LayoutEdge[]): { edges: LayoutEdge[]; warnings: string[] } {
-  const outgoing = new Map<NodeKey, LayoutEdge[]>();
-  nodeKeys.forEach((key) => outgoing.set(key, []));
-  edges.forEach((edge) => outgoing.get(edge.source)?.push(edge));
-
-  const visiting = new Set<NodeKey>();
-  const visited = new Set<NodeKey>();
-  const reversed = new Set<LayoutEdge>();
+function breakCyclesForLayout(nodeKeys: NodeKey[], edges: LayoutEdge[], stableOrderByKey: Record<NodeKey, number>): { edges: LayoutEdge[]; warnings: string[] } {
+  const order = buildGreedyAcyclicOrder(nodeKeys, edges, stableOrderByKey);
   const warnings: string[] = [];
 
-  const visit = (nodeKey: NodeKey) => {
-    visiting.add(nodeKey);
-    for (const edge of outgoing.get(nodeKey) || []) {
-      if (visiting.has(edge.target)) {
-        reversed.add(edge);
-        warnings.push(`Sugiyama layout reversed "${edge.source}" -> "${edge.target}" to break a visible cycle.`);
-        continue;
-      }
-      if (!visited.has(edge.target)) {
-        visit(edge.target);
-      }
-    }
-    visiting.delete(nodeKey);
-    visited.add(nodeKey);
-  };
-
-  nodeKeys.forEach((nodeKey) => {
-    if (!visited.has(nodeKey)) {
-      visit(nodeKey);
-    }
-  });
-
   const nextEdges = edges.map((edge) => {
-    if (!reversed.has(edge)) {
+    if (order[edge.source] <= order[edge.target]) {
       return edge;
     }
+    warnings.push(`Sugiyama layout reversed "${edge.source}" -> "${edge.target}" to break a visible cycle.`);
     return { ...edge, source: edge.target, target: edge.source, reversedForLayout: true };
   });
 
   return { edges: nextEdges, warnings };
 }
 
-function assignLayers(nodeKeys: NodeKey[], edges: LayoutEdge[], rootSet: Set<NodeKey>): Record<NodeKey, number> {
-  const incoming = new Map<NodeKey, LayoutEdge[]>();
-  nodeKeys.forEach((nodeKey) => incoming.set(nodeKey, []));
-  edges.forEach((edge) => incoming.get(edge.target)?.push(edge));
+function buildGreedyAcyclicOrder(nodeKeys: NodeKey[], edges: LayoutEdge[], stableOrderByKey: Record<NodeKey, number>): Record<NodeKey, number> {
+  const outgoing = new Map<NodeKey, NodeKey[]>();
+  const incoming = new Map<NodeKey, NodeKey[]>();
+  const outDegree = new Map<NodeKey, number>();
+  const inDegree = new Map<NodeKey, number>();
+  const remaining = new Set(nodeKeys);
+  const left: NodeKey[] = [];
+  const right: NodeKey[] = [];
 
-  const layerByKey: Record<NodeKey, number> = {};
-  const visiting = new Set<NodeKey>();
-
-  const rankNode = (nodeKey: NodeKey): number => {
-    if (layerByKey[nodeKey] !== undefined) {
-      return layerByKey[nodeKey];
-    }
-    if (rootSet.has(nodeKey)) {
-      layerByKey[nodeKey] = 0;
-      return 0;
-    }
-    if (visiting.has(nodeKey)) {
-      return 0;
-    }
-
-    visiting.add(nodeKey);
-    let layer = 0;
-    (incoming.get(nodeKey) || []).forEach((edge) => {
-      layer = Math.max(layer, rankNode(edge.source) + 1);
-    });
-    visiting.delete(nodeKey);
-    layerByKey[nodeKey] = layer;
-    return layer;
-  };
-
-  nodeKeys.forEach((nodeKey) => {
-    rankNode(nodeKey);
+  nodeKeys.forEach((key) => {
+    outgoing.set(key, []);
+    incoming.set(key, []);
+    outDegree.set(key, 0);
+    inDegree.set(key, 0);
   });
 
+  edges.forEach((edge) => {
+    outgoing.get(edge.source)?.push(edge.target);
+    incoming.get(edge.target)?.push(edge.source);
+    outDegree.set(edge.source, (outDegree.get(edge.source) || 0) + 1);
+    inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+  });
+
+  const byStableOrder = (leftKey: NodeKey, rightKey: NodeKey) => stableOrderByKey[leftKey] - stableOrderByKey[rightKey];
+
+  const removeNode = (nodeKey: NodeKey, target: NodeKey[]) => {
+    if (!remaining.has(nodeKey)) {
+      return;
+    }
+    remaining.delete(nodeKey);
+    target.push(nodeKey);
+    (outgoing.get(nodeKey) || []).forEach((nextKey) => {
+      if (remaining.has(nextKey)) {
+        inDegree.set(nextKey, (inDegree.get(nextKey) || 0) - 1);
+      }
+    });
+    (incoming.get(nodeKey) || []).forEach((previousKey) => {
+      if (remaining.has(previousKey)) {
+        outDegree.set(previousKey, (outDegree.get(previousKey) || 0) - 1);
+      }
+    });
+  };
+
+  while (remaining.size) {
+    const sinks = Array.from(remaining).filter((nodeKey) => (outDegree.get(nodeKey) || 0) === 0).sort(byStableOrder);
+    if (sinks.length) {
+      sinks.forEach((nodeKey) => removeNode(nodeKey, right));
+      continue;
+    }
+
+    const sources = Array.from(remaining).filter((nodeKey) => (inDegree.get(nodeKey) || 0) === 0).sort(byStableOrder);
+    if (sources.length) {
+      sources.forEach((nodeKey) => removeNode(nodeKey, left));
+      continue;
+    }
+
+    const pivot = Array.from(remaining).sort((leftKey, rightKey) => {
+      const leftScore = (outDegree.get(leftKey) || 0) - (inDegree.get(leftKey) || 0);
+      const rightScore = (outDegree.get(rightKey) || 0) - (inDegree.get(rightKey) || 0);
+      if (leftScore !== rightScore) {
+        return rightScore - leftScore;
+      }
+      return byStableOrder(leftKey, rightKey);
+    })[0];
+
+    removeNode(pivot, left);
+  }
+
+  const order: Record<NodeKey, number> = {};
+  [...left, ...right.reverse()].forEach((nodeKey, index) => {
+    order[nodeKey] = index;
+  });
+  return order;
+}
+
+function buildTopologicalOrder(nodeKeys: NodeKey[], edges: LayoutEdge[], stableOrderByKey: Record<NodeKey, number>): NodeKey[] {
+  const incomingCount = new Map<NodeKey, number>();
+  const outgoing = new Map<NodeKey, NodeKey[]>();
+  nodeKeys.forEach((nodeKey) => {
+    incomingCount.set(nodeKey, 0);
+    outgoing.set(nodeKey, []);
+  });
+  edges.forEach((edge) => {
+    outgoing.get(edge.source)?.push(edge.target);
+    incomingCount.set(edge.target, (incomingCount.get(edge.target) || 0) + 1);
+  });
+
+  const queue = nodeKeys
+    .filter((nodeKey) => (incomingCount.get(nodeKey) || 0) === 0)
+    .sort((leftKey, rightKey) => stableOrderByKey[leftKey] - stableOrderByKey[rightKey]);
+  const order: NodeKey[] = [];
+
+  while (queue.length) {
+    const nodeKey = queue.shift()!;
+    order.push(nodeKey);
+    (outgoing.get(nodeKey) || []).forEach((targetKey) => {
+      const nextCount = (incomingCount.get(targetKey) || 0) - 1;
+      incomingCount.set(targetKey, nextCount);
+      if (nextCount === 0) {
+        queue.push(targetKey);
+        queue.sort((leftKey, rightKey) => stableOrderByKey[leftKey] - stableOrderByKey[rightKey]);
+      }
+    });
+  }
+
+  return order.length === nodeKeys.length ? order : nodeKeys.slice().sort((leftKey, rightKey) => stableOrderByKey[leftKey] - stableOrderByKey[rightKey]);
+}
+
+function assignBalancedLayers(nodeKeys: NodeKey[], topologicalOrder: NodeKey[], edges: LayoutEdge[], rootSet: Set<NodeKey>): Record<NodeKey, number> {
+  const incoming = new Map<NodeKey, NodeKey[]>();
+  const outgoing = new Map<NodeKey, NodeKey[]>();
+  nodeKeys.forEach((nodeKey) => {
+    incoming.set(nodeKey, []);
+    outgoing.set(nodeKey, []);
+  });
+  edges.forEach((edge) => {
+    incoming.get(edge.target)?.push(edge.source);
+    outgoing.get(edge.source)?.push(edge.target);
+  });
+
+  const lowerBound: Record<NodeKey, number> = {};
+  topologicalOrder.forEach((nodeKey) => {
+    if (rootSet.has(nodeKey)) {
+      lowerBound[nodeKey] = 0;
+      return;
+    }
+    let layer = 0;
+    (incoming.get(nodeKey) || []).forEach((parentKey) => {
+      layer = Math.max(layer, (lowerBound[parentKey] ?? 0) + 1);
+    });
+    lowerBound[nodeKey] = layer;
+  });
+
+  const maxLayer = topologicalOrder.reduce((currentMax, nodeKey) => Math.max(currentMax, lowerBound[nodeKey] ?? 0), 0);
+  const upperBound: Record<NodeKey, number> = {};
+  [...topologicalOrder].reverse().forEach((nodeKey) => {
+    if (rootSet.has(nodeKey)) {
+      upperBound[nodeKey] = 0;
+      return;
+    }
+    const childKeys = outgoing.get(nodeKey) || [];
+    if (!childKeys.length) {
+      upperBound[nodeKey] = maxLayer;
+      return;
+    }
+    upperBound[nodeKey] = childKeys.reduce((minimum, childKey) => Math.min(minimum, (upperBound[childKey] ?? maxLayer) - 1), maxLayer);
+    if (upperBound[nodeKey] < lowerBound[nodeKey]) {
+      upperBound[nodeKey] = lowerBound[nodeKey];
+    }
+  });
+
+  const layerByKey: Record<NodeKey, number> = { ...lowerBound };
+  const reverseOrder = [...topologicalOrder].reverse();
+
+  for (let pass = 0; pass < 6; pass += 1) {
+    topologicalOrder.forEach((nodeKey) => {
+      if (rootSet.has(nodeKey)) {
+        layerByKey[nodeKey] = 0;
+        return;
+      }
+      layerByKey[nodeKey] = chooseBalancedLayer(nodeKey, incoming, outgoing, layerByKey, lowerBound, upperBound);
+    });
+    reverseOrder.forEach((nodeKey) => {
+      if (rootSet.has(nodeKey)) {
+        layerByKey[nodeKey] = 0;
+        return;
+      }
+      layerByKey[nodeKey] = chooseBalancedLayer(nodeKey, incoming, outgoing, layerByKey, lowerBound, upperBound);
+    });
+  }
+
   return layerByKey;
+}
+
+function chooseBalancedLayer(
+  nodeKey: NodeKey,
+  incoming: Map<NodeKey, NodeKey[]>,
+  outgoing: Map<NodeKey, NodeKey[]>,
+  layerByKey: Record<NodeKey, number>,
+  lowerBound: Record<NodeKey, number>,
+  upperBound: Record<NodeKey, number>,
+): number {
+  const desiredLayers = [
+    ...(incoming.get(nodeKey) || []).map((parentKey) => (layerByKey[parentKey] ?? lowerBound[parentKey] ?? 0) + 1),
+    ...(outgoing.get(nodeKey) || []).map((childKey) => (layerByKey[childKey] ?? upperBound[childKey] ?? upperBound[nodeKey]) - 1),
+  ].sort((leftValue, rightValue) => leftValue - rightValue);
+
+  if (!desiredLayers.length) {
+    return lowerBound[nodeKey];
+  }
+
+  const middle = Math.floor(desiredLayers.length / 2);
+  const median = desiredLayers.length % 2 === 0
+    ? (desiredLayers[middle - 1] + desiredLayers[middle]) / 2
+    : desiredLayers[middle];
+
+  return clamp(Math.round(median), lowerBound[nodeKey], upperBound[nodeKey]);
 }
 
 function normalizeLongEdges(edges: LayoutEdge[], layerByKey: Record<NodeKey, number>): {
@@ -259,7 +400,7 @@ function buildLayers(items: LayoutItem[], originalOrderById: Record<NodeKey, num
   });
 
   layers.forEach((layerItems) => {
-    layerItems.sort((a, b) => originalOrderById[a.id] - originalOrderById[b.id]);
+    layerItems.sort((leftItem, rightItem) => originalOrderById[leftItem.id] - originalOrderById[rightItem.id]);
   });
   refreshItemOrders(layers);
   return layers;
@@ -272,36 +413,50 @@ function reduceCrossings(layers: Map<number, LayoutItem[]>, segments: LayoutEdge
   }
 
   const crossingIndex = buildCrossingIndex(layers, segments);
+  let bestSnapshot = snapshotLayerOrdering(layers);
   let bestCrossings = countTotalCrossings(layers, crossingIndex);
 
-  for (let pass = 0; pass < CROSSING_REDUCTION_PASSES; pass += 1) {
-    [...sortedLayerIndexes].reverse().forEach((layer) => {
-      if (layer === sortedLayerIndexes[sortedLayerIndexes.length - 1]) {
-        return;
-      }
-      sortLayerByNeighbors(layers.get(layer)!, crossingIndex.outgoing, crossingIndex, originalOrder);
-      refreshItemOrders(layers);
-      transposeLayer(layers, layer, crossingIndex);
-    });
+  for (let pass = 0; pass < CROSSING_REDUCTION_MAX_PASSES; pass += 1) {
+    let changed = false;
 
     sortedLayerIndexes.forEach((layer) => {
       if (layer === sortedLayerIndexes[0]) {
         return;
       }
-      sortLayerByNeighbors(layers.get(layer)!, crossingIndex.incoming, crossingIndex, originalOrder);
+      const layerItems = layers.get(layer);
+      if (!layerItems) {
+        return;
+      }
+      changed = sortLayerByNeighbors(layerItems, crossingIndex.incoming, crossingIndex, originalOrder) || changed;
       refreshItemOrders(layers);
-      transposeLayer(layers, layer, crossingIndex);
+      changed = transposeLayer(layers, layer, crossingIndex) || changed;
+    });
+
+    [...sortedLayerIndexes].reverse().forEach((layer) => {
+      if (layer === sortedLayerIndexes[sortedLayerIndexes.length - 1]) {
+        return;
+      }
+      const layerItems = layers.get(layer);
+      if (!layerItems) {
+        return;
+      }
+      changed = sortLayerByNeighbors(layerItems, crossingIndex.outgoing, crossingIndex, originalOrder) || changed;
+      refreshItemOrders(layers);
+      changed = transposeLayer(layers, layer, crossingIndex) || changed;
     });
 
     const nextCrossings = countTotalCrossings(layers, crossingIndex);
-    if (nextCrossings >= bestCrossings) {
-      if (nextCrossings === bestCrossings) {
-        bestCrossings = nextCrossings;
-      }
+    if (nextCrossings < bestCrossings) {
+      bestCrossings = nextCrossings;
+      bestSnapshot = snapshotLayerOrdering(layers);
+    }
+    if (!changed) {
       break;
     }
-    bestCrossings = nextCrossings;
   }
+
+  restoreLayerOrdering(layers, bestSnapshot);
+  refreshItemOrders(layers);
 }
 
 function buildCrossingIndex(layers: Map<number, LayoutItem[]>, segments: LayoutEdge[]): CrossingIndex {
@@ -348,18 +503,20 @@ function sortLayerByNeighbors(
   neighborMap: Record<NodeKey, NodeKey[]>,
   crossingIndex: CrossingIndex,
   originalOrder: Record<NodeKey, number>,
-): void {
-  layerItems.sort((a, b) => {
-    const aScore = getNeighborScore(a.id, neighborMap, crossingIndex);
-    const bScore = getNeighborScore(b.id, neighborMap, crossingIndex);
-    if (aScore.median !== bScore.median) {
-      return aScore.median - bScore.median;
+): boolean {
+  const previousOrder = layerItems.map((item) => item.id);
+  layerItems.sort((leftItem, rightItem) => {
+    const leftScore = getNeighborScore(leftItem.id, neighborMap, crossingIndex);
+    const rightScore = getNeighborScore(rightItem.id, neighborMap, crossingIndex);
+    if (leftScore.median !== rightScore.median) {
+      return leftScore.median - rightScore.median;
     }
-    if (aScore.average !== bScore.average) {
-      return aScore.average - bScore.average;
+    if (leftScore.average !== rightScore.average) {
+      return leftScore.average - rightScore.average;
     }
-    return originalOrder[a.id] - originalOrder[b.id];
+    return originalOrder[leftItem.id] - originalOrder[rightItem.id];
   });
+  return previousOrder.some((itemId, index) => itemId !== layerItems[index].id);
 }
 
 function getNeighborScore(
@@ -367,7 +524,7 @@ function getNeighborScore(
   neighborMap: Record<NodeKey, NodeKey[]>,
   crossingIndex: CrossingIndex,
 ): { median: number; average: number } {
-  const orders = (neighborMap[itemId] || []).map((neighborKey) => getItemOrder(neighborKey, crossingIndex)).sort((a, b) => a - b);
+  const orders = (neighborMap[itemId] || []).map((neighborKey) => getItemOrder(neighborKey, crossingIndex)).sort((leftValue, rightValue) => leftValue - rightValue);
   if (!orders.length) {
     const ownOrder = getItemOrder(itemId, crossingIndex);
     return { median: ownOrder, average: ownOrder };
@@ -379,12 +536,13 @@ function getNeighborScore(
   return { median, average };
 }
 
-function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, crossingIndex: CrossingIndex): void {
+function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, crossingIndex: CrossingIndex): boolean {
   const layerItems = layers.get(layer);
   if (!layerItems || layerItems.length < 2) {
-    return;
+    return false;
   }
 
+  let changed = false;
   let improved = true;
   while (improved) {
     improved = false;
@@ -397,10 +555,12 @@ function transposeLayer(layers: Map<number, LayoutItem[]>, layer: number, crossi
         layerItems[index + 1] = first;
         second.order = index;
         first.order = index + 1;
+        changed = true;
         improved = true;
       }
     }
   }
+  return changed;
 }
 
 function countAdjacentSwapCrossingDelta(firstId: NodeKey, secondId: NodeKey, crossingIndex: CrossingIndex): number {
@@ -442,7 +602,7 @@ function countCrossingsBetweenLayerSegments(segments: LayerSegment[], crossingIn
 
   const orderedSegments = segments
     .map((edge) => ({ sourceOrder: getItemOrder(edge.source, crossingIndex), targetOrder: getItemOrder(edge.target, crossingIndex) }))
-    .sort((a, b) => (a.sourceOrder === b.sourceOrder ? a.targetOrder - b.targetOrder : a.sourceOrder - b.sourceOrder));
+    .sort((leftEdge, rightEdge) => (leftEdge.sourceOrder === rightEdge.sourceOrder ? leftEdge.targetOrder - rightEdge.targetOrder : leftEdge.sourceOrder - rightEdge.sourceOrder));
 
   const maxTargetOrder = orderedSegments.reduce((maxOrder, edge) => Math.max(maxOrder, edge.targetOrder), 0);
   const tree = new FenwickTree(maxTargetOrder + 2);
@@ -471,6 +631,119 @@ function countCrossingsBetweenLayerSegments(segments: LayerSegment[], crossingIn
   return crossings;
 }
 
+function compactLayerPositions(layers: Map<number, LayoutItem[]>, crossingIndex: CrossingIndex): Map<NodeKey, number> {
+  const positions = new Map<NodeKey, number>();
+  layers.forEach((layerItems) => {
+    layerItems.forEach((item, index) => {
+      positions.set(item.id, index);
+    });
+  });
+
+  let bestPositions = new Map(positions);
+  let bestCost = measurePositionCost(crossingIndex, bestPositions);
+  const sortedLayers = Array.from(layers.keys()).sort((a, b) => a - b);
+
+  for (let pass = 0; pass < POSITION_COMPACTION_PASSES; pass += 1) {
+    sortedLayers.forEach((layer) => {
+      if (layer === sortedLayers[0]) {
+        return;
+      }
+      const layerItems = layers.get(layer);
+      if (!layerItems) {
+        return;
+      }
+      adjustLayerPositions(layerItems, crossingIndex.incoming, positions);
+    });
+
+    [...sortedLayers].reverse().forEach((layer) => {
+      if (layer === sortedLayers[sortedLayers.length - 1]) {
+        return;
+      }
+      const layerItems = layers.get(layer);
+      if (!layerItems) {
+        return;
+      }
+      adjustLayerPositions(layerItems, crossingIndex.outgoing, positions);
+    });
+
+    const nextCost = measurePositionCost(crossingIndex, positions);
+    if (nextCost < bestCost) {
+      bestCost = nextCost;
+      bestPositions = new Map(positions);
+    }
+  }
+
+  return bestPositions;
+}
+
+function adjustLayerPositions(
+  layerItems: LayoutItem[],
+  neighborMap: Record<NodeKey, NodeKey[]>,
+  positions: Map<NodeKey, number>,
+): void {
+  const desired = layerItems.map((item, index) => {
+    const neighborPositions = (neighborMap[item.id] || []).map((neighborKey) => positions.get(neighborKey) ?? index).sort((leftValue, rightValue) => leftValue - rightValue);
+    if (!neighborPositions.length) {
+      return positions.get(item.id) ?? index;
+    }
+    const middle = Math.floor(neighborPositions.length / 2);
+    return neighborPositions.length % 2 === 0
+      ? (neighborPositions[middle - 1] + neighborPositions[middle]) / 2
+      : neighborPositions[middle];
+  });
+
+  const resolved: number[] = [];
+  desired.forEach((targetPosition, index) => {
+    if (index === 0) {
+      resolved.push(targetPosition);
+      return;
+    }
+    resolved.push(Math.max(targetPosition, resolved[index - 1] + MIN_POSITION_GAP));
+  });
+
+  const first = resolved[0] ?? 0;
+  resolved.forEach((position, index) => {
+    positions.set(layerItems[index].id, position - first);
+  });
+}
+
+function measurePositionCost(crossingIndex: CrossingIndex, positions: Map<NodeKey, number>): number {
+  let total = 0;
+  crossingIndex.segmentsByUpperLayer.forEach((segments) => {
+    segments.forEach((segment) => {
+      total += Math.abs((positions.get(segment.source) ?? 0) - (positions.get(segment.target) ?? 0));
+    });
+  });
+  return total;
+}
+
+function applyCompactedPositions(layers: Map<number, LayoutItem[]>, positions: Map<NodeKey, number>): void {
+  layers.forEach((layerItems) => {
+    layerItems.forEach((item) => {
+      item.order = positions.get(item.id) ?? item.order;
+    });
+  });
+}
+
+function snapshotLayerOrdering(layers: Map<number, LayoutItem[]>): Map<number, NodeKey[]> {
+  const snapshot = new Map<number, NodeKey[]>();
+  layers.forEach((layerItems, layer) => {
+    snapshot.set(layer, layerItems.map((item) => item.id));
+  });
+  return snapshot;
+}
+
+function restoreLayerOrdering(layers: Map<number, LayoutItem[]>, snapshot: Map<number, NodeKey[]>): void {
+  layers.forEach((layerItems, layer) => {
+    const ids = snapshot.get(layer);
+    if (!ids) {
+      return;
+    }
+    const itemById = new Map(layerItems.map((item) => [item.id, item]));
+    layers.set(layer, ids.map((itemId) => itemById.get(itemId)!).filter(Boolean));
+  });
+}
+
 function refreshItemOrders(layers: Map<number, LayoutItem[]>): void {
   layers.forEach((layerItems) => refreshLayerOrder(layerItems));
 }
@@ -483,6 +756,10 @@ function refreshLayerOrder(layerItems: LayoutItem[]): void {
 
 function getItemOrder(itemId: NodeKey, crossingIndex: CrossingIndex): number {
   return crossingIndex.itemById[itemId]?.order ?? 0;
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
 }
 
 class FenwickTree {

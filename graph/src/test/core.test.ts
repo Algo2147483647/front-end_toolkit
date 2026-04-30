@@ -370,7 +370,8 @@ test("Sugiyama crossing reduction orders adjacent layer to reduce crossings", ()
   const stage = buildStageData({ dag, selection: { type: "forest", keys: ["A", "B"], label: "Roots" }, layoutMode: "sugiyama" });
 
   assert.ok(stage);
-  assert.ok(stage.nodeMap.C.order < stage.nodeMap.D.order);
+  assert.ok(stage.nodeMap.A.order < stage.nodeMap.B.order);
+  assert.ok(stage.nodeMap.D.order < stage.nodeMap.C.order);
 });
 
 test("Sugiyama layout handles long root fanout chains within the performance budget", () => {
