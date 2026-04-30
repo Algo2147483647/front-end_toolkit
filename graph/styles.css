@@ -11,6 +11,7 @@
   --accent: #285fdf;
   --accent-soft: rgba(40, 95, 223, 0.14);
   --accent-strong: #1b439f;
+  --control-font: "Cormorant Garamond", "Georgia", serif;
   --edge: rgba(76, 96, 132, 0.24);
   --edge-glow: rgba(99, 126, 171, 0.1);
   --edge-active: rgba(41, 92, 207, 0.72);
@@ -184,8 +185,10 @@ body::before {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.54);
   color: var(--text-strong);
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--control-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-align: center;
   box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.06);
 }
@@ -205,6 +208,7 @@ body::before {
   color: var(--text-strong);
   font: inherit;
   font-weight: 700;
+  font-variant-numeric: oldstyle-nums proportional-nums;
   text-align: right;
   outline: none;
   appearance: textfield;
@@ -223,8 +227,8 @@ body::before {
 }
 
 .zoom-unit {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .workspace {
@@ -317,8 +321,11 @@ body::before {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.54);
   color: var(--text-strong);
-  font-size: 12px;
+  font-family: var(--control-font);
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
   box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.06);
 }
 
@@ -717,8 +724,7 @@ body::before {
 .topbar-save-btn {
   min-height: 30px;
   padding: 0 12px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 15px;
 }
 
 .node-context-menu {
