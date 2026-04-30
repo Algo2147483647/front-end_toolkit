@@ -23,6 +23,7 @@ import SaveJsonModal from "./components/SaveJsonModal";
 import Topbar from "./components/Topbar";
 import Workspace from "./components/Workspace";
 import type { GraphLayoutMode, GraphMode, NodeKey } from "./graph/types";
+import type { EditTransaction } from "./state/initialState";
 
 export default function App() {
   const [state, dispatch] = useReducer(graphReducer, initialGraphAppState);
@@ -78,6 +79,16 @@ export default function App() {
       dispatch({ type: "contextMenuClosed" });
       dispatch({ type: "modalClosed" });
     },
+    onUndo: () => {
+      if (state.mode === "edit" && state.editHistory.undoStack.length > 0) {
+        dispatch({ type: "undoRequested" });
+      }
+    },
+    onRedo: () => {
+      if (state.mode === "edit" && state.editHistory.redoStack.length > 0) {
+        dispatch({ type: "redoRequested" });
+      }
+    },
   });
 
   const commitCommand = useCallback((command: GraphCommand, preferredSelection = state.selection) => {
@@ -88,7 +99,18 @@ export default function App() {
       const result = applyGraphCommand(state.dag, command);
       const selection = repairSelectionAfterCommand(result.dag, state.selection, preferredSelection, result);
       const history = repairHistoryAfterCommand(state, result);
-      dispatch({ type: "graphCommandCommitted", result, selection, history });
+      const transaction: EditTransaction = {
+        label: result.message || "Updated graph.",
+        beforeDag: state.dag,
+        afterDag: result.dag,
+        beforeSelection: state.selection,
+        afterSelection: selection,
+        beforeNavigationHistory: state.history,
+        afterNavigationHistory: history,
+        revisionBefore: state.editHistory.revision,
+        revisionAfter: state.editHistory.revision + 1,
+      };
+      dispatch({ type: "graphCommandCommitted", result, transaction });
     } catch (error) {
       const message = error instanceof Error ? error.message : "The graph command failed.";
       dispatch({ type: "statusChanged", status: message });
@@ -173,15 +195,11 @@ export default function App() {
       return;
     }
     if (action === "delete-node" && nodeKey) {
-      if (window.confirm(`Delete node "${nodeKey}" and remove all related parent/child references?`)) {
-        commitCommand({ type: "deleteNode", key: nodeKey });
-      }
+      commitCommand({ type: "deleteNode", key: nodeKey });
       return;
     }
     if (action === "delete-subtree" && nodeKey && state.dag) {
-      if (window.confirm(`Delete subtree rooted at "${nodeKey}"?`)) {
-        commitCommand({ type: "deleteSubtree", rootKey: nodeKey });
-      }
+      commitCommand({ type: "deleteSubtree", rootKey: nodeKey });
       return;
     }
     if (action === "edit-parents" && nodeKey) {
@@ -211,8 +229,7 @@ export default function App() {
       return;
     }
     const newKey = input.trim();
-    const shouldLink = referenceNodeKey ? window.confirm(`Link "${newKey}" as a child of "${referenceNodeKey}"?`) : false;
-    commitCommand({ type: "addNode", key: newKey, parentKey: shouldLink ? referenceNodeKey || undefined : undefined });
+    commitCommand({ type: "addNode", key: newKey, parentKey: referenceNodeKey || undefined });
   }
 
   function handleModeChange(mode: GraphMode) {
@@ -280,6 +297,8 @@ export default function App() {
         hasGraph={Boolean(stage)}
         canBack={state.history.length > 0}
         canUp={Boolean(parentSelection)}
+        canUndo={state.mode === "edit" && state.editHistory.undoStack.length > 0}
+        canRedo={state.mode === "edit" && state.editHistory.redoStack.length > 0}
         zoomPercent={Math.round(state.zoom.scale * 100)}
         canZoomOut={Boolean(stage) && state.zoom.scale > state.zoom.minScale + 0.001}
         canZoomIn={Boolean(stage) && state.zoom.scale < state.zoom.maxScale - 0.001}
@@ -287,6 +306,8 @@ export default function App() {
         onBack={() => dispatch({ type: "navigateBack" })}
         onUp={() => parentSelection && dispatch({ type: "selectionChanged", selection: parentSelection, pushHistory: true })}
         onAll={() => dispatch({ type: "selectionChanged", selection: getFullGraphSelection(), pushHistory: true })}
+        onUndo={() => dispatch({ type: "undoRequested" })}
+        onRedo={() => dispatch({ type: "redoRequested" })}
         onZoomOut={zoom.zoomOut}
         onZoomIn={zoom.zoomIn}
         onZoomFit={zoom.zoomFit}

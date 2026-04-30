@@ -1,5 +1,17 @@
 import type { GraphLayoutMode, GraphMode, GraphSelection, NodeKey, NormalizedDag } from "../graph/types";
 
+export interface EditTransaction {
+  label: string;
+  beforeDag: NormalizedDag;
+  afterDag: NormalizedDag;
+  beforeSelection: GraphSelection | null;
+  afterSelection: GraphSelection | null;
+  beforeNavigationHistory: GraphSelection[];
+  afterNavigationHistory: GraphSelection[];
+  revisionBefore: number;
+  revisionAfter: number;
+}
+
 export interface GraphAppState {
   dag: NormalizedDag | null;
   source: {
@@ -9,6 +21,12 @@ export interface GraphAppState {
   };
   selection: GraphSelection | null;
   history: GraphSelection[];
+  editHistory: {
+    undoStack: EditTransaction[];
+    redoStack: EditTransaction[];
+    revision: number;
+    savedRevision: number;
+  };
   mode: GraphMode;
   layout: {
     mode: GraphLayoutMode;
@@ -37,6 +55,12 @@ export const initialGraphAppState: GraphAppState = {
   },
   selection: null,
   history: [],
+  editHistory: {
+    undoStack: [],
+    redoStack: [],
+    revision: 0,
+    savedRevision: 0,
+  },
   mode: "preview",
   layout: {
     mode: "bfs",

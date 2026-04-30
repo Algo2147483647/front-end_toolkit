@@ -2,6 +2,8 @@ import { areSelectionsEqual, isSelectionValid, remapSelectionKeys, removeSelecti
 import { initialGraphAppState, type GraphAppState } from "./initialState";
 import type { GraphAction } from "./graphActions";
 
+const EDIT_HISTORY_LIMIT = 100;
+
 export function graphReducer(state: GraphAppState, action: GraphAction): GraphAppState {
   switch (action.type) {
     case "graphLoaded":
@@ -14,6 +16,13 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           dirty: false,
         },
         selection: action.selection,
+        history: [],
+        editHistory: {
+          undoStack: [],
+          redoStack: [],
+          revision: 0,
+          savedRevision: 0,
+        },
         layout: state.layout,
         ui: {
           ...initialGraphAppState.ui,
@@ -44,7 +53,7 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
       };
     }
     case "graphCommandCommitted": {
-      const { result } = action;
+      const { result, transaction } = action;
       const renamed = result.renamedKey;
       const deleted = new Set(result.deletedKeys || []);
       let nodeDetail = state.ui.nodeDetail;
@@ -61,18 +70,94 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
         relationEditor = null;
       }
 
+      const revision = transaction.revisionAfter;
+      const savedRevision = state.editHistory.savedRevision;
+      const undoStack = pushEditTransaction(state.editHistory.undoStack, transaction);
+
       return {
         ...state,
-        dag: result.dag,
-        source: { ...state.source, dirty: true },
-        selection: action.selection,
-        history: action.history,
+        dag: transaction.afterDag,
+        source: { ...state.source, dirty: revision !== savedRevision },
+        selection: transaction.afterSelection,
+        history: transaction.afterNavigationHistory,
+        editHistory: {
+          ...state.editHistory,
+          undoStack,
+          redoStack: [],
+          revision,
+        },
         ui: {
           ...state.ui,
           contextMenu: null,
           relationEditor,
           nodeDetail,
           status: action.status || result.message || state.ui.status,
+        },
+      };
+    }
+    case "undoRequested": {
+      const transaction = state.editHistory.undoStack[state.editHistory.undoStack.length - 1];
+      if (!transaction) {
+        return state;
+      }
+
+      const undoStack = state.editHistory.undoStack.slice(0, -1);
+      const redoStack = [...state.editHistory.redoStack, transaction];
+      const revision = transaction.revisionBefore;
+      const savedRevision = state.editHistory.savedRevision;
+
+      return {
+        ...state,
+        dag: transaction.beforeDag,
+        source: { ...state.source, dirty: revision !== savedRevision },
+        selection: transaction.beforeSelection,
+        history: transaction.beforeNavigationHistory,
+        editHistory: {
+          ...state.editHistory,
+          undoStack,
+          redoStack,
+          revision,
+        },
+        ui: {
+          ...state.ui,
+          contextMenu: null,
+          relationEditor: null,
+          nodeDetail: null,
+          saveDialogOpen: false,
+          status: `Undid: ${transaction.label}`,
+        },
+      };
+    }
+    case "redoRequested": {
+      const transaction = state.editHistory.redoStack[state.editHistory.redoStack.length - 1];
+      if (!transaction) {
+        return state;
+      }
+
+      const redoStack = state.editHistory.redoStack.slice(0, -1);
+      const undoStack = pushEditTransaction(state.editHistory.undoStack, transaction);
+      const revision = transaction.revisionAfter;
+      const savedRevision = state.editHistory.savedRevision;
+
+      return {
+        ...state,
+        dag: transaction.afterDag,
+        source: { ...state.source, dirty: revision !== savedRevision },
+        selection: transaction.afterSelection,
+        history: transaction.afterNavigationHistory,
+        editHistory: {
+          ...state.editHistory,
+          undoStack,
+          redoStack,
+          revision,
+        },
+        ui: {
+          ...state.ui,
+          contextMenu: null,
+          relationEditor: null,
+          nodeDetail: null,
+          saveDialogOpen: false,
+          status: `Redid: ${transaction.label}`,
         },
       };
     }
@@ -128,10 +213,20 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
     case "saveDialogClosed":
       return { ...state, ui: { ...state.ui, saveDialogOpen: false } };
     case "saved":
-      return { ...state, source: { ...state.source, dirty: false }, ui: { ...state.ui, saveDialogOpen: false, status: action.status } };
+      return {
+        ...state,
+        source: { ...state.source, dirty: false },
+        editHistory: { ...state.editHistory, savedRevision: state.editHistory.revision },
+        ui: { ...state.ui, saveDialogOpen: false, status: action.status },
+      };
     case "statusChanged":
       return { ...state, ui: { ...state.ui, status: action.status } };
   }
+}
+
+function pushEditTransaction(stack: GraphAppState["editHistory"]["undoStack"], transaction: GraphAppState["editHistory"]["undoStack"][number]) {
+  const next = [...stack, transaction];
+  return next.length > EDIT_HISTORY_LIMIT ? next.slice(next.length - EDIT_HISTORY_LIMIT) : next;
 }
 
 export function repairHistoryAfterCommand(state: GraphAppState, result: { dag: NonNullable<GraphAppState["dag"]>; renamedKey?: { from: string; to: string }; deletedKeys?: string[] }): GraphAppState["history"] {

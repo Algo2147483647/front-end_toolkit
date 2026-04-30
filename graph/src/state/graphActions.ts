@@ -1,10 +1,13 @@
 import type { CommandResult } from "../graph/commands";
 import type { GraphLayoutMode, GraphMode, GraphSelection, NormalizedDag, NodeKey } from "../graph/types";
+import type { EditTransaction } from "./initialState";
 
 export type GraphAction =
   | { type: "graphLoaded"; dag: NormalizedDag; fileName: string; fileHandle?: FileSystemFileHandle | null; selection: GraphSelection; status: string }
   | { type: "graphLoadFailed"; status: string }
-  | { type: "graphCommandCommitted"; result: CommandResult; selection: GraphSelection | null; history: GraphSelection[]; status?: string }
+  | { type: "graphCommandCommitted"; result: CommandResult; transaction: EditTransaction; status?: string }
+  | { type: "undoRequested" }
+  | { type: "redoRequested" }
   | { type: "selectionChanged"; selection: GraphSelection; pushHistory?: boolean }
   | { type: "navigateBack" }
   | { type: "modeChanged"; mode: GraphMode }

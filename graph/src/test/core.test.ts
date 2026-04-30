@@ -6,6 +6,9 @@ import { getRelationKeys } from "../graph/relations";
 import { serializeDag } from "../graph/serialize";
 import { getInitialSelection } from "../graph/selectors";
 import { buildStageData } from "../layout/stage-layout";
+import { repairSelectionAfterCommand } from "../state/derived";
+import { graphReducer, repairHistoryAfterCommand } from "../state/graphReducer";
+import { initialGraphAppState, type EditTransaction } from "../state/initialState";
 import { arrayFixture, keyedFixture, wrappedFixture } from "./fixtures";
 
 function test(name: string, run: () => void) {
@@ -97,6 +100,153 @@ test("layout keeps default node colors when no type field is present", () => {
   assert.equal(stage.nodeMap.A.typeLabel, undefined);
   assert.equal(stage.nodeMap.A.colorTokens, undefined);
   assert.equal(stage.nodeMap.B.colorTokens, undefined);
+});
+
+test("undo and redo restore graph edits independently from navigation history", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: {},
+  });
+  const selection = getInitialSelection(dag);
+  let state = graphReducer(initialGraphAppState, {
+    type: "graphLoaded",
+    dag,
+    fileName: "undo-redo.json",
+    selection,
+    status: "Loaded",
+  });
+
+  const result = applyGraphCommand(state.dag!, { type: "addNode", key: "C", parentKey: "A" });
+  const nextSelection = repairSelectionAfterCommand(result.dag, state.selection, state.selection, result);
+  const nextHistory = repairHistoryAfterCommand(state, result);
+  const transaction: EditTransaction = {
+    label: result.message || "Added node C.",
+    beforeDag: state.dag!,
+    afterDag: result.dag,
+    beforeSelection: state.selection,
+    afterSelection: nextSelection,
+    beforeNavigationHistory: state.history,
+    afterNavigationHistory: nextHistory,
+    revisionBefore: state.editHistory.revision,
+    revisionAfter: state.editHistory.revision + 1,
+  };
+
+  state = graphReducer(state, { type: "graphCommandCommitted", result, transaction });
+  assert.ok(state.dag?.C);
+  assert.deepEqual(getRelationKeys(state.dag!.A.children), ["B", "C"]);
+  assert.equal(state.editHistory.undoStack.length, 1);
+  assert.equal(state.editHistory.redoStack.length, 0);
+  assert.equal(state.source.dirty, true);
+
+  state = graphReducer(state, { type: "undoRequested" });
+  assert.equal(state.dag?.C, undefined);
+  assert.deepEqual(getRelationKeys(state.dag!.A.children), ["B"]);
+  assert.equal(state.editHistory.undoStack.length, 0);
+  assert.equal(state.editHistory.redoStack.length, 1);
+  assert.equal(state.source.dirty, false);
+
+  state = graphReducer(state, { type: "redoRequested" });
+  assert.ok(state.dag?.C);
+  assert.deepEqual(getRelationKeys(state.dag!.A.children), ["B", "C"]);
+  assert.equal(state.editHistory.undoStack.length, 1);
+  assert.equal(state.editHistory.redoStack.length, 0);
+  assert.equal(state.source.dirty, true);
+});
+
+test("saved revision keeps dirty state accurate across undo and redo", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: {},
+  });
+  const selection = getInitialSelection(dag);
+  let state = graphReducer(initialGraphAppState, {
+    type: "graphLoaded",
+    dag,
+    fileName: "saved-revision.json",
+    selection,
+    status: "Loaded",
+  });
+
+  const result = applyGraphCommand(state.dag!, { type: "renameNode", oldKey: "B", newKey: "Beta" });
+  const nextSelection = repairSelectionAfterCommand(result.dag, state.selection, state.selection, result);
+  const nextHistory = repairHistoryAfterCommand(state, result);
+  const transaction: EditTransaction = {
+    label: result.message || "Renamed node B.",
+    beforeDag: state.dag!,
+    afterDag: result.dag,
+    beforeSelection: state.selection,
+    afterSelection: nextSelection,
+    beforeNavigationHistory: state.history,
+    afterNavigationHistory: nextHistory,
+    revisionBefore: state.editHistory.revision,
+    revisionAfter: state.editHistory.revision + 1,
+  };
+
+  state = graphReducer(state, { type: "graphCommandCommitted", result, transaction });
+  assert.equal(state.source.dirty, true);
+
+  state = graphReducer(state, { type: "saved", status: "Saved." });
+  assert.equal(state.source.dirty, false);
+  assert.equal(state.editHistory.savedRevision, state.editHistory.revision);
+
+  state = graphReducer(state, { type: "undoRequested" });
+  assert.equal(state.source.dirty, true);
+  assert.ok(state.dag?.B);
+  assert.equal(state.dag?.Beta, undefined);
+
+  state = graphReducer(state, { type: "redoRequested" });
+  assert.equal(state.source.dirty, false);
+  assert.ok(state.dag?.Beta);
+  assert.equal(state.dag?.B, undefined);
+});
+
+test("new edits clear redo history after an undo", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: {},
+  });
+  const selection = getInitialSelection(dag);
+  let state = graphReducer(initialGraphAppState, {
+    type: "graphLoaded",
+    dag,
+    fileName: "redo-reset.json",
+    selection,
+    status: "Loaded",
+  });
+
+  const firstResult = applyGraphCommand(state.dag!, { type: "addNode", key: "C", parentKey: "A" });
+  const firstTransaction: EditTransaction = {
+    label: firstResult.message || "Added node C.",
+    beforeDag: state.dag!,
+    afterDag: firstResult.dag,
+    beforeSelection: state.selection,
+    afterSelection: repairSelectionAfterCommand(firstResult.dag, state.selection, state.selection, firstResult),
+    beforeNavigationHistory: state.history,
+    afterNavigationHistory: repairHistoryAfterCommand(state, firstResult),
+    revisionBefore: state.editHistory.revision,
+    revisionAfter: state.editHistory.revision + 1,
+  };
+  state = graphReducer(state, { type: "graphCommandCommitted", result: firstResult, transaction: firstTransaction });
+  state = graphReducer(state, { type: "undoRequested" });
+  assert.equal(state.editHistory.redoStack.length, 1);
+
+  const secondResult = applyGraphCommand(state.dag!, { type: "addNode", key: "D", parentKey: "A" });
+  const secondTransaction: EditTransaction = {
+    label: secondResult.message || "Added node D.",
+    beforeDag: state.dag!,
+    afterDag: secondResult.dag,
+    beforeSelection: state.selection,
+    afterSelection: repairSelectionAfterCommand(secondResult.dag, state.selection, state.selection, secondResult),
+    beforeNavigationHistory: state.history,
+    afterNavigationHistory: repairHistoryAfterCommand(state, secondResult),
+    revisionBefore: state.editHistory.revision,
+    revisionAfter: state.editHistory.revision + 1,
+  };
+  state = graphReducer(state, { type: "graphCommandCommitted", result: secondResult, transaction: secondTransaction });
+
+  assert.equal(state.editHistory.redoStack.length, 0);
+  assert.ok(state.dag?.D);
+  assert.equal(state.dag?.C, undefined);
 });
 
 test("BFS layout remains the default layout mode", () => {

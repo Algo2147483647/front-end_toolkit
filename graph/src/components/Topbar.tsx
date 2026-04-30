@@ -9,6 +9,8 @@ interface TopbarProps {
   hasGraph: boolean;
   canBack: boolean;
   canUp: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   zoomPercent: number;
   canZoomOut: boolean;
   canZoomIn: boolean;
@@ -16,6 +18,8 @@ interface TopbarProps {
   onBack: () => void;
   onUp: () => void;
   onAll: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onZoomOut: () => void;
   onZoomIn: () => void;
   onZoomFit: () => void;
@@ -38,6 +42,8 @@ export default function Topbar({
   hasGraph,
   canBack,
   canUp,
+  canUndo,
+  canRedo,
   zoomPercent,
   canZoomOut,
   canZoomIn,
@@ -45,6 +51,8 @@ export default function Topbar({
   onBack,
   onUp,
   onAll,
+  onUndo,
+  onRedo,
   onZoomOut,
   onZoomIn,
   onZoomFit,
@@ -68,6 +76,12 @@ export default function Topbar({
           <button id="up-btn" className="ghost-btn" type="button" disabled={!canUp} onClick={onUp}>Up</button>
           <button id="all-btn" className="ghost-btn" type="button" disabled={!hasGraph} onClick={onAll}>All</button>
         </div>
+        {mode === "edit" ? (
+          <div className="topbar-group edit-controls" aria-label="Graph edit controls">
+            <button id="undo-btn" className="ghost-btn" type="button" disabled={!canUndo} onClick={onUndo}>Undo</button>
+            <button id="redo-btn" className="ghost-btn" type="button" disabled={!canRedo} onClick={onRedo}>Redo</button>
+          </div>
+        ) : null}
         <div className="topbar-group zoom-controls" aria-label="Graph zoom controls">
           <button id="zoom-out-btn" className="ghost-btn zoom-btn" type="button" disabled={!canZoomOut} aria-label="Zoom out" onClick={onZoomOut}>-</button>
           <button id="zoom-fit-btn" className="ghost-btn zoom-fit-btn" type="button" disabled={!hasGraph} onClick={onZoomFit}>Fit</button>
