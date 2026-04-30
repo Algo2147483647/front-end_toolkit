@@ -100,6 +100,23 @@ test("rename node updates all references", () => {
   assert.deepEqual(getRelationKeys(next.Beta.parents), ["A"]);
 });
 
+test("copy node duplicates fields but resets relations to the selected parent only", () => {
+  const dag = normalizeDagInput({
+    A: { label: "Source", type: "service", define: "Shared config", children: ["B", "C"] },
+    B: { foo: { bar: true } },
+    C: {},
+  });
+  const next = applyGraphCommand(dag, { type: "copyNode", sourceKey: "A", key: "A_Copy", parentKey: "A" }).dag;
+
+  assert.equal(next.A_Copy.label, "Source");
+  assert.equal(next.A_Copy.type, "service");
+  assert.equal(next.A_Copy.define, "Shared config");
+  assert.deepEqual(next.A_Copy.foo, undefined);
+  assert.deepEqual(getRelationKeys(next.A_Copy.parents), ["A"]);
+  assert.deepEqual(getRelationKeys(next.A_Copy.children), []);
+  assert.deepEqual(getRelationKeys(next.A.children).sort(), ["A_Copy", "B", "C"]);
+});
+
 test("delete node removes inbound and outbound references", () => {
   const dag = normalizeDagInput(keyedFixture);
   const next = applyGraphCommand(dag, { type: "deleteNode", key: "B" }).dag;

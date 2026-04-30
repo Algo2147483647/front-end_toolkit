@@ -1,6 +1,6 @@
 import type { GraphMode, NodeKey } from "../graph/types";
 
-export type ContextMenuAction = "view-node" | "rename-node" | "delete-node" | "delete-subtree" | "edit-parents" | "edit-children" | "add-node";
+export type ContextMenuAction = "view-node" | "rename-node" | "delete-node" | "delete-subtree" | "edit-parents" | "edit-children" | "add-node" | "copy-node";
 
 interface ContextMenuProps {
   menu: null | { x: number; y: number; nodeKey: NodeKey | null };
@@ -16,6 +16,7 @@ const actions: Array<{ action: ContextMenuAction; label: string; requiresNode?: 
   { action: "edit-parents", label: "Edit Parents", requiresNode: true, requiresEdit: true },
   { action: "edit-children", label: "Edit Children", requiresNode: true, requiresEdit: true },
   { action: "add-node", label: "Add Node", requiresEdit: true },
+  { action: "copy-node", label: "Copy Node", requiresNode: true, requiresEdit: true },
 ];
 
 export default function ContextMenu({ menu, mode, onAction }: ContextMenuProps) {

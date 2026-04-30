@@ -199,7 +199,7 @@ export default function App() {
     event.preventDefault();
     event.stopPropagation();
     const menuWidth = 190;
-    const menuHeight = 294;
+    const menuHeight = 330;
     dispatch({
       type: "contextMenuOpened",
       x: Math.min(event.clientX, window.innerWidth - menuWidth - 8),
@@ -236,6 +236,10 @@ export default function App() {
     }
     if (action === "add-node") {
       promptAddNode(nodeKey);
+      return;
+    }
+    if (action === "copy-node" && nodeKey) {
+      promptCopyNode(nodeKey);
     }
   }
 
@@ -254,6 +258,15 @@ export default function App() {
     }
     const newKey = input.trim();
     commitCommand({ type: "addNode", key: newKey, parentKey: referenceNodeKey || undefined });
+  }
+
+  function promptCopyNode(sourceNodeKey: NodeKey) {
+    const input = window.prompt("Enter a new unique node key:", `${sourceNodeKey}_Copy`);
+    if (input === null) {
+      return;
+    }
+    const newKey = input.trim();
+    commitCommand({ type: "copyNode", sourceKey: sourceNodeKey, key: newKey, parentKey: sourceNodeKey });
   }
 
   function handleModeChange(mode: GraphMode) {

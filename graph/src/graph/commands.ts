@@ -7,6 +7,7 @@ export type GraphCommand =
   | { type: "deleteNode"; key: NodeKey }
   | { type: "deleteSubtree"; rootKey: NodeKey }
   | { type: "addNode"; key: NodeKey; parentKey?: NodeKey }
+  | { type: "copyNode"; sourceKey: NodeKey; key: NodeKey; parentKey?: NodeKey }
   | { type: "updateNodeFields"; key: NodeKey; nextKey?: NodeKey; fields: Record<string, unknown> }
   | { type: "setParents"; key: NodeKey; parents: NodeKey[] }
   | { type: "setChildren"; key: NodeKey; children: NodeKey[] };
@@ -31,6 +32,8 @@ export function applyGraphCommand(sourceDag: NormalizedDag, command: GraphComman
       return deleteNodes(dag, collectSubtreeNodeKeys(dag, command.rootKey), `Deleted subtree rooted at ${command.rootKey}.`);
     case "addNode":
       return addNode(dag, command.key, command.parentKey);
+    case "copyNode":
+      return copyNode(dag, command.sourceKey, command.key, command.parentKey);
     case "setParents":
       syncBidirectionalRelations(dag, command.key, "parents", command.parents);
       ensureReferencedNodes(dag);
@@ -118,6 +121,35 @@ function addNode(dag: NormalizedDag, key: NodeKey, parentKey?: NodeKey): Command
   }
   ensureReferencedNodes(dag);
   return { dag, changedKeys: parentKey ? [nextKey, parentKey] : [nextKey], message: `Added node ${nextKey}.` };
+}
+
+function copyNode(dag: NormalizedDag, sourceKey: NodeKey, key: NodeKey, parentKey?: NodeKey): CommandResult {
+  const sourceNode = dag[sourceKey.trim()];
+  if (!sourceNode) {
+    throw new Error(`Node "${sourceKey}" does not exist.`);
+  }
+
+  const nextKey = key.trim();
+  assertValidNewKey(dag, nextKey);
+
+  const { key: _oldKey, parents: _oldParents, children: _oldChildren, ...copiedFields } = sourceNode;
+  dag[nextKey] = {
+    ...copiedFields,
+    key: nextKey,
+    parents: {},
+    children: {},
+  };
+
+  if (parentKey && dag[parentKey]) {
+    syncBidirectionalRelations(dag, parentKey, "children", [...getRelationKeys(dag[parentKey].children), nextKey]);
+  }
+
+  ensureReferencedNodes(dag);
+  return {
+    dag,
+    changedKeys: parentKey ? [nextKey, parentKey] : [nextKey],
+    message: `Copied node ${sourceKey} to ${nextKey}.`,
+  };
 }
 
 function updateNodeFields(dag: NormalizedDag, oldKey: NodeKey, nextKey: NodeKey, fields: Record<string, unknown>): CommandResult {
