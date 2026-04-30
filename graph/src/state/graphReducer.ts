@@ -24,6 +24,7 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           revision: 0,
           savedRevision: 0,
         },
+        mode: state.mode,
         layout: state.layout,
         ui: {
           ...initialGraphAppState.ui,

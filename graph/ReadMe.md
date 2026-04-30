@@ -39,6 +39,7 @@ npm run build
 ## Main Features
 
 - `Preview / Edit` mode switch
+- remembers page preferences such as `Preview / Edit` mode and layout selection across refreshes
 - auto-load default sample data from `example.json`
 - forest rendering for multiple root nodes
 - optional node color grouping by `type`

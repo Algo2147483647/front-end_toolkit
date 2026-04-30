@@ -1,4 +1,5 @@
 import type { GraphLayoutMode, GraphMode, GraphSelection, NodeKey, NormalizedDag } from "../graph/types";
+import { loadGraphPagePreferences } from "./preferences";
 
 export interface EditTransaction {
   label: string;
@@ -46,6 +47,8 @@ export interface GraphAppState {
   };
 }
 
+const savedPreferences = loadGraphPagePreferences();
+
 export const initialGraphAppState: GraphAppState = {
   dag: null,
   source: {
@@ -61,9 +64,9 @@ export const initialGraphAppState: GraphAppState = {
     revision: 0,
     savedRevision: 0,
   },
-  mode: "preview",
+  mode: savedPreferences.mode,
   layout: {
-    mode: "bfs",
+    mode: savedPreferences.layoutMode,
   },
   zoom: {
     scale: 1,

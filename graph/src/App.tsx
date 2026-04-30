@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { buildStageData } from "./layout/stage-layout";
 import { applyGraphCommand, type GraphCommand } from "./graph/commands";
 import { normalizeDagInput } from "./graph/normalize";
@@ -16,6 +16,7 @@ import { useResizeObserver } from "./hooks/useResizeObserver";
 import { repairSelectionAfterCommand } from "./state/derived";
 import { graphReducer, repairHistoryAfterCommand } from "./state/graphReducer";
 import { initialGraphAppState } from "./state/initialState";
+import { saveGraphPagePreferences } from "./state/preferences";
 import ContextMenu, { type ContextMenuAction } from "./components/ContextMenu";
 import NodeDetailModal from "./components/NodeDetailModal";
 import RelationEditorModal from "./components/RelationEditorModal";
@@ -35,6 +36,13 @@ export default function App() {
   const topbarRef = useRef<HTMLElement>(null);
 
   useDefaultGraph(dispatch);
+
+  useEffect(() => {
+    saveGraphPagePreferences({
+      mode: state.mode,
+      layoutMode: state.layout.mode,
+    });
+  }, [state.layout.mode, state.mode]);
 
   const stage = useMemo(() => state.dag ? buildStageData({ dag: state.dag, selection: state.selection, layoutMode: state.layout.mode }) : null, [state.dag, state.layout.mode, state.selection]);
   const parentSelection = useMemo(() => state.dag && stage ? getParentLevelSelection(state.dag, stage.topLevelKeys) : null, [stage, state.dag]);

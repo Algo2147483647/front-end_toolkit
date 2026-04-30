@@ -114,6 +114,7 @@ Key capabilities:
 - Edit nodes, fields, and parent-child relationships directly in the UI.
 - Color node accents by optional `type` categories while keeping readable white cards.
 - Switch between `BFS`, upgraded `Sugiyama layered`, and library-backed `Dagre layered` layouts depending on whether you want traversal stability or more industrial layered routing.
+- Remember core page preferences such as edit/preview mode and layout choice across refreshes.
 - Export the current graph view as SVG.
 - Save updates back to JSON by overwrite or timestamped copy.
 

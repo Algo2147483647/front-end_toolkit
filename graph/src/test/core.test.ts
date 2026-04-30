@@ -9,6 +9,7 @@ import { buildStageData } from "../layout/stage-layout";
 import { repairSelectionAfterCommand } from "../state/derived";
 import { graphReducer, repairHistoryAfterCommand } from "../state/graphReducer";
 import { initialGraphAppState, type EditTransaction } from "../state/initialState";
+import { loadGraphPagePreferences, parseGraphPagePreferences } from "../state/preferences";
 import { arrayFixture, keyedFixture, wrappedFixture } from "./fixtures";
 
 function test(name: string, run: () => void) {
@@ -33,6 +34,27 @@ test("normalizes array input and removes duplicate relation keys", () => {
 test("normalizes wrapper input", () => {
   const dag = normalizeDagInput(wrappedFixture);
   assert.deepEqual(Object.keys(dag), ["A", "B"]);
+});
+
+test("page preference parsing restores valid cached config only", () => {
+  assert.deepEqual(
+    parseGraphPagePreferences(JSON.stringify({ mode: "edit", layoutMode: "dagre" })),
+    { mode: "edit", layoutMode: "dagre" },
+  );
+  assert.deepEqual(
+    parseGraphPagePreferences(JSON.stringify({ mode: "invalid", layoutMode: "bfs" })),
+    { layoutMode: "bfs" },
+  );
+  assert.equal(parseGraphPagePreferences("{"), null);
+});
+
+test("page preference loading falls back safely when storage data is missing", () => {
+  const storage = {
+    getItem: () => JSON.stringify({ mode: "edit", layoutMode: "sugiyama" }),
+    setItem: () => undefined,
+  };
+  assert.deepEqual(loadGraphPagePreferences(storage), { mode: "edit", layoutMode: "sugiyama" });
+  assert.deepEqual(loadGraphPagePreferences(null), { mode: "preview", layoutMode: "bfs" });
 });
 
 test("commands keep parent child symmetry after setParents and setChildren", () => {
@@ -247,6 +269,32 @@ test("new edits clear redo history after an undo", () => {
   assert.equal(state.editHistory.redoStack.length, 0);
   assert.ok(state.dag?.D);
   assert.equal(state.dag?.C, undefined);
+});
+
+test("graph reload preserves the active mode and layout configuration", () => {
+  const firstDag = normalizeDagInput({ A: { children: ["B"] }, B: {} });
+  let state = graphReducer(initialGraphAppState, {
+    type: "graphLoaded",
+    dag: firstDag,
+    fileName: "first.json",
+    selection: getInitialSelection(firstDag),
+    status: "Loaded first",
+  });
+
+  state = graphReducer(state, { type: "modeChanged", mode: "edit" });
+  state = graphReducer(state, { type: "layoutModeChanged", mode: "dagre" });
+
+  const secondDag = normalizeDagInput({ Root: { children: ["Leaf"] }, Leaf: {} });
+  state = graphReducer(state, {
+    type: "graphLoaded",
+    dag: secondDag,
+    fileName: "second.json",
+    selection: getInitialSelection(secondDag),
+    status: "Loaded second",
+  });
+
+  assert.equal(state.mode, "edit");
+  assert.equal(state.layout.mode, "dagre");
 });
 
 test("BFS layout remains the default layout mode", () => {
