@@ -2,7 +2,7 @@ import type { StageData, StageEdge } from "../layout/types";
 
 const SOURCE_EDGE_GAP = 4;
 const TARGET_EDGE_GAP = 0;
-const ORTHOGONAL_CORNER_RADIUS = 14;
+const ORTHOGONAL_CORNER_RADIUS = 32;
 const ELBOW_MIN_OFFSET = 34;
 const ELBOW_MAX_OFFSET = 92;
 
