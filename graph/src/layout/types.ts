@@ -1,11 +1,28 @@
 import type { DagNode, GraphSelection, NodeKey, RelationValue } from "../graph/types";
 
+export interface StageNodeColorTokens {
+  glow: string;
+  fill: string;
+  rootFill: string;
+  activeFill: string;
+  border: string;
+  borderStrong: string;
+  activeBorder: string;
+  pinFill: string;
+  pinStroke: string;
+  pinCore: string;
+  affordanceBg: string;
+  affordanceText: string;
+}
+
 export interface StageNode {
   key: NodeKey;
   layer: number;
   order: number;
   title: string;
   detail: string;
+  typeLabel?: string;
+  colorTokens?: StageNodeColorTokens;
   width: number;
   height: number;
   isRoot: boolean;

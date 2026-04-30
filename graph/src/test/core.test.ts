@@ -71,6 +71,34 @@ test("layout does not mutate input graph", () => {
   assert.ok(!("coordinate" in dag.A));
 });
 
+test("layout assigns the same color tokens to nodes with the same type", () => {
+  const dag = normalizeDagInput({
+    A: { type: "service", children: ["B", "C"] },
+    B: { type: "database" },
+    C: { type: "service" },
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" } });
+
+  assert.ok(stage);
+  assert.equal(stage.nodeMap.A.typeLabel, "service");
+  assert.equal(stage.nodeMap.B.typeLabel, "database");
+  assert.deepEqual(stage.nodeMap.A.colorTokens, stage.nodeMap.C.colorTokens);
+  assert.notDeepEqual(stage.nodeMap.A.colorTokens, stage.nodeMap.B.colorTokens);
+});
+
+test("layout keeps default node colors when no type field is present", () => {
+  const dag = normalizeDagInput({
+    A: { children: ["B"] },
+    B: {},
+  });
+  const stage = buildStageData({ dag, selection: { type: "node", key: "A" } });
+
+  assert.ok(stage);
+  assert.equal(stage.nodeMap.A.typeLabel, undefined);
+  assert.equal(stage.nodeMap.A.colorTokens, undefined);
+  assert.equal(stage.nodeMap.B.colorTokens, undefined);
+});
+
 test("BFS layout remains the default layout mode", () => {
   const dag = normalizeDagInput({
     A: { children: ["B", "C"] },

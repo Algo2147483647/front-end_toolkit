@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import type { StageNode } from "../layout/types";
 import { truncate, wrapDetailText } from "../layout/text";
 
@@ -20,6 +20,20 @@ interface GraphNodeProps {
 export default function GraphNode({ node, rootKey, interactiveKey, connectedKeys, onClick, onContextMenu, onHoverChange, onFocusChange }: GraphNodeProps) {
   const isCurrent = interactiveKey === node.key;
   const isConnected = !interactiveKey || connectedKeys.has(node.key);
+  const style = node.colorTokens ? ({
+    "--graph-node-glow": node.colorTokens.glow,
+    "--graph-node-fill": node.colorTokens.fill,
+    "--graph-node-root-fill": node.colorTokens.rootFill,
+    "--graph-node-active-fill": node.colorTokens.activeFill,
+    "--graph-node-border": node.colorTokens.border,
+    "--graph-node-border-strong": node.colorTokens.borderStrong,
+    "--graph-node-active-border": node.colorTokens.activeBorder,
+    "--graph-node-pin-fill": node.colorTokens.pinFill,
+    "--graph-node-pin-stroke": node.colorTokens.pinStroke,
+    "--graph-node-pin-core": node.colorTokens.pinCore,
+    "--graph-node-affordance-bg": node.colorTokens.affordanceBg,
+    "--graph-node-affordance-text": node.colorTokens.affordanceText,
+  } as CSSProperties) : undefined;
   const className = [
     "graph-node",
     node.isRoot ? "is-root" : "",
@@ -40,6 +54,8 @@ export default function GraphNode({ node, rootKey, interactiveKey, connectedKeys
     <g
       className={className}
       data-node-key={node.key}
+      data-node-type={node.typeLabel}
+      style={style}
       transform={`translate(${node.x - node.width / 2}, ${node.y - node.height / 2})`}
       tabIndex={0}
       role="button"

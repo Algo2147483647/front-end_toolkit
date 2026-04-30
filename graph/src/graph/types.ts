@@ -9,6 +9,7 @@ export interface RawGraphNode {
   label?: string;
   title?: string;
   name?: string;
+  type?: string;
   define?: string;
   parents?: RelationField;
   children?: RelationField;

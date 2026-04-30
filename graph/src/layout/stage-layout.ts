@@ -4,7 +4,7 @@ import { getRelationKeys } from "../graph/relations";
 import { structuredCloneValue } from "../graph/serialize";
 import { getNodeVisual } from "./text";
 import { resolveStageSelection, withSyntheticSelectionRoot } from "./selection";
-import type { LayoutRoutePoint, StageData, StageNode, StageRoutePoint } from "./types";
+import type { LayoutRoutePoint, StageData, StageNode, StageNodeColorTokens, StageRoutePoint } from "./types";
 import { buildBfsLayout } from "./algorithms/bfs";
 import { buildSugiyamaLayout } from "./algorithms/sugiyama";
 
@@ -28,6 +28,7 @@ export function buildStageData(input: {
     ? buildSugiyamaLayout(layoutDag, layoutRoots)
     : buildBfsLayout(layoutDag, layoutRoots);
   const coordinates = layoutResult.coordinates;
+  const typeColorMap = buildTypeColorMap(sourceDag);
 
   const reachable = selection.isForest
     ? collectReachableFromRoots(layoutDag, selection.topLevelKeys)
@@ -47,12 +48,15 @@ export function buildStageData(input: {
 
     const [layer, order] = coordinate;
     const visual = getNodeVisual(nodeKey, node, theme.minNodeWidth, theme.maxNodeWidth);
+    const typeLabel = normalizeTypeLabel(node.type);
     const nodeData: StageNode = {
       key: nodeKey,
       layer,
       order,
       title: visual.title,
       detail: visual.detail,
+      typeLabel,
+      colorTokens: typeLabel ? typeColorMap.get(typeLabel) : undefined,
       width: visual.width,
       height: theme.nodeHeight,
       isRoot: selection.isForest ? forestTopLevelSet.has(nodeKey) : nodeKey === selection.rootKey,
@@ -238,4 +242,53 @@ function getEdgeLabel(weight: unknown): string {
     return "";
   }
   return String(weight);
+}
+
+function buildTypeColorMap(dag: NormalizedDag): Map<string, StageNodeColorTokens> {
+  const typeLabels = Array.from(new Set(
+    Object.values(dag)
+      .map((node) => normalizeTypeLabel(node.type))
+      .filter((value): value is string => Boolean(value)),
+  )).sort((left, right) => left.localeCompare(right));
+
+  const colorMap = new Map<string, StageNodeColorTokens>();
+  if (!typeLabels.length) {
+    return colorMap;
+  }
+
+  const hueStep = 360 / typeLabels.length;
+  typeLabels.forEach((typeLabel, index) => {
+    const hue = (index * hueStep + 18) % 360;
+    colorMap.set(typeLabel, createNodeColorTokens(hue));
+  });
+  return colorMap;
+}
+
+function normalizeTypeLabel(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function createNodeColorTokens(hue: number): StageNodeColorTokens {
+  return {
+    glow: hsla(hue, 74, 48, 0.12),
+    fill: hsla(hue, 44, 97, 0.94),
+    rootFill: hsla(hue, 52, 98, 0.97),
+    activeFill: hsla(hue, 58, 96, 0.99),
+    border: hsla(hue, 34, 48, 0.26),
+    borderStrong: hsla(hue, 42, 40, 0.38),
+    activeBorder: hsla(hue, 56, 42, 0.5),
+    pinFill: hsla(hue, 74, 50, 0.16),
+    pinStroke: hsla(hue, 70, 44, 0.28),
+    pinCore: hsla(hue, 72, 36, 0.82),
+    affordanceBg: hsla(hue, 48, 93, 0.96),
+    affordanceText: hsla(hue, 62, 32, 0.82),
+  };
+}
+
+function hsla(hue: number, saturation: number, lightness: number, alpha: number): string {
+  return `hsla(${Math.round(hue)} ${saturation}% ${lightness}% / ${alpha})`;
 }
