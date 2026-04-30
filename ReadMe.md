@@ -2,6 +2,8 @@
 
 Front-End Toolkit is a browser-based collection of front-end utilities for form design, JSON processing, DAG visualization, timeline exploration, SVG editing, and clock/calendar/globe experiences. Each major subdirectory in this repository is effectively an independent static web tool that can be run locally, used for prototyping, or deployed as static assets.
 
+[TOC]
+
 ## Overview
 
 - Pure front-end implementation built primarily with `HTML + CSS + JavaScript`.
@@ -52,53 +54,32 @@ Using `http://localhost` is still recommended for these modules:
 
 ## Tool Details
 
-### 1. `form/` Visual Schema Studio
+### `svg/` SVG Studio
 
-This is one of the most complete tools in the repository and is designed for quickly assembling structured forms and exporting schema data.
-
-Key capabilities:
-
-- Drag components from the left panel into the central canvas.
-- Supports basic fields such as `Input`, `Textarea`, `InputNumber`, `Switch`, `Radio`, `Checkbox`, `Select`, and `Cascader`.
-- Supports layout components such as `Card`, `Divider`, `Grid`, and `Collapse`.
-- Supports additional fields such as `DatePicker`, `TimePicker`, `ColorPicker`, and `Slider`.
-- A property inspector lets you configure title, description, default value, required state, disabled state, read-only state, options, and layout parameters.
-- Includes a component tree for hierarchical inspection and selection.
-- Supports conditional visibility rules that are applied in preview mode.
-- Supports schema import, export, and direct JSON editing in code mode.
-- Includes form preview and submission result preview.
-- Property panel width and collapsed state are persisted in `localStorage`.
-
-Good fit for:
-
-- Back-office form prototyping.
-- Structured schema generation and inspection.
-- Demonstrating nested containers, layout composition, and conditional field visibility.
-
-### 2. `json/` JSON Toolbox
-
-This is a practical day-to-day JSON utility page for common development workflows.
+`svg/` is not a placeholder directory. It already contains a working browser-based SVG editor with substantially more functionality than the original root README suggested.
 
 Key capabilities:
 
-- Format JSON.
-- Minify JSON.
-- Validate JSON.
-- Sort object keys.
-- Configure indentation width with spaces or tabs.
-- Escape and unescape JSON text.
-- Copy results to the clipboard.
-- Download processed JSON output.
-- Compare two JSON payloads side by side.
-- Show character counts for input and output areas.
+- Create, import, and export SVG documents.
+- Attempt overwrite-save to the original file in supported browsers.
+- Insert `rect`, `circle`, `ellipse`, `line`, `text`, `polyline`, `polygon`, `path`, and image elements.
+- Show a layer tree with selection, collapsing, locking, and visibility toggles.
+- Edit geometry, fill, stroke, opacity, font, and other attributes in the inspector.
+- Open a source pane and edit raw SVG text directly.
+- Supports undo, redo, duplicate, and delete.
+- Supports zoom, fit-to-view, toolbar collapse, and left/right panel toggling.
+- Supports grid snapping and stores related preferences in `localStorage`.
+- Sanitizes dangerous tags and some unsafe style/reference content during document handling.
+- Loads a built-in sample SVG on startup so the editor is immediately explorable.
 
-Good fit for:
+Usage notes:
 
-- Cleaning API responses.
-- Preparing configuration payloads.
-- Comparing two JSON documents quickly in the browser.
+- Overwrite-save depends on the browser supporting the File System Access API and is typically best in Chromium-based browsers.
+- Saving over the original file is most useful after importing a file through the editor.
 
-### 3. `graph/` DAG Studio
+![ScreenShot](./svg/ScreenShot.png)
+
+### `graph/` DAG Studio
 
 This tool imports DAG data and renders a focused graph view intended for exploring a root or subtree interactively.
 
@@ -148,7 +129,55 @@ The accepted input structure is flexible. These shapes are supported:
 }
 ```
 
-### 4. `timeline/` Timeline Atlas
+![ScreenShot](./graph/ScreenShot.png)
+
+### `form/` Visual Schema Studio
+
+This is one of the most complete tools in the repository and is designed for quickly assembling structured forms and exporting schema data.
+
+Key capabilities:
+
+- Drag components from the left panel into the central canvas.
+- Supports basic fields such as `Input`, `Textarea`, `InputNumber`, `Switch`, `Radio`, `Checkbox`, `Select`, and `Cascader`.
+- Supports layout components such as `Card`, `Divider`, `Grid`, and `Collapse`.
+- Supports additional fields such as `DatePicker`, `TimePicker`, `ColorPicker`, and `Slider`.
+- A property inspector lets you configure title, description, default value, required state, disabled state, read-only state, options, and layout parameters.
+- Includes a component tree for hierarchical inspection and selection.
+- Supports conditional visibility rules that are applied in preview mode.
+- Supports schema import, export, and direct JSON editing in code mode.
+- Includes form preview and submission result preview.
+- Property panel width and collapsed state are persisted in `localStorage`.
+
+Good fit for:
+
+- Back-office form prototyping.
+- Structured schema generation and inspection.
+- Demonstrating nested containers, layout composition, and conditional field visibility.
+
+### `json/` JSON Toolbox
+
+This is a practical day-to-day JSON utility page for common development workflows.
+
+Key capabilities:
+
+- Format JSON.
+- Minify JSON.
+- Validate JSON.
+- Sort object keys.
+- Configure indentation width with spaces or tabs.
+- Escape and unescape JSON text.
+- Copy results to the clipboard.
+- Download processed JSON output.
+- Compare two JSON payloads side by side.
+- Show character counts for input and output areas.
+
+Good fit for:
+
+- Cleaning API responses.
+- Preparing configuration payloads.
+- Comparing two JSON documents quickly in the browser.
+
+### `timeline/` Timeline Atlas
 
 This module combines event relationships with a timeline layout and is useful for showing historical or causal evolution across branches.
 
@@ -188,30 +217,7 @@ Field notes:
 - `data`: extra event metadata shown in the hover card.
 - `parents` / `children`: graph relationships between events.
 
-### 5. `svg/` SVG Studio
-
-`svg/` is not a placeholder directory. It already contains a working browser-based SVG editor with substantially more functionality than the original root README suggested.
-
-Key capabilities:
-
-- Create, import, and export SVG documents.
-- Attempt overwrite-save to the original file in supported browsers.
-- Insert `rect`, `circle`, `ellipse`, `line`, `text`, `polyline`, `polygon`, `path`, and image elements.
-- Show a layer tree with selection, collapsing, locking, and visibility toggles.
-- Edit geometry, fill, stroke, opacity, font, and other attributes in the inspector.
-- Open a source pane and edit raw SVG text directly.
-- Supports undo, redo, duplicate, and delete.
-- Supports zoom, fit-to-view, toolbar collapse, and left/right panel toggling.
-- Supports grid snapping and stores related preferences in `localStorage`.
-- Sanitizes dangerous tags and some unsafe style/reference content during document handling.
-- Loads a built-in sample SVG on startup so the editor is immediately explorable.
-
-Usage notes:
-
-- Overwrite-save depends on the browser supporting the File System Access API and is typically best in Chromium-based browsers.
-- Saving over the original file is most useful after importing a file through the editor.
-
-### 6. `time/` Geometric Clock and Calendar
+### `time/` Geometric Clock and Calendar
 
 This module combines a stylized clock, a calendar, and an interactive globe in one page, with some lightweight cross-feature synchronization.
 
