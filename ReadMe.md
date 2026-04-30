@@ -109,8 +109,12 @@ Key capabilities:
 - Create a synthetic aggregate root when multiple roots exist.
 - Click a node to refocus the view on that node's subtree.
 - Navigate backward through focus history.
+- Keep edit-history undo and redo separate from navigation history.
 - Highlight local relationships on hover.
+- Edit nodes, fields, and parent-child relationships directly in the UI.
+- Color node accents by optional `type` categories while keeping readable white cards.
 - Export the current graph view as SVG.
+- Save updates back to JSON by overwrite or timestamped copy.
 
 The accepted input structure is flexible. These shapes are supported:
 

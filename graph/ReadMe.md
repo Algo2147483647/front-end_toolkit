@@ -7,6 +7,7 @@ It is designed for:
 - loading a JSON graph file and rendering it immediately
 - navigating large graphs by subtree or parent level
 - editing node relationships directly in the UI
+- undoing and redoing graph edits in edit mode
 - inspecting all node fields in a generic viewer
 - saving the updated graph back to JSON
 
@@ -40,12 +41,14 @@ npm run build
 - `Preview / Edit` mode switch
 - auto-load default sample data from `example.json`
 - forest rendering for multiple root nodes
+- optional node color grouping by `type`
 - click a node to focus on that node or subtree
 - `Back` to return to the previous selection
 - `Up` to move to the parent level
 - right-click a node to open the node menu
 - generic `View Node` page for all node fields
 - edit relationships and rerender immediately
+- `Undo / Redo` for graph edits in edit mode
 - export current view as SVG
 - save graph JSON as overwrite or as a new timestamped file
 
@@ -111,6 +114,7 @@ Only a small set of fields has built-in graph meaning:
 - `parents`: upstream node references
 - `define`: main description text shown in the node card and in the viewer
 - `label`, `title`, `name`: optional display text fallback for the node title
+- `type`: optional node category used for color grouping
 
 All other fields are kept as-is and can still be viewed in `View Node`.
 
@@ -131,6 +135,31 @@ Example:
       "difficulty": "medium",
       "domain": "mathematics"
     }
+  }
+}
+```
+
+## Node Color Grouping
+
+If a node includes a `type` field, DAG Studio groups nodes by unique `type` value and assigns each category its own accent color.
+
+- nodes with the same `type` share the same visual accent
+- accents are applied through the node border, pin, and active states
+- card backgrounds stay in the default white style for readability
+- if no nodes define `type`, the graph uses the original default coloring
+
+Example:
+
+```json
+{
+  "Model_Registry": {
+    "type": "data",
+    "children": {
+      "Online_Inference": "deploys_to"
+    }
+  },
+  "Online_Inference": {
+    "type": "service"
   }
 }
 ```
@@ -255,7 +284,26 @@ Behavior notes:
 - `Delete Node` removes that node and clears references from other nodes
 - `Delete Subtree` removes the selected node and all descendants
 - `Edit Parents` and `Edit Children` update JSON and rerender immediately
-- `Add Node` creates a node and can optionally link it to the selected node
+- `Add Node` creates a node and links it as a child when opened from a node context menu
+- delete actions run immediately without an extra confirm dialog
+
+## Undo and Redo
+
+Edit mode keeps a separate graph-edit history that is independent from focus navigation.
+
+- `Back` still returns to the previous focused selection
+- `Undo / Redo` only apply to graph data edits
+- supported edit actions include add, delete, rename, field edits, and parent/child relation edits
+- making a new edit after `Undo` clears the redo stack
+- edit history is capped internally to avoid unbounded memory growth
+
+Keyboard shortcuts:
+
+- `Ctrl+Z` / `Cmd+Z`: undo
+- `Ctrl+Shift+Z` / `Cmd+Shift+Z`: redo
+- `Ctrl+Y`: redo
+
+The shortcuts are ignored while typing in inputs, textareas, selects, or other editable fields.
 
 ## View Node
 
@@ -287,6 +335,8 @@ original-name-YYYYMMDD-HHMMSS.json
 ```
 
 Direct overwrite uses the browser File System Access API. When available, choosing a JSON file through the workspace picker binds the file handle so `Overwrite Original` can write back to disk. If file access is unavailable, save a new copy instead.
+
+Dirty-state tracking is revision-based, so undoing back to the last saved version automatically clears the unsaved state, and redoing away from it marks the graph dirty again.
 
 ## Rendering Notes
 
