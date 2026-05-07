@@ -5,6 +5,7 @@ import { createInitialCanvasDag, INITIAL_CANVAS_FILE_NAME } from "./graph/initia
 import { normalizeDagInput } from "./graph/normalize";
 import { getFullGraphSelection, getInitialSelection, getParentLevelSelection, sanitizeNodeLabel } from "./graph/selectors";
 import { serializeDag } from "./graph/serialize";
+import { copyTextToClipboard } from "./adapters/clipboard";
 import { buildTimestampFileName, downloadJsonFile, ensureJsonExtension } from "./adapters/download";
 import { canOverwrite, openJsonFileWithAccess, readJsonFile, requestWritablePermission, writeJsonToHandle } from "./adapters/fileAccess";
 import { downloadSvg } from "./rendering/export-svg";
@@ -328,7 +329,7 @@ export default function App() {
     event.preventDefault();
     event.stopPropagation();
     const menuWidth = 190;
-    const menuHeight = 330;
+    const menuHeight = 368;
     dispatch({
       type: "contextMenuOpened",
       x: Math.min(event.clientX, window.innerWidth - menuWidth - 8),
@@ -341,6 +342,10 @@ export default function App() {
     dispatch({ type: "contextMenuClosed" });
     if (action === "view-node" && nodeKey) {
       dispatch({ type: "nodeDetailOpened", nodeKey });
+      return;
+    }
+    if (action === "copy-key" && nodeKey) {
+      void handleCopyNodeKey(nodeKey);
       return;
     }
     if (action === "rename-node" && nodeKey) {
@@ -369,6 +374,16 @@ export default function App() {
     }
     if (action === "copy-node" && nodeKey) {
       promptCopyNode(nodeKey);
+    }
+  }
+
+  async function handleCopyNodeKey(nodeKey: NodeKey) {
+    try {
+      await copyTextToClipboard(nodeKey);
+      dispatch({ type: "statusChanged", status: `Copied node key "${nodeKey}" to the clipboard.` });
+    } catch (error) {
+      console.error(error);
+      dispatch({ type: "statusChanged", status: `Unable to copy node key "${nodeKey}".` });
     }
   }
 
