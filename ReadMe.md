@@ -18,7 +18,7 @@ Front-End Toolkit is a browser-based collection of front-end utilities for form 
 | --- | --- | --- | --- |
 | `form/` | Visual Schema Studio | Visual form design and schema editing | Usable |
 | `json/` | JSON Toolbox | JSON formatting, validation, escaping, and diffing | Usable |
-| `graph/` | DAG Studio | DAG import, focused graph exploration, SVG export | Usable |
+| `graph/` | DAG Studio | DAG import, focused graph exploration, JSON editing, and console-driven graph mutation | Usable |
 | `timeline/` | Timeline Atlas | Time-aware DAG and event timeline visualization | Usable |
 | `svg/` | SVG Studio | In-browser SVG editor | Usable |
 | `time/` | Geometric Clock and Calendar | Clock, calendar, and globe with timezone interaction | Usable |
@@ -93,12 +93,19 @@ Key capabilities:
 - Keep edit-history undo and redo separate from navigation history.
 - Highlight local relationships on hover.
 - Edit nodes, fields, and parent-child relationships directly in the UI.
+- Open a resizable console sidebar in edit mode for text-based graph edits.
+- Run console commands such as `help`, `use`, `show`, `add`, `cp`, `parents`, `children`, `set`, and `json`.
 - Color node accents by optional `type` categories while keeping readable white cards.
 - Switch between `BFS`, upgraded `Sugiyama layered`, and library-backed `Dagre layered` layouts depending on whether you want traversal stability or more industrial layered routing.
 - Remember core page preferences such as edit/preview mode and layout choice across refreshes.
 - Initialize a blank graph canvas with one starter node when you want to build a DAG from scratch.
 - Export the current graph view as SVG.
 - Save updates back to JSON by overwrite or timestamped copy.
+
+Documentation notes:
+
+- `graph/ReadMe.md` is the user-facing guide for DAG Studio.
+- `graph/GraphConsoleDSL.md` documents the console command language in more detail.
 
 The accepted input structure is flexible. These shapes are supported:
 

@@ -2,6 +2,7 @@ import { applyGraphCommand, type CommandResult, type GraphCommand } from "../gra
 import { structuredCloneValue } from "../graph/serialize";
 import type { NodeKey, NormalizedDag } from "../graph/types";
 import type { ConsoleInstruction, ConsoleNodeOperand } from "./dsl";
+import { buildConsoleHelpText } from "./reference";
 
 export interface ConsoleUiEffect {
   type: "show" | "json";
@@ -16,6 +17,7 @@ export type ConsoleRunResult =
     contextNodeKey: NodeKey | null;
     results: CommandResult[];
     uiEffects: ConsoleUiEffect[];
+    outputMessages: string[];
     instructionCount: number;
     mutationCount: number;
   }
@@ -35,10 +37,15 @@ export function executeConsoleInstructions(
   let contextNodeKey = initialContextNodeKey;
   const results: CommandResult[] = [];
   const uiEffects: ConsoleUiEffect[] = [];
+  const outputMessages: string[] = [];
 
   for (const instruction of instructions) {
     try {
       switch (instruction.type) {
+        case "help": {
+          outputMessages.push(buildConsoleHelpText());
+          break;
+        }
         case "use": {
           const key = resolveExistingNodeKey(instruction.key, contextNodeKey, workingDag, instruction.line);
           contextNodeKey = key;
@@ -149,6 +156,7 @@ export function executeConsoleInstructions(
     contextNodeKey,
     results,
     uiEffects,
+    outputMessages,
     instructionCount: instructions.length,
     mutationCount: results.length,
   };

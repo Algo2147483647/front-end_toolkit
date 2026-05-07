@@ -31,6 +31,7 @@ import { getGraphLayoutLabel } from "./graph/types";
 import type { EditTransaction } from "./state/initialState";
 import { collectBatchEffects, buildConsoleMutationLabel, executeConsoleInstructions } from "./console/executor";
 import { parseConsoleSource } from "./console/dsl";
+import { CONSOLE_COMMAND_REFERENCE } from "./console/reference";
 
 export default function App() {
   const [state, dispatch] = useReducer(graphReducer, initialGraphAppState);
@@ -172,11 +173,6 @@ export default function App() {
       return;
     }
 
-    if (!state.dag) {
-      appendConsoleEntry(setConsoleEntries, "error", "No graph loaded. Load or initialize a graph before running console instructions.");
-      return;
-    }
-
     const parsed = parseConsoleSource(source);
     if (!parsed.ok) {
       appendConsoleEntry(setConsoleEntries, "error", `Line ${parsed.error.line}: ${parsed.error.message}`);
@@ -186,8 +182,12 @@ export default function App() {
       appendConsoleEntry(setConsoleEntries, "info", "No instructions were found.");
       return;
     }
+    if (!state.dag && !parsed.instructions.every((instruction) => instruction.type === "help")) {
+      appendConsoleEntry(setConsoleEntries, "error", "No graph loaded. Load or initialize a graph before running console instructions.");
+      return;
+    }
 
-    const executed = executeConsoleInstructions(state.dag, parsed.instructions, consoleContextNodeKey);
+    const executed = executeConsoleInstructions(state.dag || {}, parsed.instructions, consoleContextNodeKey);
     if (!executed.ok) {
       setConsoleContextNodeKey(executed.contextNodeKey);
       appendConsoleEntry(
@@ -199,8 +199,14 @@ export default function App() {
     }
 
     setConsoleContextNodeKey(executed.contextNodeKey);
+    executed.outputMessages.forEach((message) => appendConsoleEntry(setConsoleEntries, "info", message));
 
     if (executed.mutationCount > 0) {
+      const beforeDag = state.dag;
+      if (!beforeDag) {
+        appendConsoleEntry(setConsoleEntries, "error", "No graph loaded. Load or initialize a graph before running console instructions.");
+        return;
+      }
       let nextSelection = state.selection;
       let nextHistory = state.history;
       executed.results.forEach((result) => {
@@ -210,7 +216,7 @@ export default function App() {
 
       const transaction: EditTransaction = {
         label: buildConsoleMutationLabel(executed.mutationCount, executed.results[executed.results.length - 1]?.message),
-        beforeDag: state.dag,
+        beforeDag,
         afterDag: executed.dag,
         beforeSelection: state.selection,
         afterSelection: nextSelection,
@@ -663,20 +669,7 @@ interface ConsoleSuggestion {
 }
 
 const COMMAND_TEMPLATES: ConsoleSuggestion[] = [
-  { label: "use <node>", insertText: "use " },
-  { label: "show <node>", insertText: "show " },
-  { label: "json <node>", insertText: "json " },
-  { label: "mv <old-key> <new-key>", insertText: "mv " },
-  { label: "rm <node>", insertText: "rm " },
-  { label: "rm -r <node>", insertText: "rm -r " },
-  { label: "add <new-key>", insertText: "add " },
-  { label: "add <new-key> -p <parent>", insertText: "add " },
-  { label: "cp <source> <new-key>", insertText: "cp " },
-  { label: "cp <source> <new-key> -p <parent>", insertText: "cp " },
-  { label: "parents <node> = A,B", insertText: "parents " },
-  { label: "children <node> = A,B", insertText: "children " },
-  { label: "set <node> <field> \"value\"", insertText: "set " },
-  { label: "clear", insertText: "clear" },
+  ...CONSOLE_COMMAND_REFERENCE.map((command) => ({ label: command.label, insertText: command.insertText })),
 ];
 
 function getConsoleSuggestions(input: string): ConsoleSuggestion[] {

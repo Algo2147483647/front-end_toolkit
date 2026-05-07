@@ -42,12 +42,14 @@ npm run build
 - remembers page preferences such as `Preview / Edit` mode and layout selection across refreshes
 - auto-load default sample data from `example.json`
 - initialize a fresh canvas with one starting node for blank-slate editing
+- edit-mode console sidebar with command history, suggestions, and batch graph edits
 - forest rendering for multiple root nodes
 - optional node color grouping by `type`
 - click a node to focus on that node or subtree
 - `Back` to return to the previous selection
 - `Up` to move to the parent level
 - right-click a node to open the node menu
+- `help` command in the console prints the available command reference in-place
 - generic `View Node` page for all node fields
 - edit-mode node details support both field-by-field editing and direct raw JSON editing
 - edit relationships and rerender immediately
@@ -68,6 +70,36 @@ Use `Initialize Canvas` from the empty state or the `Controls` panel to start fr
 - `BFS`: keeps the selected root traversal close to breadth-first discovery order.
 - `Sugiyama layered`: ranks nodes by directed dependency depth, breaks visible cycles for layout, inserts virtual route points for long edges, and applies crossing-reduction sweeps before rendering.
 - `Dagre layered`: uses the Dagre layered engine with `network-simplex` ranking and absolute routed points for a more industrial, library-backed dependency layout.
+
+## Graph Console
+
+In `Edit` mode, use `Show Console Sidebar` from the controls panel to open the left-side console.
+
+The console is designed for fast text-based graph edits:
+
+- one line is one instruction
+- multiple lines run as one batch
+- successful mutation batches commit as a single undo step
+- parse or execution errors stop at the first failing line
+- command history is available with the arrow keys when suggestions are not open
+- `clear` or `cls` clears the console output
+- `help` prints the current command reference directly in the console
+
+Common commands:
+
+- `help`
+- `use <node>`
+- `show <node>`
+- `json <node>`
+- `mv <old-key> <new-key>`
+- `rm <node>` / `rm -r <node>`
+- `add <new-key>` / `add <new-key> -p <parent>`
+- `cp <source> <new-key>` / `cp <source> <new-key> -p <parent>`
+- `parents <node> = A,B`
+- `children <node> = A,B`
+- `set <node> <field> "value"`
+
+The full console reference lives in [`GraphConsoleDSL.md`](D:\Algo\Projects\front-end_toolkit\graph\GraphConsoleDSL.md).
 
 ## How Navigation Works
 
@@ -283,22 +315,28 @@ Switch to `Edit` mode to enable graph editing.
 Right-click a node to access:
 
 - `View Node`
+- `Copy Key`
+- `Copy Node`
+- `Add Child Node`
+- `Edit Children`
+- `Edit Parents`
 - `Rename Node Key`
 - `Delete Node`
 - `Delete Subtree`
-- `Edit Parents`
-- `Edit Children`
-- `Add Node`
 
 Behavior notes:
 
+- `Copy Key` copies the node key to the clipboard
+- `Copy Node` creates a new node by copying the selected node's non-relation fields
+- `Add Child Node` creates a node and links it as a child of the selected node
 - `Rename Node Key` checks for duplicate keys
 - `Delete Node` removes that node and clears references from other nodes
 - `Delete Subtree` removes the selected node and all descendants
 - `Edit Parents` and `Edit Children` update JSON and rerender immediately
 - `View Node` in edit mode also lets you edit the node's raw JSON directly, including adding or removing custom fields
-- `Add Node` creates a node and links it as a child when opened from a node context menu
 - delete actions run immediately without an extra confirm dialog
+
+In `Preview` mode, the node menu keeps the non-destructive actions such as `View Node` and `Copy Key`, while edit-only actions stay disabled.
 
 ## Undo and Redo
 
@@ -396,3 +434,4 @@ If you want the smallest useful file, start here:
 - React source: `graph/src/`
 - styles: [`styles.css`](D:\Algo\Projects\front-end_toolkit\graph\styles.css) plus `graph/src/styles.css`
 - sample data: [`public/example.json`](D:\Algo\Projects\front-end_toolkit\graph\public\example.json)
+- console reference: [`GraphConsoleDSL.md`](D:\Algo\Projects\front-end_toolkit\graph\GraphConsoleDSL.md)

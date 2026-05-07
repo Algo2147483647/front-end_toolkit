@@ -126,6 +126,7 @@ The console maintains one implicit **current-node context register**.
 
 | Mnemonic | Category | Effect |
 | --- | --- | --- |
+| `help` | Reference | Show the available command reference |
 | `show` | UI | Open node detail view |
 | `use` | Context | Set current context node |
 | `mv` | Mutation | Rename a node key |
@@ -144,11 +145,48 @@ The console maintains one implicit **current-node context register**.
 | `-r` | `rm` | Recursive subtree delete |
 | `-p <node>` | `add`, `cp` | Attach created/copied node under parent |
 
+### 6.3 Built-In Console Commands
+
+| Command | Layer | Effect |
+| --- | --- | --- |
+| `help` | DSL instruction | Print the available command reference in the console output |
+| `clear` | Console UI | Clear the console output |
+| `cls` | Console UI | Alias for `clear` |
+
 ## 7. Instruction Reference
 
 ---
 
-## 7.1 `show`
+## 7.1 `help`
+
+### Synopsis
+
+```sh
+help
+```
+
+### Description
+
+Prints the available command reference directly in the console output.
+
+### Behavioral Notes
+
+| Item | Behavior |
+| --- | --- |
+| Graph mutation | None |
+| Graph required | No |
+| Undo history | Not added as a graph edit |
+| Typical use | Discover or confirm the currently supported commands |
+
+### Examples
+
+```sh
+help
+```
+
+---
+
+## 7.2 `show`
 
 ### Synopsis
 
@@ -185,7 +223,7 @@ show .
 
 ---
 
-## 7.2 `use`
+## 7.3 `use`
 
 ### Synopsis
 
@@ -220,7 +258,7 @@ use "Binary Tree"
 
 ---
 
-## 7.3 `mv`
+## 7.4 `mv`
 
 ### Synopsis
 
@@ -262,7 +300,7 @@ mv "Binary Tree" "Binary Search Tree"
 
 ---
 
-## 7.4 `rm`
+## 7.5 `rm`
 
 ### Synopsis
 
@@ -307,7 +345,7 @@ rm -r Tree
 
 ---
 
-## 7.5 `add`
+## 7.6 `add`
 
 ### Synopsis
 
@@ -352,7 +390,7 @@ add RedBlack -p .
 
 ---
 
-## 7.6 `cp`
+## 7.7 `cp`
 
 ### Synopsis
 
@@ -397,7 +435,7 @@ cp . Snapshot -p .
 
 ---
 
-## 7.7 `parents`
+## 7.8 `parents`
 
 ### Synopsis
 
@@ -442,7 +480,7 @@ parents Draft =
 
 ---
 
-## 7.8 `children`
+## 7.9 `children`
 
 ### Synopsis
 
@@ -487,7 +525,7 @@ children Leaf =
 
 ---
 
-## 7.9 `set`
+## 7.10 `set`
 
 ### Synopsis
 
@@ -532,7 +570,7 @@ set . type "concept"
 
 ---
 
-## 7.10 `json`
+## 7.11 `json`
 
 ### Synopsis
 
@@ -653,6 +691,7 @@ children . = AVL,RedBlack
 
 ```ts
 type ConsoleInstruction =
+  | { type: "help"; line: number }
   | { type: "show"; key: string; line: number }
   | { type: "use"; key: string; line: number }
   | { type: "rename"; oldKey: string; newKey: string; line: number }
@@ -729,6 +768,7 @@ json .
 | Priority | Instruction |
 | --- | --- |
 | P0 | `use` |
+| P0 | `help` |
 | P0 | `show` |
 | P0 | `mv` |
 | P0 | `rm` |
@@ -760,5 +800,6 @@ The Graph Console DSL should behave like a compact graph-edit instruction set:
 - explicit like assembly mnemonics
 - transactional like an editor command buffer
 - backed by the existing graph mutation core
+- self-describing through an in-console `help` command
 
 That combination gives the console the speed of typed operations without sacrificing the safety and consistency of the current JSON editing model.

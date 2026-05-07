@@ -8,6 +8,7 @@ export type ConsoleNodeOperand =
   | { type: "context" };
 
 export type ConsoleInstruction =
+  | { type: "help"; line: number }
   | { type: "show"; key: ConsoleNodeOperand; line: number }
   | { type: "use"; key: ConsoleNodeOperand; line: number }
   | { type: "rename"; oldKey: ConsoleNodeOperand; newKey: string; line: number }
@@ -113,6 +114,8 @@ function parseInstruction(tokens: ConsoleToken[], line: number): { ok: true; ins
   }
 
   switch (mnemonic.value) {
+    case "help":
+      return parseHelpInstruction(tokens, line);
     case "show":
       return parseSingleNodeInstruction(tokens, line, "show");
     case "use":
@@ -136,6 +139,13 @@ function parseInstruction(tokens: ConsoleToken[], line: number): { ok: true; ins
     default:
       return { ok: false, error: { line, message: `Unknown instruction "${mnemonic.value}".` } };
   }
+}
+
+function parseHelpInstruction(tokens: ConsoleToken[], line: number): { ok: true; instruction: ConsoleInstruction } | { ok: false; error: ConsoleLineError } {
+  if (tokens.length !== 1) {
+    return { ok: false, error: { line, message: "help does not accept any arguments." } };
+  }
+  return { ok: true, instruction: { type: "help", line } };
 }
 
 function parseSingleNodeInstruction(

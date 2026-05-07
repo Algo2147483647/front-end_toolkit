@@ -109,6 +109,16 @@ test("console parser supports context alias, modifiers, and quoted operands", ()
   assert.equal(parsed.instructions[3].type, "setField");
 });
 
+test("console parser accepts help without arguments", () => {
+  const parsed = parseConsoleSource("help");
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+  assert.equal(parsed.instructions.length, 1);
+  assert.equal(parsed.instructions[0].type, "help");
+});
+
 test("console execution batches mutations and keeps context in sync with rename", () => {
   const parsed = parseConsoleSource(`
     use A
@@ -153,6 +163,27 @@ test("console execution reports line-specific failures", () => {
   }
   assert.equal(result.line, 2);
   assert.match(result.message, /does not exist/i);
+});
+
+test("console help emits the command reference without mutating the graph", () => {
+  const parsed = parseConsoleSource("help");
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+
+  const dag = normalizeDagInput({ A: {} });
+  const result = executeConsoleInstructions(dag, parsed.instructions, null);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.mutationCount, 0);
+  assert.equal(result.outputMessages.length, 1);
+  assert.match(result.outputMessages[0], /Available commands:/);
+  assert.match(result.outputMessages[0], /show <node>/);
+  assert.deepEqual(result.dag, dag);
 });
 
 test("initial canvas factory creates a single starting node", () => {
