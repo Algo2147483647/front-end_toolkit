@@ -91,7 +91,7 @@ export default function Topbar({
           <IconButton id="zoom-fit-btn" label="Fit graph to viewport" disabled={!hasGraph} onClick={onZoomFit} icon={<FitIcon />} />
         </div>
         <div className="topbar-group file-controls" aria-label="Graph file controls">
-          <IconButton id="save-json-btn" label="Save JSON" disabled={!hasGraph} onClick={onSaveJson} icon={<SaveIcon />} className="topbar-save-btn" />
+          <IconButton id="save-json-btn" label="Save JSON" disabled={!hasGraph} onClick={onSaveJson} icon={<SaveIcon />} className="ghost-btn topbar-icon-btn topbar-save-btn" />
           <div id="floating-controls" className="control-dock">
             <IconButton
               id="settings-btn"
