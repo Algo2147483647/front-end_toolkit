@@ -5,6 +5,8 @@ const GRAPH_PAGE_PREFERENCES_KEY = "dag-studio:page-preferences";
 export interface GraphPagePreferences {
   mode: GraphMode;
   layoutMode: GraphLayoutMode;
+  consoleSidebarOpen: boolean;
+  consoleSidebarWidth: number;
 }
 
 interface StorageLike {
@@ -16,6 +18,8 @@ export function getInitialGraphPagePreferences(): GraphPagePreferences {
   return {
     mode: "preview",
     layoutMode: "bfs",
+    consoleSidebarOpen: false,
+    consoleSidebarWidth: 360,
   };
 }
 
@@ -53,7 +57,7 @@ export function parseGraphPagePreferences(raw: string | null): Partial<GraphPage
     return null;
   }
 
-  let parsed: { mode?: unknown; layoutMode?: unknown } | null;
+  let parsed: { mode?: unknown; layoutMode?: unknown; consoleSidebarOpen?: unknown; consoleSidebarWidth?: unknown } | null;
   try {
     parsed = JSON.parse(raw) as { mode?: unknown; layoutMode?: unknown } | null;
   } catch {
@@ -70,8 +74,18 @@ export function parseGraphPagePreferences(raw: string | null): Partial<GraphPage
   if (parsed.layoutMode === "bfs" || parsed.layoutMode === "sugiyama" || parsed.layoutMode === "dagre") {
     next.layoutMode = parsed.layoutMode;
   }
+  if (typeof parsed.consoleSidebarOpen === "boolean") {
+    next.consoleSidebarOpen = parsed.consoleSidebarOpen;
+  }
+  if (typeof parsed.consoleSidebarWidth === "number" && Number.isFinite(parsed.consoleSidebarWidth)) {
+    next.consoleSidebarWidth = clampConsoleSidebarWidth(parsed.consoleSidebarWidth);
+  }
 
   return Object.keys(next).length ? next : null;
+}
+
+export function clampConsoleSidebarWidth(width: number): number {
+  return Math.max(280, Math.min(680, Math.round(width)));
 }
 
 function getBrowserStorage(): StorageLike | null {

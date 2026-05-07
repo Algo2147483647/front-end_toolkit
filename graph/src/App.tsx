@@ -18,6 +18,7 @@ import { repairSelectionAfterCommand } from "./state/derived";
 import { graphReducer, repairHistoryAfterCommand } from "./state/graphReducer";
 import { initialGraphAppState } from "./state/initialState";
 import { saveGraphPagePreferences } from "./state/preferences";
+import ConsoleSidebar from "./components/ConsoleSidebar";
 import ContextMenu, { type ContextMenuAction } from "./components/ContextMenu";
 import NodeDetailModal from "./components/NodeDetailModal";
 import RelationEditorModal from "./components/RelationEditorModal";
@@ -27,11 +28,22 @@ import Workspace from "./components/Workspace";
 import type { GraphLayoutMode, GraphMode, NodeKey } from "./graph/types";
 import { getGraphLayoutLabel } from "./graph/types";
 import type { EditTransaction } from "./state/initialState";
+import { collectBatchEffects, buildConsoleMutationLabel, executeConsoleInstructions } from "./console/executor";
+import { parseConsoleSource } from "./console/dsl";
 
 export default function App() {
   const [state, dispatch] = useReducer(graphReducer, initialGraphAppState);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const [consoleInput, setConsoleInput] = useState("");
+  const [consoleContextNodeKey, setConsoleContextNodeKey] = useState<NodeKey | null>(null);
+  const [consoleEntries, setConsoleEntries] = useState<Array<{ id: number; tone: "input" | "success" | "error" | "info"; text: string }>>([
+    { id: 1, tone: "info", text: "Graph console ready." },
+  ]);
+  const [consoleHistory, setConsoleHistory] = useState<string[]>([]);
+  const [consoleHistoryIndex, setConsoleHistoryIndex] = useState<number | null>(null);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const [nodeDetailInitialFocus, setNodeDetailInitialFocus] = useState<"fields" | "raw">("fields");
   const suppressDefaultGraphRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -43,11 +55,25 @@ export default function App() {
     saveGraphPagePreferences({
       mode: state.mode,
       layoutMode: state.layout.mode,
+      consoleSidebarOpen: state.ui.consoleSidebarOpen,
+      consoleSidebarWidth: state.ui.consoleSidebarWidth,
     });
-  }, [state.layout.mode, state.mode]);
+  }, [state.layout.mode, state.mode, state.ui.consoleSidebarOpen, state.ui.consoleSidebarWidth]);
+
+  useEffect(() => {
+    if (consoleContextNodeKey && state.dag && !state.dag[consoleContextNodeKey]) {
+      setConsoleContextNodeKey(null);
+    }
+  }, [consoleContextNodeKey, state.dag]);
+
+  useEffect(() => {
+    setActiveSuggestionIndex(0);
+  }, [consoleInput]);
 
   const stage = useMemo(() => state.dag ? buildStageData({ dag: state.dag, selection: state.selection, layoutMode: state.layout.mode }) : null, [state.dag, state.layout.mode, state.selection]);
   const parentSelection = useMemo(() => state.dag && stage ? getParentLevelSelection(state.dag, stage.topLevelKeys) : null, [stage, state.dag]);
+  const consoleSidebarVisible = state.mode === "edit" && state.ui.consoleSidebarOpen;
+  const consoleSuggestions = useMemo(() => getConsoleSuggestions(consoleInput), [consoleInput]);
   const status = useMemo(() => {
     if (!state.dag || !stage) {
       return state.ui.status;
@@ -128,6 +154,109 @@ export default function App() {
       window.alert(message);
     }
   }, [state]);
+
+  const handleConsoleRun = useCallback(() => {
+    const source = consoleInput.trim();
+    if (!source) {
+      return;
+    }
+
+    appendConsoleEntry(setConsoleEntries, "input", `${buildConsolePrompt(consoleContextNodeKey)} ${source}`);
+    setConsoleHistory((current) => (current[current.length - 1] === source ? current : [...current, source]));
+    setConsoleHistoryIndex(null);
+    setConsoleInput("");
+
+    if (source === "clear" || source === "cls") {
+      setConsoleEntries([{ id: Date.now(), tone: "info", text: "Console cleared." }]);
+      return;
+    }
+
+    if (!state.dag) {
+      appendConsoleEntry(setConsoleEntries, "error", "No graph loaded. Load or initialize a graph before running console instructions.");
+      return;
+    }
+
+    const parsed = parseConsoleSource(source);
+    if (!parsed.ok) {
+      appendConsoleEntry(setConsoleEntries, "error", `Line ${parsed.error.line}: ${parsed.error.message}`);
+      return;
+    }
+    if (!parsed.instructions.length) {
+      appendConsoleEntry(setConsoleEntries, "info", "No instructions were found.");
+      return;
+    }
+
+    const executed = executeConsoleInstructions(state.dag, parsed.instructions, consoleContextNodeKey);
+    if (!executed.ok) {
+      setConsoleContextNodeKey(executed.contextNodeKey);
+      appendConsoleEntry(
+        setConsoleEntries,
+        "error",
+        executed.message.startsWith("Line ") ? executed.message : `Line ${executed.line}: ${executed.message}`,
+      );
+      return;
+    }
+
+    setConsoleContextNodeKey(executed.contextNodeKey);
+
+    if (executed.mutationCount > 0) {
+      let nextSelection = state.selection;
+      let nextHistory = state.history;
+      executed.results.forEach((result) => {
+        nextSelection = repairSelectionAfterCommand(result.dag, nextSelection, nextSelection, result);
+        nextHistory = repairHistoryAfterCommand({ ...state, history: nextHistory } as typeof state, result);
+      });
+
+      const transaction: EditTransaction = {
+        label: buildConsoleMutationLabel(executed.mutationCount, executed.results[executed.results.length - 1]?.message),
+        beforeDag: state.dag,
+        afterDag: executed.dag,
+        beforeSelection: state.selection,
+        afterSelection: nextSelection,
+        beforeNavigationHistory: state.history,
+        afterNavigationHistory: nextHistory,
+        revisionBefore: state.editHistory.revision,
+        revisionAfter: state.editHistory.revision + 1,
+      };
+      const batchEffects = collectBatchEffects(executed.results);
+      dispatch({
+        type: "graphCommandsCommitted",
+        transaction,
+        renamedKeys: batchEffects.renamedKeys,
+        deletedKeys: batchEffects.deletedKeys,
+        status: buildConsoleMutationLabel(executed.mutationCount, executed.results[executed.results.length - 1]?.message),
+      });
+    }
+
+    const finalUiEffect = executed.uiEffects.filter((effect) => effect.nodeKey).at(-1);
+    if (finalUiEffect) {
+      setNodeDetailInitialFocus(finalUiEffect.type === "json" ? "raw" : "fields");
+      dispatch({ type: "nodeDetailOpened", nodeKey: finalUiEffect.nodeKey });
+    }
+
+    appendConsoleEntry(
+      setConsoleEntries,
+      "success",
+      buildConsoleSuccessMessage(executed.instructionCount, executed.mutationCount, executed.contextNodeKey, finalUiEffect?.type),
+    );
+  }, [consoleContextNodeKey, consoleInput, state]);
+
+  const handleConsoleSidebarResizeStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const startX = event.clientX;
+    const startWidth = state.ui.consoleSidebarWidth;
+
+    const handlePointerMove = (pointerEvent: PointerEvent) => {
+      dispatch({ type: "consoleSidebarWidthChanged", width: startWidth + (pointerEvent.clientX - startX) });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  }, [state.ui.consoleSidebarWidth]);
 
   async function handleFileInputClick(event: React.MouseEvent<HTMLInputElement>) {
     if (typeof window.showOpenFilePicker !== "function") {
@@ -340,6 +469,7 @@ export default function App() {
         canZoomOut={Boolean(stage) && state.zoom.scale > state.zoom.minScale + 0.001}
         canZoomIn={Boolean(stage) && state.zoom.scale < state.zoom.maxScale - 0.001}
         settingsOpen={state.ui.settingsOpen}
+        consoleSidebarOpen={consoleSidebarVisible}
         onBack={() => dispatch({ type: "navigateBack" })}
         onUp={() => parentSelection && dispatch({ type: "selectionChanged", selection: parentSelection, pushHistory: true })}
         onAll={() => dispatch({ type: "selectionChanged", selection: getFullGraphSelection(), pushHistory: true })}
@@ -350,6 +480,7 @@ export default function App() {
         onZoomFit={zoom.zoomFit}
         onZoomPercentCommit={(percent) => zoom.setZoomPercent(percent)}
         onSettingsToggle={() => dispatch({ type: "settingsToggled" })}
+        onConsoleSidebarToggle={() => dispatch({ type: "consoleSidebarToggled" })}
         onModeChange={handleModeChange}
         onLayoutModeChange={handleLayoutModeChange}
         onFileInputClick={handleFileInputClick}
@@ -364,6 +495,70 @@ export default function App() {
         svgRef={svgRef}
         stage={stage}
         status={status}
+        sidebar={(
+          <ConsoleSidebar
+            mode={state.mode}
+            hasGraph={Boolean(state.dag)}
+            entries={consoleEntries}
+            inputValue={consoleInput}
+            contextNodeKey={consoleContextNodeKey}
+            suggestions={consoleSuggestions}
+            activeSuggestionIndex={activeSuggestionIndex}
+            onInputChange={(value) => {
+              setConsoleInput(value);
+              setConsoleHistoryIndex(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleConsoleRun();
+                return;
+              }
+              if (event.key === "Tab" && consoleSuggestions.length > 0) {
+                event.preventDefault();
+                setConsoleInput(consoleSuggestions[activeSuggestionIndex]?.insertText || consoleInput);
+                return;
+              }
+              if (consoleSuggestions.length > 0 && event.key === "ArrowDown") {
+                event.preventDefault();
+                setActiveSuggestionIndex((current) => (current + 1) % consoleSuggestions.length);
+                return;
+              }
+              if (consoleSuggestions.length > 0 && event.key === "ArrowUp") {
+                event.preventDefault();
+                setActiveSuggestionIndex((current) => (current - 1 + consoleSuggestions.length) % consoleSuggestions.length);
+                return;
+              }
+              if (!consoleSuggestions.length && event.key === "ArrowUp" && consoleHistory.length > 0) {
+                event.preventDefault();
+                setConsoleHistoryIndex((current) => {
+                  const next = current === null ? consoleHistory.length - 1 : Math.max(0, current - 1);
+                  setConsoleInput(consoleHistory[next] || "");
+                  return next;
+                });
+                return;
+              }
+              if (!consoleSuggestions.length && event.key === "ArrowDown" && consoleHistory.length > 0) {
+                event.preventDefault();
+                setConsoleHistoryIndex((current) => {
+                  if (current === null) {
+                    return null;
+                  }
+                  const next = current + 1;
+                  if (next >= consoleHistory.length) {
+                    setConsoleInput("");
+                    return null;
+                  }
+                  setConsoleInput(consoleHistory[next] || "");
+                  return next;
+                });
+              }
+            }}
+            onSuggestionSelect={(suggestion) => setConsoleInput(suggestion.insertText)}
+          />
+        )}
+        sidebarOpen={consoleSidebarVisible}
+        sidebarWidth={state.ui.consoleSidebarWidth}
         onInitializeCanvas={initializeCanvas}
         hoveredKey={hoveredKey}
         focusedKey={focusedKey}
@@ -372,6 +567,7 @@ export default function App() {
         onHoverChange={setHoveredKey}
         onFocusChange={setFocusedKey}
         onScroll={() => dispatch({ type: "contextMenuClosed" })}
+        onSidebarResizeStart={handleConsoleSidebarResizeStart}
       />
 
       <ContextMenu menu={state.ui.contextMenu} mode={state.mode} onAction={handleContextMenuAction} />
@@ -395,6 +591,7 @@ export default function App() {
         nodeKey={detailNodeKey}
         node={detailNodeKey && state.dag ? state.dag[detailNodeKey] || null : null}
         mode={state.mode}
+        initialFocus={nodeDetailInitialFocus}
         onSave={(nextKey, fields) => {
           if (detailNodeKey) {
             commitCommand({ type: "updateNodeFields", key: detailNodeKey, nextKey, fields });
@@ -412,4 +609,73 @@ export default function App() {
       />
     </div>
   );
+}
+
+function buildConsoleSuccessMessage(
+  instructionCount: number,
+  mutationCount: number,
+  contextNodeKey: NodeKey | null,
+  uiEffectType: "show" | "json" | undefined,
+): string {
+  const parts = [`${instructionCount} instruction${instructionCount === 1 ? "" : "s"} executed`];
+  if (mutationCount > 0) {
+    parts.push(`${mutationCount} mutation${mutationCount === 1 ? "" : "s"} committed`);
+  }
+  if (uiEffectType === "show") {
+    parts.push("node viewer opened");
+  } else if (uiEffectType === "json") {
+    parts.push("raw JSON editor opened");
+  }
+  parts.push(`context=${contextNodeKey || "unset"}`);
+  return `${parts.join(", ")}.`;
+}
+
+function appendConsoleEntry(
+  setEntries: React.Dispatch<React.SetStateAction<Array<{ id: number; tone: "input" | "success" | "error" | "info"; text: string }>>>,
+  tone: "input" | "success" | "error" | "info",
+  text: string,
+): void {
+  setEntries((current) => [...current, { id: Date.now() + current.length, tone, text }]);
+}
+
+function buildConsolePrompt(contextNodeKey: NodeKey | null): string {
+  return contextNodeKey ? `${contextNodeKey}>` : "graph>";
+}
+
+interface ConsoleSuggestion {
+  label: string;
+  insertText: string;
+}
+
+const COMMAND_TEMPLATES: ConsoleSuggestion[] = [
+  { label: "use <node>", insertText: "use " },
+  { label: "show <node>", insertText: "show " },
+  { label: "json <node>", insertText: "json " },
+  { label: "mv <old-key> <new-key>", insertText: "mv " },
+  { label: "rm <node>", insertText: "rm " },
+  { label: "rm -r <node>", insertText: "rm -r " },
+  { label: "add <new-key>", insertText: "add " },
+  { label: "add <new-key> -p <parent>", insertText: "add " },
+  { label: "cp <source> <new-key>", insertText: "cp " },
+  { label: "cp <source> <new-key> -p <parent>", insertText: "cp " },
+  { label: "parents <node> = A,B", insertText: "parents " },
+  { label: "children <node> = A,B", insertText: "children " },
+  { label: "set <node> <field> \"value\"", insertText: "set " },
+  { label: "clear", insertText: "clear" },
+];
+
+function getConsoleSuggestions(input: string): ConsoleSuggestion[] {
+  const trimmedStart = input.trimStart();
+  if (!trimmedStart) {
+    return [];
+  }
+
+  const hasWhitespace = /\s/.test(trimmedStart);
+  if (!hasWhitespace) {
+    const lower = trimmedStart.toLowerCase();
+    return COMMAND_TEMPLATES.filter((item) => item.label.toLowerCase().startsWith(lower)).slice(0, 8);
+  }
+
+  const mnemonic = trimmedStart.split(/\s+/, 1)[0]?.toLowerCase() || "";
+  return COMMAND_TEMPLATES.filter((item) => item.label.toLowerCase().startsWith(`${mnemonic} `) || item.label.toLowerCase() === mnemonic).slice(0, 6);
 }

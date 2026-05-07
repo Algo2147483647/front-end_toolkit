@@ -2,6 +2,7 @@ import { areSelectionsEqual, isSelectionValid, remapSelectionKeys, removeSelecti
 import { getGraphLayoutLabel } from "../graph/types";
 import { initialGraphAppState, type GraphAppState } from "./initialState";
 import type { GraphAction } from "./graphActions";
+import { clampConsoleSidebarWidth } from "./preferences";
 
 const EDIT_HISTORY_LIMIT = 100;
 
@@ -28,6 +29,8 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
         layout: state.layout,
         ui: {
           ...initialGraphAppState.ui,
+          consoleSidebarOpen: state.ui.consoleSidebarOpen,
+          consoleSidebarWidth: state.ui.consoleSidebarWidth,
           status: action.status,
         },
       };
@@ -52,6 +55,8 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
         layout: state.layout,
         ui: {
           ...initialGraphAppState.ui,
+          consoleSidebarOpen: state.ui.consoleSidebarOpen,
+          consoleSidebarWidth: state.ui.consoleSidebarWidth,
           status: action.status,
         },
       };
@@ -80,25 +85,10 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
     }
     case "graphCommandCommitted": {
       const { result, transaction } = action;
-      const renamed = result.renamedKey;
-      const deleted = new Set(result.deletedKeys || []);
-      let nodeDetail = state.ui.nodeDetail;
-      let relationEditor = state.ui.relationEditor;
-
-      if (renamed) {
-        nodeDetail = nodeDetail?.nodeKey === renamed.from ? { nodeKey: renamed.to } : nodeDetail;
-        relationEditor = relationEditor?.nodeKey === renamed.from ? { ...relationEditor, nodeKey: renamed.to } : relationEditor;
-      }
-      if (nodeDetail && deleted.has(nodeDetail.nodeKey)) {
-        nodeDetail = null;
-      }
-      if (relationEditor && deleted.has(relationEditor.nodeKey)) {
-        relationEditor = null;
-      }
-
       const revision = transaction.revisionAfter;
       const savedRevision = state.editHistory.savedRevision;
       const undoStack = pushEditTransaction(state.editHistory.undoStack, transaction);
+      const nextUi = applyBatchUiEffects(state.ui, result.renamedKey ? [result.renamedKey] : [], result.deletedKeys || []);
 
       return {
         ...state,
@@ -113,11 +103,34 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
           revision,
         },
         ui: {
-          ...state.ui,
+          ...nextUi,
           contextMenu: null,
-          relationEditor,
-          nodeDetail,
           status: action.status || result.message || state.ui.status,
+        },
+      };
+    }
+    case "graphCommandsCommitted": {
+      const revision = action.transaction.revisionAfter;
+      const savedRevision = state.editHistory.savedRevision;
+      const undoStack = pushEditTransaction(state.editHistory.undoStack, action.transaction);
+      const nextUi = applyBatchUiEffects(state.ui, action.renamedKeys, action.deletedKeys);
+
+      return {
+        ...state,
+        dag: action.transaction.afterDag,
+        source: { ...state.source, dirty: revision !== savedRevision },
+        selection: action.transaction.afterSelection,
+        history: action.transaction.afterNavigationHistory,
+        editHistory: {
+          ...state.editHistory,
+          undoStack,
+          redoStack: [],
+          revision,
+        },
+        ui: {
+          ...nextUi,
+          contextMenu: null,
+          status: action.status,
         },
       };
     }
@@ -224,6 +237,10 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
       };
     case "settingsToggled":
       return { ...state, ui: { ...state.ui, settingsOpen: action.open ?? !state.ui.settingsOpen } };
+    case "consoleSidebarToggled":
+      return { ...state, ui: { ...state.ui, consoleSidebarOpen: action.open ?? !state.ui.consoleSidebarOpen } };
+    case "consoleSidebarWidthChanged":
+      return { ...state, ui: { ...state.ui, consoleSidebarWidth: clampConsoleSidebarWidth(action.width) } };
     case "contextMenuOpened":
       return { ...state, ui: { ...state.ui, contextMenu: { x: action.x, y: action.y, nodeKey: action.nodeKey } } };
     case "contextMenuClosed":
@@ -253,6 +270,38 @@ export function graphReducer(state: GraphAppState, action: GraphAction): GraphAp
 function pushEditTransaction(stack: GraphAppState["editHistory"]["undoStack"], transaction: GraphAppState["editHistory"]["undoStack"][number]) {
   const next = [...stack, transaction];
   return next.length > EDIT_HISTORY_LIMIT ? next.slice(next.length - EDIT_HISTORY_LIMIT) : next;
+}
+
+function applyBatchUiEffects(
+  ui: GraphAppState["ui"],
+  renamedKeys: Array<{ from: string; to: string }>,
+  deletedKeys: string[],
+): GraphAppState["ui"] {
+  const deleted = new Set(deletedKeys);
+  let nodeDetail = ui.nodeDetail;
+  let relationEditor = ui.relationEditor;
+
+  renamedKeys.forEach((renamed) => {
+    if (nodeDetail?.nodeKey === renamed.from) {
+      nodeDetail = { nodeKey: renamed.to };
+    }
+    if (relationEditor?.nodeKey === renamed.from) {
+      relationEditor = { ...relationEditor, nodeKey: renamed.to };
+    }
+  });
+
+  if (nodeDetail && deleted.has(nodeDetail.nodeKey)) {
+    nodeDetail = null;
+  }
+  if (relationEditor && deleted.has(relationEditor.nodeKey)) {
+    relationEditor = null;
+  }
+
+  return {
+    ...ui,
+    nodeDetail,
+    relationEditor,
+  };
 }
 
 export function repairHistoryAfterCommand(state: GraphAppState, result: { dag: NonNullable<GraphAppState["dag"]>; renamedKey?: { from: string; to: string }; deletedKeys?: string[] }): GraphAppState["history"] {

@@ -240,6 +240,48 @@ body::before {
   overflow: hidden;
 }
 
+.workspace-split-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-sidebar-shell {
+  position: relative;
+  z-index: 2;
+  min-width: 280px;
+  max-width: 680px;
+  height: 100%;
+  padding: 78px 0 0 12px;
+}
+
+.workspace-sidebar-resizer {
+  position: relative;
+  z-index: 2;
+  width: 14px;
+  cursor: col-resize;
+}
+
+.workspace-sidebar-resizer::before {
+  content: "";
+  position: absolute;
+  top: 84px;
+  bottom: 12px;
+  left: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(84, 104, 138, 0.1), rgba(84, 104, 138, 0.22), rgba(84, 104, 138, 0.1));
+}
+
+.workspace-stage-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 #main-content {
   position: absolute;
   inset: 0;
@@ -697,6 +739,30 @@ body::before {
     width: 100%;
     transform-origin: top left;
   }
+
+  .workspace-split-shell {
+    flex-direction: column;
+  }
+
+  .workspace-sidebar-shell {
+    width: 100% !important;
+    max-width: none;
+    height: auto;
+    padding: 92px 8px 0;
+  }
+
+  .workspace-sidebar-resizer {
+    display: none;
+  }
+
+  .workspace-stage-shell {
+    min-height: 0;
+  }
+
+  .console-sidebar--terminal {
+    height: auto;
+    max-height: 48vh;
+  }
 }
 .mode-toggle {
   display: grid;
@@ -756,6 +822,11 @@ body::before {
   justify-content: center;
 }
 
+.settings-action-btn-active {
+  background: rgba(40, 95, 223, 0.14);
+  color: var(--accent-strong);
+}
+
 .topbar-save-btn {
   min-width: 34px;
   min-height: 34px;
@@ -777,6 +848,114 @@ body::before {
 .node-context-menu.is-visible {
   display: grid;
   gap: 4px;
+}
+
+.console-sidebar--terminal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: calc(100% - 12px);
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #000;
+  color: #f2f2f2;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+}
+
+.console-terminal__output {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  font: 13px/1.55 "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+}
+
+.console-terminal__line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console-terminal__line + .console-terminal__line {
+  margin-top: 6px;
+}
+
+.console-terminal__line--input {
+  color: #f2f2f2;
+}
+
+.console-terminal__line--success {
+  color: #89e089;
+}
+
+.console-terminal__line--error {
+  color: #ff8b8b;
+}
+
+.console-terminal__line--info {
+  color: #9bbcff;
+}
+
+.console-terminal__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font: 13px/1.4 "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+}
+
+.console-terminal__prompt {
+  flex: 0 0 auto;
+  color: #f2f2f2;
+}
+
+.console-terminal__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #f2f2f2;
+  font: inherit;
+  outline: none;
+}
+
+.console-terminal__input::placeholder {
+  color: rgba(242, 242, 242, 0.35);
+}
+
+.console-terminal__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.console-terminal__suggestions {
+  display: grid;
+  gap: 4px;
+  max-height: 176px;
+  overflow: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 10px 0;
+}
+
+.console-terminal__suggestion {
+  width: 100%;
+  border: none;
+  padding: 6px 8px;
+  background: transparent;
+  color: rgba(242, 242, 242, 0.72);
+  font: 12px/1.4 "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+
+.console-terminal__suggestion.is-active,
+.console-terminal__suggestion:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .context-menu-item {

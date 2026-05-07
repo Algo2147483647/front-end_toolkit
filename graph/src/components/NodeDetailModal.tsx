@@ -9,11 +9,12 @@ interface NodeDetailModalProps {
   nodeKey: NodeKey | null;
   node: DagNode | null;
   mode: GraphMode;
+  initialFocus?: "fields" | "raw";
   onSave: (nextKey: NodeKey, fields: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
-export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onClose }: NodeDetailModalProps) {
+export default function NodeDetailModal({ open, nodeKey, node, mode, initialFocus = "fields", onSave, onClose }: NodeDetailModalProps) {
   const [fields, setFields] = useState<EditableField[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [rawJsonValue, setRawJsonValue] = useState("");
@@ -30,6 +31,16 @@ export default function NodeDetailModal({ open, nodeKey, node, mode, onSave, onC
       setError("");
     }
   }, [node, nodeKey, open]);
+
+  useEffect(() => {
+    if (!open || initialFocus !== "raw") {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("node-detail-json")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialFocus, open, nodeKey]);
 
   if (!open || !node || !nodeKey) {
     return null;

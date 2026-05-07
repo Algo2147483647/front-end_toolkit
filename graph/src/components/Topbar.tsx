@@ -15,6 +15,7 @@ interface TopbarProps {
   canZoomOut: boolean;
   canZoomIn: boolean;
   settingsOpen: boolean;
+  consoleSidebarOpen: boolean;
   onBack: () => void;
   onUp: () => void;
   onAll: () => void;
@@ -25,6 +26,7 @@ interface TopbarProps {
   onZoomFit: () => void;
   onZoomPercentCommit: (percent: number) => void;
   onSettingsToggle: () => void;
+  onConsoleSidebarToggle: () => void;
   onModeChange: (mode: GraphMode) => void;
   onLayoutModeChange: (mode: GraphLayoutMode) => void;
   onFileInputClick: (event: React.MouseEvent<HTMLInputElement>) => void;
@@ -49,6 +51,7 @@ export default function Topbar({
   canZoomOut,
   canZoomIn,
   settingsOpen,
+  consoleSidebarOpen,
   onBack,
   onUp,
   onAll,
@@ -59,6 +62,7 @@ export default function Topbar({
   onZoomFit,
   onZoomPercentCommit,
   onSettingsToggle,
+  onConsoleSidebarToggle,
   onModeChange,
   onLayoutModeChange,
   onFileInputClick,
@@ -124,6 +128,17 @@ export default function Topbar({
               </label>
 
               <p className="control-label">Workspace</p>
+              {mode === "edit" ? (
+                <button
+                  id="console-sidebar-toggle-btn"
+                  className={`ghost-btn settings-action-btn${consoleSidebarOpen ? " settings-action-btn-active" : ""}`}
+                  type="button"
+                  aria-pressed={consoleSidebarOpen}
+                  onClick={onConsoleSidebarToggle}
+                >
+                  {consoleSidebarOpen ? "Hide Console Sidebar" : "Show Console Sidebar"}
+                </button>
+              ) : null}
               <label htmlFor="fileInput" className="file-input-label">
                 <span className="file-input-text">{truncateFileName(fileName)}</span>
                 <input type="file" id="fileInput" accept=".json" onClick={onFileInputClick} onChange={onFileInputChange} />

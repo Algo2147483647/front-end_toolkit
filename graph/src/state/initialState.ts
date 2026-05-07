@@ -40,6 +40,8 @@ export interface GraphAppState {
   ui: {
     status: string;
     settingsOpen: boolean;
+    consoleSidebarOpen: boolean;
+    consoleSidebarWidth: number;
     contextMenu: null | { x: number; y: number; nodeKey: NodeKey | null };
     relationEditor: null | { nodeKey: NodeKey; field: "parents" | "children" };
     nodeDetail: null | { nodeKey: NodeKey };
@@ -76,6 +78,8 @@ export const initialGraphAppState: GraphAppState = {
   ui: {
     status: "Loading example.json...",
     settingsOpen: false,
+    consoleSidebarOpen: savedPreferences.consoleSidebarOpen,
+    consoleSidebarWidth: savedPreferences.consoleSidebarWidth,
     contextMenu: null,
     relationEditor: null,
     nodeDetail: null,

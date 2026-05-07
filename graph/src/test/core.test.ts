@@ -1,5 +1,7 @@
 import assert from "assert/strict";
 import { performance } from "perf_hooks";
+import { parseConsoleSource } from "../console/dsl";
+import { executeConsoleInstructions } from "../console/executor";
 import { applyGraphCommand } from "../graph/commands";
 import { createInitialCanvasDag, INITIAL_CANVAS_FILE_NAME, INITIAL_CANVAS_NODE_KEY } from "../graph/initialCanvas";
 import { normalizeDagInput } from "../graph/normalize";
@@ -55,8 +57,18 @@ test("page preference loading falls back safely when storage data is missing", (
     getItem: () => JSON.stringify({ mode: "edit", layoutMode: "sugiyama" }),
     setItem: () => undefined,
   };
-  assert.deepEqual(loadGraphPagePreferences(storage), { mode: "edit", layoutMode: "sugiyama" });
-  assert.deepEqual(loadGraphPagePreferences(null), { mode: "preview", layoutMode: "bfs" });
+  assert.deepEqual(loadGraphPagePreferences(storage), {
+    mode: "edit",
+    layoutMode: "sugiyama",
+    consoleSidebarOpen: false,
+    consoleSidebarWidth: 360,
+  });
+  assert.deepEqual(loadGraphPagePreferences(null), {
+    mode: "preview",
+    layoutMode: "bfs",
+    consoleSidebarOpen: false,
+    consoleSidebarWidth: 360,
+  });
 });
 
 test("raw node JSON parser supports wrapped node objects and bare node objects", () => {
@@ -75,6 +87,72 @@ test("raw node JSON builder omits duplicate key field and parser rejects invalid
   assert.equal(built.includes('"key"'), false);
   assert.equal(parseRawNodeEditorValue("{", "A").ok, false);
   assert.equal(parseRawNodeEditorValue(JSON.stringify(["A"]), "A").ok, false);
+});
+
+test("console parser supports context alias, modifiers, and quoted operands", () => {
+  const parsed = parseConsoleSource(`
+    # comment
+    use "Binary Tree"
+    add AVL -p .
+    children . = AVL,"Red Black"
+    set AVL define "Self-balanced BST"
+  `);
+
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+  assert.equal(parsed.instructions.length, 4);
+  assert.equal(parsed.instructions[0].type, "use");
+  assert.equal(parsed.instructions[1].type, "add");
+  assert.equal(parsed.instructions[2].type, "setChildren");
+  assert.equal(parsed.instructions[3].type, "setField");
+});
+
+test("console execution batches mutations and keeps context in sync with rename", () => {
+  const parsed = parseConsoleSource(`
+    use A
+    mv . Root
+    add Child -p .
+    children . = Child
+  `);
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+
+  const dag = normalizeDagInput({ A: {} });
+  const result = executeConsoleInstructions(dag, parsed.instructions, null);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.contextNodeKey, "Root");
+  assert.ok(result.dag.Root);
+  assert.ok(result.dag.Child);
+  assert.deepEqual(getRelationKeys(result.dag.Root.children), ["Child"]);
+  assert.equal(result.mutationCount, 3);
+});
+
+test("console execution reports line-specific failures", () => {
+  const parsed = parseConsoleSource(`
+    use Missing
+    add Child -p .
+  `);
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+
+  const dag = normalizeDagInput({ A: {} });
+  const result = executeConsoleInstructions(dag, parsed.instructions, null);
+  assert.equal(result.ok, false);
+  if (result.ok) {
+    return;
+  }
+  assert.equal(result.line, 2);
+  assert.match(result.message, /does not exist/i);
 });
 
 test("initial canvas factory creates a single starting node", () => {
