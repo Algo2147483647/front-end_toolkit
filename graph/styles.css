@@ -975,6 +975,20 @@ body::before {
   background: rgba(40, 95, 223, 0.1);
 }
 
+.context-menu-divider {
+  height: 1px;
+  margin: 3px 4px;
+  background: rgba(66, 86, 119, 0.12);
+}
+
+.context-menu-item-danger {
+  color: #8e2f2f;
+}
+
+.context-menu-item-danger:hover {
+  background: rgba(180, 58, 46, 0.1);
+}
+
 .relation-editor-modal {
   position: fixed;
   inset: 0;
