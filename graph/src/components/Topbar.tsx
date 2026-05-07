@@ -74,35 +74,34 @@ export default function Topbar({
       </div>
       <div className="topbar-actions">
         <div className="topbar-group nav-controls" aria-label="Graph navigation controls">
-          <button id="back-btn" className="ghost-btn" type="button" disabled={!canBack} onClick={onBack}>Back</button>
-          <button id="up-btn" className="ghost-btn" type="button" disabled={!canUp} onClick={onUp}>Up</button>
-          <button id="all-btn" className="ghost-btn" type="button" disabled={!hasGraph} onClick={onAll}>All</button>
+          <IconButton id="back-btn" label="Back" disabled={!canBack} onClick={onBack} icon={<ArrowLeftIcon />} />
+          <IconButton id="up-btn" label="Up" disabled={!canUp} onClick={onUp} icon={<ArrowUpIcon />} />
+          <IconButton id="all-btn" label="Show all roots" disabled={!hasGraph} onClick={onAll} icon={<GraphRootsIcon />} />
         </div>
         {mode === "edit" ? (
           <div className="topbar-group edit-controls" aria-label="Graph edit controls">
-            <button id="undo-btn" className="ghost-btn" type="button" disabled={!canUndo} onClick={onUndo}>Undo</button>
-            <button id="redo-btn" className="ghost-btn" type="button" disabled={!canRedo} onClick={onRedo}>Redo</button>
+            <IconButton id="undo-btn" label="Undo" disabled={!canUndo} onClick={onUndo} icon={<UndoIcon />} />
+            <IconButton id="redo-btn" label="Redo" disabled={!canRedo} onClick={onRedo} icon={<RedoIcon />} />
           </div>
         ) : null}
         <div className="topbar-group zoom-controls" aria-label="Graph zoom controls">
-          <button id="zoom-out-btn" className="ghost-btn zoom-btn" type="button" disabled={!canZoomOut} aria-label="Zoom out" onClick={onZoomOut}>-</button>
-          <button id="zoom-fit-btn" className="ghost-btn zoom-fit-btn" type="button" disabled={!hasGraph} onClick={onZoomFit}>Fit</button>
+          <IconButton id="zoom-out-btn" label="Zoom out" disabled={!canZoomOut} onClick={onZoomOut} icon={<MinusIcon />} />
+          <IconButton id="zoom-in-btn" label="Zoom in" disabled={!canZoomIn} onClick={onZoomIn} icon={<PlusIcon />} />
           <ZoomInput value={zoomPercent} disabled={!hasGraph} onCommit={onZoomPercentCommit} />
-          <button id="zoom-in-btn" className="ghost-btn zoom-btn" type="button" disabled={!canZoomIn} aria-label="Zoom in" onClick={onZoomIn}>+</button>
+          <IconButton id="zoom-fit-btn" label="Fit graph to viewport" disabled={!hasGraph} onClick={onZoomFit} icon={<FitIcon />} />
         </div>
         <div className="topbar-group file-controls" aria-label="Graph file controls">
-          <button id="save-json-btn" className="ghost-btn topbar-save-btn" type="button" disabled={!hasGraph} onClick={onSaveJson}>Save JSON</button>
+          <IconButton id="save-json-btn" label="Save JSON" disabled={!hasGraph} onClick={onSaveJson} icon={<SaveIcon />} className="topbar-save-btn" />
           <div id="floating-controls" className="control-dock">
-            <button
+            <IconButton
               id="settings-btn"
-              className="settings-toggle-btn"
-              type="button"
-              aria-expanded={settingsOpen}
-              aria-controls="settings-panel"
+              label="Open controls"
+              icon={<SlidersIcon />}
+              ariaExpanded={settingsOpen}
+              ariaControls="settings-panel"
               onClick={onSettingsToggle}
-            >
-              Controls
-            </button>
+              className="settings-toggle-btn topbar-icon-btn"
+            />
             <div id="settings-panel" className={`settings-panel${settingsOpen ? " settings-panel-visible" : ""}`}>
               <p className="control-label">Mode</p>
               <div className="mode-toggle" role="group" aria-label="Graph mode">
@@ -168,6 +167,146 @@ function ZoomInput({ value, disabled, onCommit }: { value: number; disabled: boo
       />
       <span className="zoom-unit">%</span>
     </label>
+  );
+}
+
+interface IconButtonProps {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+  ariaControls?: string;
+  ariaExpanded?: boolean;
+  className?: string;
+}
+
+function IconButton({ id, label, icon, disabled, onClick, ariaControls, ariaExpanded, className = "ghost-btn topbar-icon-btn" }: IconButtonProps) {
+  return (
+    <button
+      id={id}
+      className={className}
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-controls={ariaControls}
+      aria-expanded={ariaExpanded}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className="topbar-icon" aria-hidden="true">{icon}</span>
+    </button>
+  );
+}
+
+function IconShell({ children }: { children: React.ReactNode }) {
+  return (
+    <svg viewBox="0 0 24 24" className="topbar-icon-svg" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <IconShell>
+      <path d="M19 12H5" />
+      <path d="M11 18L5 12L11 6" />
+    </IconShell>
+  );
+}
+
+function ArrowUpIcon() {
+  return (
+    <IconShell>
+      <path d="M12 19V5" />
+      <path d="M6 11L12 5L18 11" />
+    </IconShell>
+  );
+}
+
+function GraphRootsIcon() {
+  return (
+    <IconShell>
+      <circle cx="6" cy="7" r="2.2" />
+      <circle cx="18" cy="7" r="2.2" />
+      <circle cx="12" cy="17" r="2.2" />
+      <path d="M7.8 8.6L10.4 14.2" />
+      <path d="M16.2 8.6L13.6 14.2" />
+    </IconShell>
+  );
+}
+
+function UndoIcon() {
+  return (
+    <IconShell>
+      <path d="M9 9H5V5" />
+      <path d="M5 9C6.8 6.4 9.8 5 13 5C18 5 21 8.3 21 12.9C21 17.4 17.7 20 13.5 20" />
+    </IconShell>
+  );
+}
+
+function RedoIcon() {
+  return (
+    <IconShell>
+      <path d="M15 9H19V5" />
+      <path d="M19 9C17.2 6.4 14.2 5 11 5C6 5 3 8.3 3 12.9C3 17.4 6.3 20 10.5 20" />
+    </IconShell>
+  );
+}
+
+function MinusIcon() {
+  return (
+    <IconShell>
+      <path d="M6 12H18" />
+    </IconShell>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <IconShell>
+      <path d="M12 6V18" />
+      <path d="M6 12H18" />
+    </IconShell>
+  );
+}
+
+function FitIcon() {
+  return (
+    <IconShell>
+      <path d="M8 4H4V8" />
+      <path d="M16 4H20V8" />
+      <path d="M8 20H4V16" />
+      <path d="M16 20H20V16" />
+      <path d="M9 9L4 4" />
+      <path d="M15 9L20 4" />
+      <path d="M9 15L4 20" />
+      <path d="M15 15L20 20" />
+    </IconShell>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <IconShell>
+      <path d="M5 5H16L19 8V19H5Z" />
+      <path d="M8 5V10H15V5" />
+      <path d="M8 19V14H16V19" />
+    </IconShell>
+  );
+}
+
+function SlidersIcon() {
+  return (
+    <IconShell>
+      <path d="M5 6H19" />
+      <path d="M5 12H19" />
+      <path d="M5 18H19" />
+      <circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="11" cy="18" r="1.8" fill="currentColor" stroke="none" />
+    </IconShell>
   );
 }
 
