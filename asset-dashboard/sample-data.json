@@ -1,0 +1,241 @@
+{
+  "meta": {
+    "schemaVersion": "2.0.0",
+    "title": "Global Asset Net Worth Board",
+    "updatedAt": "2026-05-08T00:00:00.000Z"
+  },
+  "settings": {
+    "baseCurrency": "USD",
+    "supportedBaseCurrencies": ["USD", "CNY", "HKD"],
+    "locale": "en-US"
+  },
+  "accounts": [
+    {
+      "id": "acct-cmb",
+      "name": "China Merchants Bank",
+      "institution": "Bank",
+      "type": "bank",
+      "defaultCurrency": "CNY",
+      "country": "CN",
+      "notes": "Main domestic banking account",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "acct-hsbc-hk",
+      "name": "HSBC Hong Kong",
+      "institution": "Bank",
+      "type": "bank",
+      "defaultCurrency": "HKD",
+      "country": "HK",
+      "notes": "Hong Kong savings account",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "acct-wise",
+      "name": "Wise",
+      "institution": "Wallet",
+      "type": "wallet",
+      "defaultCurrency": "JPY",
+      "country": "GB",
+      "notes": "Multi-currency wallet",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "acct-ibkr",
+      "name": "Interactive Brokers",
+      "institution": "Broker",
+      "type": "broker",
+      "defaultCurrency": "USD",
+      "country": "US",
+      "notes": "Global brokerage account",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "acct-home-vault",
+      "name": "Home Vault",
+      "institution": "Vault",
+      "type": "vault",
+      "defaultCurrency": "CNY",
+      "country": "CN",
+      "notes": "Physical asset storage",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    }
+  ],
+  "fxRates": [
+    {
+      "id": "fx-usd",
+      "currency": "USD",
+      "rateFromUsd": 1,
+      "notes": "Base currency",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "fx-cny",
+      "currency": "CNY",
+      "rateFromUsd": 7.2,
+      "notes": "Online latest sample",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "fx-hkd",
+      "currency": "HKD",
+      "rateFromUsd": 7.8261,
+      "notes": "Online latest sample",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "fx-jpy",
+      "currency": "JPY",
+      "rateFromUsd": 150,
+      "notes": "Online latest sample",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "fx-chf",
+      "currency": "CHF",
+      "rateFromUsd": 0.8889,
+      "notes": "Online latest sample",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    }
+  ],
+  "quotes": [
+    {
+      "id": "quote-gold-cny-g",
+      "symbol": "XAU-CNY-G",
+      "name": "Gold RMB Gram Price",
+      "assetType": "gold",
+      "market": "CN",
+      "unit": "g",
+      "quoteCurrency": "CNY",
+      "price": 550,
+      "notes": "Bank quote",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "quote-aapl",
+      "symbol": "AAPL",
+      "name": "Apple",
+      "assetType": "equity",
+      "market": "US",
+      "unit": "share",
+      "quoteCurrency": "USD",
+      "price": 190,
+      "notes": "Manual input",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "quote-700hk",
+      "symbol": "00700.HK",
+      "name": "Tencent",
+      "assetType": "equity",
+      "market": "HK",
+      "unit": "share",
+      "quoteCurrency": "HKD",
+      "price": 380,
+      "notes": "Manual input",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "quote-510300",
+      "symbol": "510300",
+      "name": "CSI 300 ETF",
+      "assetType": "fund",
+      "market": "CN",
+      "unit": "share",
+      "quoteCurrency": "CNY",
+      "price": 3.8,
+      "notes": "Manual input",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset-cash-cmb-cny",
+      "type": "cash",
+      "name": "CMB CNY Cash",
+      "accountId": "acct-cmb",
+      "currency": "CNY",
+      "amount": 50000,
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-cash-cmb-usd",
+      "type": "cash",
+      "name": "CMB USD Cash",
+      "accountId": "acct-cmb",
+      "currency": "USD",
+      "amount": 2000,
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-cash-hsbc-hkd",
+      "type": "cash",
+      "name": "HSBC HKD Cash",
+      "accountId": "acct-hsbc-hk",
+      "currency": "HKD",
+      "amount": 10000,
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-cash-wise-jpy",
+      "type": "cash",
+      "name": "Wise JPY Cash",
+      "accountId": "acct-wise",
+      "currency": "JPY",
+      "amount": 300000,
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-gold-bar",
+      "type": "gold",
+      "name": "Physical Gold",
+      "accountId": "acct-home-vault",
+      "quoteId": "quote-gold-cny-g",
+      "quantity": 100,
+      "holdingType": "Gold Bar",
+      "storageLocation": "Home Vault",
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-aapl",
+      "type": "equity",
+      "name": "Apple Position",
+      "accountId": "acct-ibkr",
+      "quoteId": "quote-aapl",
+      "quantity": 10,
+      "holdingType": "US Equity",
+      "storageLocation": "IBKR",
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-700hk",
+      "type": "equity",
+      "name": "Tencent Position",
+      "accountId": "acct-ibkr",
+      "quoteId": "quote-700hk",
+      "quantity": 100,
+      "holdingType": "HK Equity",
+      "storageLocation": "IBKR",
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    },
+    {
+      "id": "asset-510300",
+      "type": "fund",
+      "name": "CSI 300 ETF Position",
+      "accountId": "acct-cmb",
+      "quoteId": "quote-510300",
+      "quantity": 1000,
+      "holdingType": "A-Share ETF",
+      "storageLocation": "Domestic Brokerage",
+      "notes": "",
+      "updatedAt": "2026-05-08T00:00:00.000Z"
+    }
+  ]
+}

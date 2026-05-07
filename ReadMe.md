@@ -22,6 +22,7 @@ Front-End Toolkit is a browser-based collection of front-end utilities for form 
 | `timeline/` | Timeline Atlas | Time-aware DAG and event timeline visualization | Usable |
 | `svg/` | SVG Studio | In-browser SVG editor | Usable |
 | `time/` | Geometric Clock and Calendar | Clock, calendar, and globe with timezone interaction | Usable |
+| `asset-dashboard/` | Global Asset Net Worth Board | React + TypeScript board with USD-base online FX sync for current-snapshot cash, gold, stocks, and ETFs | Usable |
 
 ## Recommended Ways to Run
 
