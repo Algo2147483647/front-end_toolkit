@@ -1,6 +1,6 @@
 export type AssetType = "cash" | "gold" | "equity" | "fund" | "other";
 export type AccountType = "bank" | "broker" | "wallet" | "vault" | "other";
-export type TabKey = "overview" | "assets" | "prices" | "accounts" | "settings";
+export type TabKey = "overview" | "assets" | "prices" | "accounts";
 export type ImportMode = "replace" | "merge";
 
 export interface SnapshotMeta {

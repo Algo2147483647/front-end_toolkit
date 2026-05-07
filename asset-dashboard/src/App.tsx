@@ -49,7 +49,6 @@ const NAV_ITEMS: Array<{ key: TabKey; label: string }> = [
   { key: "assets", label: "Assets" },
   { key: "prices", label: "Prices" },
   { key: "accounts", label: "Accounts" },
-  { key: "settings", label: "Settings" },
 ];
 
 const DEFAULT_FILTERS: AssetFilters = {
@@ -57,75 +56,6 @@ const DEFAULT_FILTERS: AssetFilters = {
   accountId: "all",
   currency: "all",
   market: "all",
-};
-
-const SCHEMA_PREVIEW = {
-  meta: {
-    schemaVersion: "2.0.0",
-    title: "Global Asset Net Worth Board",
-    updatedAt: "ISO-8601",
-  },
-  settings: {
-    baseCurrency: "USD",
-    supportedBaseCurrencies: ["USD", "CNY", "HKD"],
-    locale: "en-US",
-  },
-  accounts: [
-    {
-      id: "acct-ibkr",
-      name: "Interactive Brokers",
-      institution: "Broker",
-      type: "broker",
-      defaultCurrency: "USD",
-      country: "US",
-      notes: "",
-      updatedAt: "ISO-8601",
-    },
-  ],
-  fxRates: [
-    {
-      id: "fx-usd",
-      currency: "USD",
-      rateFromUsd: 1,
-      notes: "Base currency",
-      updatedAt: "ISO-8601"
-    },
-    {
-      id: "fx-cny",
-      currency: "CNY",
-      rateFromUsd: 7.2,
-      notes: "Fetched from online USD base",
-      updatedAt: "ISO-8601",
-    },
-  ],
-  quotes: [
-    {
-      id: "quote-aapl",
-      symbol: "AAPL",
-      name: "Apple",
-      assetType: "equity",
-      market: "US",
-      unit: "share",
-      quoteCurrency: "USD",
-      price: 190,
-      notes: "Manual input",
-      updatedAt: "ISO-8601",
-    },
-  ],
-  assets: [
-    {
-      id: "asset-aapl",
-      type: "equity",
-      name: "Apple Position",
-      accountId: "acct-ibkr",
-      quoteId: "quote-aapl",
-      quantity: 10,
-      holdingType: "US Equity",
-      storageLocation: "IBKR",
-      notes: "",
-      updatedAt: "ISO-8601",
-    },
-  ],
 };
 
 function loadSnapshot(): Snapshot {
@@ -249,6 +179,7 @@ function App() {
   }, {});
 
   const markets = Array.from(new Set(snapshot.quotes.map((quote) => quote.market).filter(Boolean))).sort();
+  const topbarStatus = `${importStatus} · FX ${fxSyncStatus}`;
 
   function updateSnapshot(nextSnapshot: Snapshot) {
     setSnapshot(updateSnapshotTimestamp(normalizeSnapshot(nextSnapshot)));
@@ -740,46 +671,59 @@ function App() {
             </button>
           ))}
         </nav>
-
-        <section className="sidebar-card">
-          <p className="sidebar-label">Base Currency</p>
-          <select className="field-input" value={snapshot.settings.baseCurrency} onChange={handleBaseCurrencyChange}>
-            {snapshot.settings.supportedBaseCurrencies.map((currency) => (
-              <option key={currency} value={currency}>
-                {currency}
-              </option>
-            ))}
-          </select>
-        </section>
-
-        <section className="sidebar-card">
-          <p className="sidebar-label">Export</p>
-          <div className="stack-actions">
-            <button className="secondary-btn" type="button" onClick={exportJson}>
-              Export JSON
-            </button>
-            <button className="secondary-btn" type="button" onClick={exportCsv}>
-              Export CSV
-            </button>
-          </div>
-        </section>
       </aside>
 
       <main className="main-content">
-        <header className="hero">
-          <div className="hero-metrics">
-            <div className="hero-badge">
-              <span>Snapshot Updated</span>
-              <strong>{formatDateTime(snapshot.meta.updatedAt, snapshot.settings.locale)}</strong>
+        <header className="topbar">
+          <div className="topbar-brand">
+            <h1>Asset Board</h1>
+          </div>
+
+          <div className="topbar-actions">
+            <div className="topbar-group">
+              <select className="topbar-select" value={snapshot.settings.baseCurrency} onChange={handleBaseCurrencyChange}>
+                {snapshot.settings.supportedBaseCurrencies.map((currency) => (
+                  <option key={currency} value={currency}>
+                    Base · {currency}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="hero-badge">
-              <span>FX Sync Status</span>
-              <strong>{fxSyncStatus}</strong>
+
+            <div className="topbar-group">
+              <select className="topbar-select" value={importMode} onChange={(event) => setImportMode(event.target.value as ImportMode)}>
+                <option value="replace">Import · Replace</option>
+                <option value="merge">Import · Merge</option>
+              </select>
+              <label className="topbar-file-label">
+                <span>Load JSON</span>
+                <input type="file" accept=".json,application/json" onChange={handleImportFile} />
+              </label>
+              <button className="ghost-btn" type="button" onClick={loadSampleSnapshot}>
+                Sample
+              </button>
             </div>
-            <div className="hero-badge">
-              <span>Asset Records</span>
-              <strong>{snapshot.assets.length}</strong>
+
+            <div className="topbar-group">
+              <button className="ghost-btn" type="button" onClick={exportJson}>
+                Export JSON
+              </button>
+              <button className="ghost-btn" type="button" onClick={exportCsv}>
+                Export CSV
+              </button>
             </div>
+
+            <div className="topbar-group">
+              <button className="primary-btn" type="button" onClick={() => void syncLatestFxRates("manual")} disabled={isFxSyncing}>
+                {isFxSyncing ? "Refreshing..." : "Refresh FX"}
+              </button>
+            </div>
+
+            <p className="graph-summary">
+              {topbarStatus}
+              <br />
+              Updated · {formatDateTime(snapshot.meta.updatedAt, snapshot.settings.locale)} · Assets · {snapshot.assets.length}
+            </p>
           </div>
         </header>
 
@@ -1070,9 +1014,6 @@ function App() {
               <section className="surface-card form-card">
                 <div className="section-heading">
                   <h4>FX Rates</h4>
-                  <button className="secondary-btn" type="button" onClick={() => void syncLatestFxRates("manual")} disabled={isFxSyncing}>
-                    {isFxSyncing ? "Refreshing..." : "Refresh Online FX"}
-                  </button>
                 </div>
                 <form className="form-grid compact" onSubmit={handleFxSubmit}>
                   <label>
@@ -1377,46 +1318,6 @@ function App() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "settings" && (
-          <section className="panel active">
-            <div className="section-heading">
-              <h3>Settings</h3>
-            </div>
-
-            <div className="two-column">
-              <section className="surface-card">
-                <h4>Import JSON</h4>
-                <div className="import-grid">
-                  <label>
-                    <span>Import Mode</span>
-                    <select className="field-input" value={importMode} onChange={(event) => setImportMode(event.target.value as ImportMode)}>
-                      <option value="replace">Replace In Place</option>
-                      <option value="merge">Merge by ID</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    <span>Choose File</span>
-                    <input className="field-input file-input" type="file" accept=".json,application/json" onChange={handleImportFile} />
-                  </label>
-
-                  <div className="form-actions">
-                    <button className="primary-btn" type="button" onClick={loadSampleSnapshot}>
-                      Load Sample Snapshot
-                    </button>
-                  </div>
-                </div>
-                <div className="status-box">{importStatus}</div>
-              </section>
-
-              <section className="surface-card">
-                <h4>JSON Shape</h4>
-                <pre className="schema-preview">{JSON.stringify(SCHEMA_PREVIEW, null, 2)}</pre>
-              </section>
             </div>
           </section>
         )}
