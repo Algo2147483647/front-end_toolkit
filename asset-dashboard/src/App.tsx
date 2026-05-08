@@ -1,6 +1,10 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, MouseEvent, useEffect, useState } from "react";
 import sampleSnapshotJson from "../sample-data.json";
 import "./app.css";
+import { buildTimestampFileName, downloadJsonFile, downloadTextFile, ensureJsonExtension } from "./adapters/download";
+import { canOverwrite, openJsonFileWithAccess, requestWritablePermission, writeJsonToHandle } from "./adapters/fileAccess";
+import CandlestickChart from "./components/CandlestickChart";
+import SaveJsonModal from "./components/SaveJsonModal";
 import {
   COLOR_PALETTE,
   EMPTY_ACCOUNT_FORM,
@@ -26,6 +30,14 @@ import {
   upsertById,
   toNumber,
 } from "./portfolio";
+import {
+  buildPriceHistoryTemplateCsv,
+  formatHistoryDateLabel,
+  makePriceHistorySeriesKey,
+  normalizePriceHistoryStore,
+  parsePriceHistoryCsv,
+  PRICE_HISTORY_STORAGE_KEY,
+} from "./priceHistory";
 import type {
   Account,
   AccountFormState,
@@ -34,7 +46,9 @@ import type {
   AssetFormState,
   AssetType,
   FxRate,
+  HistoryInstrumentType,
   ImportMode,
+  PriceHistorySeries,
   Quote,
   QuoteFormState,
   SeriesEntry,
@@ -67,6 +81,18 @@ function loadSnapshot(): Snapshot {
     return normalizeSnapshot(JSON.parse(raw));
   } catch {
     return cloneSnapshot(SAMPLE_SNAPSHOT);
+  }
+}
+
+function loadPriceHistoryStore(): Record<string, PriceHistorySeries> {
+  try {
+    const raw = window.localStorage.getItem(PRICE_HISTORY_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    return normalizePriceHistoryStore(JSON.parse(raw));
+  } catch {
+    return {};
   }
 }
 
@@ -133,17 +159,43 @@ function App() {
   const [filters, setFilters] = useState<AssetFilters>(DEFAULT_FILTERS);
   const [importMode, setImportMode] = useState<ImportMode>("replace");
   const [importStatus, setImportStatus] = useState("No file loaded.");
+  const [sourceFileName, setSourceFileName] = useState("global-asset-net-worth-board.snapshot.json");
+  const [sourceFileHandle, setSourceFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false);
   const [fxSyncStatus, setFxSyncStatus] = useState("Not synced");
   const [isFxSyncing, setIsFxSyncing] = useState(false);
+  const [priceHistoryStore, setPriceHistoryStore] = useState<Record<string, PriceHistorySeries>>(() => loadPriceHistoryStore());
+  const [historyInstrumentType, setHistoryInstrumentType] = useState<HistoryInstrumentType>("quote");
+  const [historyInstrumentId, setHistoryInstrumentId] = useState("");
+  const [selectedHistoryKey, setSelectedHistoryKey] = useState("");
+  const [historyStatus, setHistoryStatus] = useState("No historical CSV loaded.");
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   }, [snapshot]);
 
   useEffect(() => {
+    window.localStorage.setItem(PRICE_HISTORY_STORAGE_KEY, JSON.stringify(priceHistoryStore));
+  }, [priceHistoryStore]);
+
+  useEffect(() => {
     void syncLatestFxRates("auto");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const options = historyInstrumentType === "quote" ? snapshot.quotes : snapshot.fxRates;
+    if (!options.length) {
+      setHistoryInstrumentId("");
+      return;
+    }
+
+    if (!options.some((item) => item.id === historyInstrumentId)) {
+      setHistoryInstrumentId(options[0].id);
+    }
+  }, [historyInstrumentId, historyInstrumentType, snapshot.fxRates, snapshot.quotes]);
 
   const valuation = computePortfolio(snapshot);
   const currencies = getKnownCurrencies(snapshot);
@@ -179,10 +231,99 @@ function App() {
   }, {});
 
   const markets = Array.from(new Set(snapshot.quotes.map((quote) => quote.market).filter(Boolean))).sort();
+  const historyTargetOptions = historyInstrumentType === "quote" ? snapshot.quotes : snapshot.fxRates;
+  const historySeriesList = Object.values(priceHistoryStore).sort((left, right) => left.label.localeCompare(right.label));
+  const activeHistorySeries =
+    (selectedHistoryKey ? priceHistoryStore[selectedHistoryKey] : null) ||
+    (historySeriesList.length ? historySeriesList[0] : null);
+  const activeHistoryCandles = activeHistorySeries?.candles || [];
   const topbarStatus = `${importStatus} · FX ${fxSyncStatus}`;
 
   function updateSnapshot(nextSnapshot: Snapshot) {
     setSnapshot(updateSnapshotTimestamp(normalizeSnapshot(nextSnapshot)));
+  }
+
+  function getHistoryInstrumentLabel(instrumentType: HistoryInstrumentType, instrumentId: string): string {
+    if (instrumentType === "quote") {
+      const quote = snapshot.quotes.find((item) => item.id === instrumentId);
+      return quote ? `${quote.symbol} · ${quote.name}` : instrumentId;
+    }
+
+    const rate = snapshot.fxRates.find((item) => item.id === instrumentId);
+    return rate ? `USD/${rate.currency}` : instrumentId;
+  }
+
+  function getHistoryInstrumentCurrency(series: PriceHistorySeries | null): string {
+    if (!series) {
+      return "";
+    }
+
+    if (series.instrumentType === "quote") {
+      return snapshot.quotes.find((item) => item.id === series.instrumentId)?.quoteCurrency || "";
+    }
+
+    return snapshot.fxRates.find((item) => item.id === series.instrumentId)?.currency || "";
+  }
+
+  async function handleHistoryCsvImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!historyInstrumentId) {
+      window.alert("Choose a quote or FX instrument before importing history.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      const candles = parsePriceHistoryCsv(content);
+      const key = makePriceHistorySeriesKey(historyInstrumentType, historyInstrumentId);
+      const label = getHistoryInstrumentLabel(historyInstrumentType, historyInstrumentId);
+
+      setPriceHistoryStore((current) => ({
+        ...current,
+        [key]: {
+          key,
+          instrumentType: historyInstrumentType,
+          instrumentId: historyInstrumentId,
+          label,
+          sourceFileName: file.name,
+          importedAt: new Date().toISOString(),
+          candles,
+        },
+      }));
+      setSelectedHistoryKey(key);
+      setHistoryStatus(`Loaded ${candles.length} candles from ${file.name}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to parse the historical CSV.";
+      setHistoryStatus(message);
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function removeHistorySeries(key: string) {
+    setPriceHistoryStore((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setSelectedHistoryKey((current) => (current === key ? "" : current));
+    setHistoryStatus("Historical series removed.");
+  }
+
+  function downloadHistoryTemplate() {
+    const label = historyInstrumentId
+      ? getHistoryInstrumentLabel(historyInstrumentType, historyInstrumentId)
+      : "Instrument";
+    downloadTextFile(
+      buildPriceHistoryTemplateCsv(label),
+      `${label.replace(/[^\w.-]+/g, "-").toLowerCase()}-history-template.csv`,
+      "text/csv;charset=utf-8",
+    );
   }
 
   async function syncLatestFxRates(trigger: "auto" | "manual") {
@@ -271,6 +412,28 @@ function App() {
     setAccountForm(EMPTY_ACCOUNT_FORM);
   }
 
+  function openNewAssetDialog() {
+    resetAssetForm();
+    setActiveTab("assets");
+    setIsAssetDialogOpen(true);
+  }
+
+  function closeAssetDialog() {
+    setIsAssetDialogOpen(false);
+    resetAssetForm();
+  }
+
+  function openNewAccountDialog() {
+    resetAccountForm();
+    setActiveTab("accounts");
+    setIsAccountDialogOpen(true);
+  }
+
+  function closeAccountDialog() {
+    setIsAccountDialogOpen(false);
+    resetAccountForm();
+  }
+
   function handleAssetSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -320,7 +483,7 @@ function App() {
       ...snapshot,
       assets: upsertById(snapshot.assets, nextAsset),
     });
-    resetAssetForm();
+    closeAssetDialog();
   }
 
   function handleFxSubmit(event: FormEvent<HTMLFormElement>) {
@@ -397,7 +560,7 @@ function App() {
       ...snapshot,
       accounts: upsertById(snapshot.accounts, nextAccount),
     });
-    resetAccountForm();
+    closeAccountDialog();
   }
 
   function editAsset(assetId: string) {
@@ -420,6 +583,7 @@ function App() {
       storageLocation: asset.storageLocation || "",
       notes: asset.notes,
     });
+    setIsAssetDialogOpen(true);
   }
 
   function editFx(rateId: string) {
@@ -473,6 +637,7 @@ function App() {
       country: account.country,
       notes: account.notes,
     });
+    setIsAccountDialogOpen(true);
   }
 
   function deleteAsset(assetId: string) {
@@ -509,26 +674,55 @@ function App() {
     setFilters((current) => ({ ...current, [field]: value }));
   }
 
+  async function importSnapshotFile(file: File, fileHandle: FileSystemFileHandle | null) {
+    try {
+      const text = await file.text();
+      const incoming = normalizeSnapshot(JSON.parse(text));
+      const nextSnapshot = importMode === "replace" ? incoming : mergeSnapshots(snapshot, incoming);
+      updateSnapshot(nextSnapshot);
+      setSourceFileName(file.name);
+      setSourceFileHandle(fileHandle);
+      setImportStatus(`Imported · ${file.name}`);
+    } catch (error) {
+      setImportStatus("Import failed");
+    }
+  }
+
+  async function handleImportFileInputClick(event: MouseEvent<HTMLInputElement>) {
+    if (typeof window.showOpenFilePicker !== "function") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      const pickedFile = await openJsonFileWithAccess();
+      if (pickedFile) {
+        await importSnapshotFile(pickedFile.file, pickedFile.handle);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      setImportStatus("Import failed");
+    }
+  }
+
   async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
-    try {
-      const text = await file.text();
-      const incoming = normalizeSnapshot(JSON.parse(text));
-      const nextSnapshot = importMode === "replace" ? incoming : mergeSnapshots(snapshot, incoming);
-      updateSnapshot(nextSnapshot);
-      setImportStatus(`Imported · ${file.name}`);
-      event.target.value = "";
-    } catch (error) {
-      setImportStatus("Import failed");
-    }
+    await importSnapshotFile(file, null);
+    event.target.value = "";
   }
 
   function loadSampleSnapshot() {
     setSnapshot(cloneSnapshot(SAMPLE_SNAPSHOT));
+    setSourceFileName("sample-data.json");
+    setSourceFileHandle(null);
     setImportStatus("Sample loaded");
     setFxSyncStatus("Sample loaded");
   }
@@ -549,6 +743,44 @@ function App() {
       JSON.stringify(snapshot, null, 2),
       "application/json;charset=utf-8",
     );
+  }
+
+  function getCurrentSnapshotJson(): string {
+    return JSON.stringify(snapshot, null, 2);
+  }
+
+  async function handleOverwriteJson() {
+    if (!sourceFileHandle || !canOverwrite(sourceFileHandle)) {
+      setImportStatus("Direct overwrite unavailable");
+      return;
+    }
+
+    const normalizedFileName = ensureJsonExtension(sourceFileName || sourceFileHandle.name);
+    if (!window.confirm(`Overwrite "${normalizedFileName}" on disk?`)) {
+      setImportStatus("Save cancelled");
+      return;
+    }
+
+    try {
+      const granted = await requestWritablePermission(sourceFileHandle);
+      if (!granted) {
+        setImportStatus("Write permission not granted");
+        return;
+      }
+
+      await writeJsonToHandle(sourceFileHandle, getCurrentSnapshotJson());
+      setImportStatus(`Saved · ${normalizedFileName}`);
+      setIsSaveDialogOpen(false);
+    } catch (error) {
+      setImportStatus(`Unable to overwrite · ${normalizedFileName}`);
+    }
+  }
+
+  function handleSaveJsonAsNew() {
+    const outputFileName = buildTimestampFileName(sourceFileName || "global-asset-net-worth-board.snapshot.json");
+    downloadJsonFile(getCurrentSnapshotJson(), outputFileName);
+    setImportStatus(`Saved · ${outputFileName}`);
+    setIsSaveDialogOpen(false);
   }
 
   function exportCsv() {
@@ -656,6 +888,15 @@ function App() {
     insights.push("Balanced");
   }
 
+  const latestHistoryCandle = activeHistoryCandles.length ? activeHistoryCandles[activeHistoryCandles.length - 1] : null;
+  const previousHistoryCandle = activeHistoryCandles.length > 1 ? activeHistoryCandles[activeHistoryCandles.length - 2] : null;
+  const historyPriceChange = latestHistoryCandle && previousHistoryCandle ? latestHistoryCandle.close - previousHistoryCandle.close : 0;
+  const historyPriceChangeShare =
+    previousHistoryCandle && previousHistoryCandle.close ? historyPriceChange / previousHistoryCandle.close : 0;
+  const historyRangeHigh = activeHistoryCandles.length ? Math.max(...activeHistoryCandles.map((candle) => candle.high)) : 0;
+  const historyRangeLow = activeHistoryCandles.length ? Math.min(...activeHistoryCandles.map((candle) => candle.low)) : 0;
+  const historyCurrency = getHistoryInstrumentCurrency(activeHistorySeries);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -697,7 +938,12 @@ function App() {
               </select>
               <label className="topbar-file-label">
                 <span>Load JSON</span>
-                <input type="file" accept=".json,application/json" onChange={handleImportFile} />
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onClick={handleImportFileInputClick}
+                  onChange={handleImportFile}
+                />
               </label>
               <button className="ghost-btn" type="button" onClick={loadSampleSnapshot}>
                 Sample
@@ -705,8 +951,8 @@ function App() {
             </div>
 
             <div className="topbar-group">
-              <button className="ghost-btn" type="button" onClick={exportJson}>
-                Export JSON
+              <button className="ghost-btn" type="button" onClick={() => setIsSaveDialogOpen(true)}>
+                Save JSON
               </button>
               <button className="ghost-btn" type="button" onClick={exportCsv}>
                 Export CSV
@@ -798,97 +1044,9 @@ function App() {
           <section className="panel active">
             <div className="section-heading">
               <h3>Asset Entry</h3>
-            </div>
-
-            <div className="surface-card form-card">
-              <form className="form-grid" onSubmit={handleAssetSubmit}>
-                <label>
-                  <span>Asset Type</span>
-                  <select className="field-input" value={assetForm.type} onChange={(event) => handleAssetFormChange("type", event.target.value as AssetType)}>
-                    <option value="cash">Cash</option>
-                    <option value="gold">Gold</option>
-                    <option value="equity">Equity</option>
-                    <option value="fund">Fund / ETF</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Asset Name</span>
-                  <input className="field-input" value={assetForm.name} onChange={(event) => handleAssetFormChange("name", event.target.value)} placeholder="US Dollar Cash / Apple Position / Gold Bar" />
-                </label>
-
-                <label>
-                  <span>Account</span>
-                  <select className="field-input" value={assetForm.accountId} onChange={(event) => handleAssetFormChange("accountId", event.target.value)}>
-                    <option value="">Unassigned</option>
-                    {snapshot.accounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {assetForm.type === "cash" ? (
-                  <>
-                    <label>
-                      <span>Currency</span>
-                      <select className="field-input" value={assetForm.currency} onChange={(event) => handleAssetFormChange("currency", event.target.value)}>
-                        {currencies.map((currency) => (
-                          <option key={currency} value={currency}>
-                            {currency}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Current Amount</span>
-                      <input className="field-input" type="number" min="0" step="0.0001" value={assetForm.amount} onChange={(event) => handleAssetFormChange("amount", event.target.value)} placeholder="2000" />
-                    </label>
-                  </>
-                ) : (
-                  <>
-                    <label>
-                      <span>Holding Category</span>
-                      <input className="field-input" value={assetForm.holdingType} onChange={(event) => handleAssetFormChange("holdingType", event.target.value)} placeholder="Bullion / US Equity / HK Equity / ETF" />
-                    </label>
-                    <label>
-                      <span>Price Reference</span>
-                      <select className="field-input" value={assetForm.quoteId} onChange={(event) => handleAssetFormChange("quoteId", event.target.value)}>
-                        <option value="">Select a quote</option>
-                        {assetQuoteOptions.map((quote) => (
-                          <option key={quote.id} value={quote.id}>
-                            {quote.symbol} · {quote.name} · {quote.price} {quote.quoteCurrency}/{quote.unit || "unit"}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Quantity</span>
-                      <input className="field-input" type="number" min="0" step="0.0001" value={assetForm.quantity} onChange={(event) => handleAssetFormChange("quantity", event.target.value)} placeholder="10 / 100 / 1000" />
-                    </label>
-                    <label>
-                      <span>Storage / Venue</span>
-                      <input className="field-input" value={assetForm.storageLocation} onChange={(event) => handleAssetFormChange("storageLocation", event.target.value)} placeholder="Home vault / IBKR / HSBC HK" />
-                    </label>
-                  </>
-                )}
-
-                <label className="wide">
-                  <span>Notes</span>
-                  <textarea className="field-input" rows={3} value={assetForm.notes} onChange={(event) => handleAssetFormChange("notes", event.target.value)} placeholder="Optional notes" />
-                </label>
-
-                <div className="form-actions wide">
-                  <button className="primary-btn" type="submit">
-                    Save Asset
-                  </button>
-                  <button className="ghost-btn" type="button" onClick={resetAssetForm}>
-                    Reset Form
-                  </button>
-                </div>
-              </form>
+              <button className="primary-btn" type="button" onClick={openNewAssetDialog}>
+                New Asset
+              </button>
             </div>
 
             <div className="surface-card">
@@ -950,10 +1108,10 @@ function App() {
                       <th>Asset</th>
                       <th>Type</th>
                       <th>Account</th>
-                      <th>Original Value</th>
+                      <th>Original Position</th>
                       <th>Current Price</th>
-                      <th>Current Market Value</th>
-                      <th>Converted Value</th>
+                      <th>Market Value</th>
+                      <th>{valuation.baseCurrency} Value</th>
                       <th>Weight</th>
                       <th>Updated At</th>
                       <th>Actions</th>
@@ -1205,6 +1363,113 @@ function App() {
                 </div>
               </section>
             </div>
+
+            <section className="surface-card">
+              <div className="section-heading">
+                <h4>Historical Price CSV</h4>
+              </div>
+
+              <div className="history-toolbar">
+                <label>
+                  <span>Series Type</span>
+                  <select className="field-input" value={historyInstrumentType} onChange={(event) => setHistoryInstrumentType(event.target.value as HistoryInstrumentType)}>
+                    <option value="quote">Quote / Gold</option>
+                    <option value="fx">FX Rate</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Instrument</span>
+                  <select className="field-input" value={historyInstrumentId} onChange={(event) => setHistoryInstrumentId(event.target.value)}>
+                    {!historyTargetOptions.length ? (
+                      <option value="">No instrument available</option>
+                    ) : (
+                      historyTargetOptions.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {getHistoryInstrumentLabel(historyInstrumentType, item.id)}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </label>
+
+                <div className="history-upload-actions">
+                  <label className="topbar-file-label history-file-label">
+                    <span>Import CSV</span>
+                    <input type="file" accept=".csv,text/csv" onChange={handleHistoryCsvImport} />
+                  </label>
+                  <button className="ghost-btn" type="button" onClick={downloadHistoryTemplate}>
+                    CSV Template
+                  </button>
+                  {activeHistorySeries ? (
+                    <button className="ghost-btn" type="button" onClick={() => removeHistorySeries(activeHistorySeries.key)}>
+                      Remove Series
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <p className="history-status">{historyStatus}</p>
+
+              {!historySeriesList.length ? (
+                <div className="empty-state">
+                  Import a CSV with `date,open,high,low,close,volume` columns to render a stock-style candle chart.
+                </div>
+              ) : (
+                <>
+                  <div className="history-series-tabs">
+                    {historySeriesList.map((series) => (
+                      <button
+                        key={series.key}
+                        className={`history-series-tab${activeHistorySeries?.key === series.key ? " active" : ""}`}
+                        type="button"
+                        onClick={() => setSelectedHistoryKey(series.key)}
+                      >
+                        {series.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeHistorySeries ? (
+                    <>
+                      <div className="history-summary-grid">
+                        <article className="summary-card history-summary-card">
+                          <span className="label">Latest Close</span>
+                          <span className="value">{latestHistoryCandle ? formatNumber(latestHistoryCandle.close, snapshot.settings.locale, 4) : "-"}</span>
+                          <span className="subtle">{historyCurrency || activeHistorySeries.instrumentType.toUpperCase()}</span>
+                        </article>
+                        <article className="summary-card history-summary-card">
+                          <span className="label">Daily Change</span>
+                          <span className="value">{previousHistoryCandle ? formatNumber(historyPriceChange, snapshot.settings.locale, 4) : "-"}</span>
+                          <span className="subtle">{previousHistoryCandle ? formatShare(historyPriceChangeShare, snapshot.settings.locale) : "Need 2 candles"}</span>
+                        </article>
+                        <article className="summary-card history-summary-card">
+                          <span className="label">Range High</span>
+                          <span className="value">{formatNumber(historyRangeHigh, snapshot.settings.locale, 4)}</span>
+                          <span className="subtle">{historyCurrency || "-"}</span>
+                        </article>
+                        <article className="summary-card history-summary-card">
+                          <span className="label">Range Low</span>
+                          <span className="value">{formatNumber(historyRangeLow, snapshot.settings.locale, 4)}</span>
+                          <span className="subtle">{latestHistoryCandle ? `${activeHistoryCandles.length} candles` : "-"}</span>
+                        </article>
+                      </div>
+
+                      <div className="history-chart-header">
+                        <div>
+                          <strong>{activeHistorySeries.label}</strong>
+                          <div className="muted">
+                            Source · {activeHistorySeries.sourceFileName} · Last candle · {latestHistoryCandle ? formatHistoryDateLabel(latestHistoryCandle.date) : "-"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <CandlestickChart candles={activeHistoryCandles} locale={snapshot.settings.locale} />
+                    </>
+                  ) : null}
+                </>
+              )}
+            </section>
           </section>
         )}
 
@@ -1212,61 +1477,9 @@ function App() {
           <section className="panel active">
             <div className="section-heading">
               <h3>Account Registry</h3>
-            </div>
-
-            <div className="surface-card form-card">
-              <form className="form-grid" onSubmit={handleAccountSubmit}>
-                <label>
-                  <span>Account Name</span>
-                  <input className="field-input" value={accountForm.name} onChange={(event) => handleAccountFormChange("name", event.target.value)} placeholder="China Merchants Bank / HSBC HK / IBKR" />
-                </label>
-
-                <label>
-                  <span>Institution</span>
-                  <input className="field-input" value={accountForm.institution} onChange={(event) => handleAccountFormChange("institution", event.target.value)} placeholder="Bank / Broker / Wallet / Vault" />
-                </label>
-
-                <label>
-                  <span>Account Type</span>
-                  <select className="field-input" value={accountForm.type} onChange={(event) => handleAccountFormChange("type", event.target.value as Account["type"])}>
-                    <option value="bank">Bank</option>
-                    <option value="broker">Broker</option>
-                    <option value="wallet">Wallet</option>
-                    <option value="vault">Vault</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Default Currency</span>
-                  <select className="field-input" value={accountForm.defaultCurrency} onChange={(event) => handleAccountFormChange("defaultCurrency", event.target.value)}>
-                    {currencies.map((currency) => (
-                      <option key={currency} value={currency}>
-                        {currency}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  <span>Country / Region</span>
-                  <input className="field-input" value={accountForm.country} onChange={(event) => handleAccountFormChange("country", event.target.value)} placeholder="CN / HK / US / CH" />
-                </label>
-
-                <label className="wide">
-                  <span>Notes</span>
-                  <textarea className="field-input" rows={3} value={accountForm.notes} onChange={(event) => handleAccountFormChange("notes", event.target.value)} placeholder="Optional notes" />
-                </label>
-
-                <div className="form-actions wide">
-                  <button className="primary-btn" type="submit">
-                    Save Account
-                  </button>
-                  <button className="ghost-btn" type="button" onClick={resetAccountForm}>
-                    Reset Form
-                  </button>
-                </div>
-              </form>
+              <button className="primary-btn" type="button" onClick={openNewAccountDialog}>
+                New Account
+              </button>
             </div>
 
             <div className="surface-card">
@@ -1322,6 +1535,193 @@ function App() {
           </section>
         )}
       </main>
+
+      <div
+        className={`editor-modal${isAssetDialogOpen ? " is-visible" : ""}`}
+        aria-hidden={!isAssetDialogOpen}
+        onClick={(event) => event.target === event.currentTarget && closeAssetDialog()}
+      >
+        <div className="editor-dialog" role="dialog" aria-modal="true" aria-labelledby="asset-dialog-title">
+          <div className="modal-header">
+            <h3 id="asset-dialog-title">{assetForm.id ? "Edit Asset" : "New Asset"}</h3>
+            <button className="ghost-btn" type="button" onClick={closeAssetDialog}>
+              Close
+            </button>
+          </div>
+
+          <form className="form-grid" onSubmit={handleAssetSubmit}>
+            <label>
+              <span>Asset Type</span>
+              <select className="field-input" value={assetForm.type} onChange={(event) => handleAssetFormChange("type", event.target.value as AssetType)}>
+                <option value="cash">Cash</option>
+                <option value="gold">Gold</option>
+                <option value="equity">Equity</option>
+                <option value="fund">Fund / ETF</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Asset Name</span>
+              <input className="field-input" value={assetForm.name} onChange={(event) => handleAssetFormChange("name", event.target.value)} placeholder="US Dollar Cash / Apple Position / Gold Bar" />
+            </label>
+
+            <label>
+              <span>Account</span>
+              <select className="field-input" value={assetForm.accountId} onChange={(event) => handleAssetFormChange("accountId", event.target.value)}>
+                <option value="">Unassigned</option>
+                {snapshot.accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {assetForm.type === "cash" ? (
+              <>
+                <label>
+                  <span>Currency</span>
+                  <select className="field-input" value={assetForm.currency} onChange={(event) => handleAssetFormChange("currency", event.target.value)}>
+                    {currencies.map((currency) => (
+                      <option key={currency} value={currency}>
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Current Amount</span>
+                  <input className="field-input" type="number" min="0" step="0.0001" value={assetForm.amount} onChange={(event) => handleAssetFormChange("amount", event.target.value)} placeholder="2000" />
+                </label>
+              </>
+            ) : (
+              <>
+                <label>
+                  <span>Holding Category</span>
+                  <input className="field-input" value={assetForm.holdingType} onChange={(event) => handleAssetFormChange("holdingType", event.target.value)} placeholder="Bullion / US Equity / HK Equity / ETF" />
+                </label>
+                <label>
+                  <span>Price Reference</span>
+                  <select className="field-input" value={assetForm.quoteId} onChange={(event) => handleAssetFormChange("quoteId", event.target.value)}>
+                    <option value="">Select a quote</option>
+                    {assetQuoteOptions.map((quote) => (
+                      <option key={quote.id} value={quote.id}>
+                        {quote.symbol} 路 {quote.name} 路 {quote.price} {quote.quoteCurrency}/{quote.unit || "unit"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Quantity</span>
+                  <input className="field-input" type="number" min="0" step="0.0001" value={assetForm.quantity} onChange={(event) => handleAssetFormChange("quantity", event.target.value)} placeholder="10 / 100 / 1000" />
+                </label>
+                <label>
+                  <span>Storage / Venue</span>
+                  <input className="field-input" value={assetForm.storageLocation} onChange={(event) => handleAssetFormChange("storageLocation", event.target.value)} placeholder="Home vault / IBKR / HSBC HK" />
+                </label>
+              </>
+            )}
+
+            <label className="wide">
+              <span>Notes</span>
+              <textarea className="field-input" rows={3} value={assetForm.notes} onChange={(event) => handleAssetFormChange("notes", event.target.value)} placeholder="Optional notes" />
+            </label>
+
+            <div className="form-actions wide">
+              <button className="primary-btn" type="submit">
+                Save Asset
+              </button>
+              <button className="ghost-btn" type="button" onClick={resetAssetForm}>
+                Reset Form
+              </button>
+              <button className="ghost-btn" type="button" onClick={closeAssetDialog}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div
+        className={`editor-modal${isAccountDialogOpen ? " is-visible" : ""}`}
+        aria-hidden={!isAccountDialogOpen}
+        onClick={(event) => event.target === event.currentTarget && closeAccountDialog()}
+      >
+        <div className="editor-dialog" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+          <div className="modal-header">
+            <h3 id="account-dialog-title">{accountForm.id ? "Edit Account" : "New Account"}</h3>
+            <button className="ghost-btn" type="button" onClick={closeAccountDialog}>
+              Close
+            </button>
+          </div>
+
+          <form className="form-grid" onSubmit={handleAccountSubmit}>
+            <label>
+              <span>Account Name</span>
+              <input className="field-input" value={accountForm.name} onChange={(event) => handleAccountFormChange("name", event.target.value)} placeholder="China Merchants Bank / HSBC HK / IBKR" />
+            </label>
+
+            <label>
+              <span>Institution</span>
+              <input className="field-input" value={accountForm.institution} onChange={(event) => handleAccountFormChange("institution", event.target.value)} placeholder="Bank / Broker / Wallet / Vault" />
+            </label>
+
+            <label>
+              <span>Account Type</span>
+              <select className="field-input" value={accountForm.type} onChange={(event) => handleAccountFormChange("type", event.target.value as Account["type"])}>
+                <option value="bank">Bank</option>
+                <option value="broker">Broker</option>
+                <option value="wallet">Wallet</option>
+                <option value="vault">Vault</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Default Currency</span>
+              <select className="field-input" value={accountForm.defaultCurrency} onChange={(event) => handleAccountFormChange("defaultCurrency", event.target.value)}>
+                {currencies.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Country / Region</span>
+              <input className="field-input" value={accountForm.country} onChange={(event) => handleAccountFormChange("country", event.target.value)} placeholder="CN / HK / US / CH" />
+            </label>
+
+            <label className="wide">
+              <span>Notes</span>
+              <textarea className="field-input" rows={3} value={accountForm.notes} onChange={(event) => handleAccountFormChange("notes", event.target.value)} placeholder="Optional notes" />
+            </label>
+
+            <div className="form-actions wide">
+              <button className="primary-btn" type="submit">
+                Save Account
+              </button>
+              <button className="ghost-btn" type="button" onClick={resetAccountForm}>
+                Reset Form
+              </button>
+              <button className="ghost-btn" type="button" onClick={closeAccountDialog}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <SaveJsonModal
+        open={isSaveDialogOpen}
+        sourceFileName={sourceFileName}
+        canOverwrite={canOverwrite(sourceFileHandle)}
+        onOverwrite={() => void handleOverwriteJson()}
+        onSaveNew={handleSaveJsonAsNew}
+        onClose={() => setIsSaveDialogOpen(false)}
+      />
     </div>
   );
 }
@@ -1416,3 +1816,4 @@ function BarsCard({
 }
 
 export default App;
+
