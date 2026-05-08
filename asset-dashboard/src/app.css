@@ -473,6 +473,23 @@ textarea.field-input {
   margin-bottom: 14px;
 }
 
+.price-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-history-card {
+  order: 1;
+}
+
+.price-maintenance-grid {
+  order: 2;
+}
+
+.history-backend-panel {
+  margin-bottom: 12px;
+}
+
 .history-toolbar > label {
   min-width: 180px;
   flex: 1 1 220px;
@@ -480,6 +497,11 @@ textarea.field-input {
 
 .history-upload-actions {
   align-items: center;
+}
+
+.history-series-actions {
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .history-file-label {
@@ -542,7 +564,7 @@ textarea.field-input {
 .candle-chart {
   display: block;
   width: 100%;
-  min-width: 760px;
+  min-width: 980px;
 }
 
 .candle-chart-bg {
@@ -556,11 +578,11 @@ textarea.field-input {
 
 .candle-axis-label {
   fill: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .candle-wick {
-  stroke-width: 1.5;
+  stroke-width: 1.8;
 }
 
 .candle-wick.up {
@@ -626,6 +648,15 @@ textarea.field-input {
 
 .primary-btn:hover {
   box-shadow: 0 10px 18px rgba(40, 95, 223, 0.14);
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.ghost-btn:disabled,
+.table-action:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .table-wrap {

@@ -79,7 +79,7 @@ export function normalizePriceHistoryStore(input: unknown): Record<string, Price
       return;
     }
 
-    const instrumentType = series.instrumentType === "fx" ? "fx" : "quote";
+    const instrumentType = series.instrumentType === "fx" || series.instrumentType === "backend" ? series.instrumentType : "quote";
     const instrumentId = String(series.instrumentId || "").trim();
     if (!instrumentId) {
       return;
@@ -103,6 +103,8 @@ export function normalizePriceHistoryStore(input: unknown): Record<string, Price
       label: String(series.label || instrumentId),
       sourceFileName: String(series.sourceFileName || "history.csv"),
       importedAt: String(series.importedAt || new Date().toISOString()),
+      priceUnit: series.priceUnit ? String(series.priceUnit) : undefined,
+      interval: series.interval === "1w" || series.interval === "1m" ? series.interval : series.interval === "1d" ? "1d" : undefined,
       candles,
     };
   });

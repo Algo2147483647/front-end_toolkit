@@ -1,6 +1,12 @@
 import { ChangeEvent, FormEvent, MouseEvent, useEffect, useState } from "react";
 import sampleSnapshotJson from "../sample-data.json";
 import "./app.css";
+import {
+  fetchBackendAssetHistory,
+  fetchBackendAssets,
+  getBackendApiBaseUrl,
+  type BackendAsset,
+} from "./adapters/backendApi";
 import { buildTimestampFileName, downloadJsonFile, downloadTextFile, ensureJsonExtension } from "./adapters/download";
 import { canOverwrite, openJsonFileWithAccess, requestWritablePermission, writeJsonToHandle } from "./adapters/fileAccess";
 import CandlestickChart from "./components/CandlestickChart";
@@ -31,11 +37,8 @@ import {
   toNumber,
 } from "./portfolio";
 import {
-  buildPriceHistoryTemplateCsv,
   formatHistoryDateLabel,
-  makePriceHistorySeriesKey,
   normalizePriceHistoryStore,
-  parsePriceHistoryCsv,
   PRICE_HISTORY_STORAGE_KEY,
 } from "./priceHistory";
 import type {
@@ -45,8 +48,8 @@ import type {
   AssetFilters,
   AssetFormState,
   AssetType,
+  BackendHistoryInterval,
   FxRate,
-  HistoryInstrumentType,
   ImportMode,
   PriceHistorySeries,
   Quote,
@@ -71,6 +74,8 @@ const DEFAULT_FILTERS: AssetFilters = {
   currency: "all",
   market: "all",
 };
+
+const HISTORY_PRICE_UNITS = ["USD", "EUR", "CNY", "JPY", "HKD"];
 
 function loadSnapshot(): Snapshot {
   try {
@@ -167,10 +172,16 @@ function App() {
   const [fxSyncStatus, setFxSyncStatus] = useState("Not synced");
   const [isFxSyncing, setIsFxSyncing] = useState(false);
   const [priceHistoryStore, setPriceHistoryStore] = useState<Record<string, PriceHistorySeries>>(() => loadPriceHistoryStore());
-  const [historyInstrumentType, setHistoryInstrumentType] = useState<HistoryInstrumentType>("quote");
-  const [historyInstrumentId, setHistoryInstrumentId] = useState("");
   const [selectedHistoryKey, setSelectedHistoryKey] = useState("");
-  const [historyStatus, setHistoryStatus] = useState("No historical CSV loaded.");
+  const [historyStatus, setHistoryStatus] = useState("No backend series loaded.");
+  const [backendAssets, setBackendAssets] = useState<BackendAsset[]>([]);
+  const [backendAssetType, setBackendAssetType] = useState("");
+  const [backendStartDate, setBackendStartDate] = useState("1985-10-01");
+  const [backendEndDate, setBackendEndDate] = useState("2021-12-31");
+  const [backendInterval, setBackendInterval] = useState<BackendHistoryInterval>("1d");
+  const [backendPriceUnit, setBackendPriceUnit] = useState("USD");
+  const [backendStatus, setBackendStatus] = useState(`Backend ${getBackendApiBaseUrl()}`);
+  const [isBackendHistoryLoading, setIsBackendHistoryLoading] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
@@ -182,20 +193,20 @@ function App() {
 
   useEffect(() => {
     void syncLatestFxRates("auto");
+    void loadBackendAssets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const options = historyInstrumentType === "quote" ? snapshot.quotes : snapshot.fxRates;
-    if (!options.length) {
-      setHistoryInstrumentId("");
+    if (!backendAssets.length) {
+      setBackendAssetType("");
       return;
     }
 
-    if (!options.some((item) => item.id === historyInstrumentId)) {
-      setHistoryInstrumentId(options[0].id);
+    if (!backendAssets.some((asset) => asset.asset_type === backendAssetType)) {
+      setBackendAssetType(backendAssets.find((asset) => asset.asset_type === "gold")?.asset_type || backendAssets[0].asset_type);
     }
-  }, [historyInstrumentId, historyInstrumentType, snapshot.fxRates, snapshot.quotes]);
+  }, [backendAssetType, backendAssets]);
 
   const valuation = computePortfolio(snapshot);
   const currencies = getKnownCurrencies(snapshot);
@@ -231,7 +242,6 @@ function App() {
   }, {});
 
   const markets = Array.from(new Set(snapshot.quotes.map((quote) => quote.market).filter(Boolean))).sort();
-  const historyTargetOptions = historyInstrumentType === "quote" ? snapshot.quotes : snapshot.fxRates;
   const historySeriesList = Object.values(priceHistoryStore).sort((left, right) => left.label.localeCompare(right.label));
   const activeHistorySeries =
     (selectedHistoryKey ? priceHistoryStore[selectedHistoryKey] : null) ||
@@ -243,18 +253,25 @@ function App() {
     setSnapshot(updateSnapshotTimestamp(normalizeSnapshot(nextSnapshot)));
   }
 
-  function getHistoryInstrumentLabel(instrumentType: HistoryInstrumentType, instrumentId: string): string {
-    if (instrumentType === "quote") {
-      const quote = snapshot.quotes.find((item) => item.id === instrumentId);
-      return quote ? `${quote.symbol} · ${quote.name}` : instrumentId;
+  async function loadBackendAssets() {
+    try {
+      const assets = await fetchBackendAssets();
+      setBackendAssets(assets);
+      setBackendStatus(`Backend online · ${assets.length} assets`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Backend is not reachable.";
+      setBackendStatus(`Backend offline · ${message}`);
     }
-
-    const rate = snapshot.fxRates.find((item) => item.id === instrumentId);
-    return rate ? `USD/${rate.currency}` : instrumentId;
   }
 
   function getHistoryInstrumentCurrency(series: PriceHistorySeries | null): string {
     if (!series) {
+      return "";
+    }
+    if (series.priceUnit) {
+      return series.priceUnit;
+    }
+    if (series.instrumentType === "backend") {
       return "";
     }
 
@@ -265,43 +282,54 @@ function App() {
     return snapshot.fxRates.find((item) => item.id === series.instrumentId)?.currency || "";
   }
 
-  async function handleHistoryCsvImport(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (!historyInstrumentId) {
-      window.alert("Choose a quote or FX instrument before importing history.");
-      event.target.value = "";
+  async function handleBackendHistoryLoad() {
+    if (!backendAssetType) {
+      setBackendStatus("Choose a backend asset first.");
       return;
     }
 
     try {
-      const content = await file.text();
-      const candles = parsePriceHistoryCsv(content);
-      const key = makePriceHistorySeriesKey(historyInstrumentType, historyInstrumentId);
-      const label = getHistoryInstrumentLabel(historyInstrumentType, historyInstrumentId);
+      setIsBackendHistoryLoading(true);
+      setBackendStatus("Loading backend history...");
+      const payload = await fetchBackendAssetHistory({
+        assetType: backendAssetType,
+        startDate: backendStartDate,
+        endDate: backendEndDate,
+        timeInterval: backendInterval,
+        priceUnit: backendPriceUnit,
+      });
+      const candles = payload.records || [];
+      if (!candles.length) {
+        setBackendStatus("Backend returned no candles for this range.");
+        return;
+      }
+
+      const asset = backendAssets.find((item) => item.asset_type === payload.asset_type || item.asset_type === backendAssetType);
+      const key = `backend:${payload.asset_type}:${payload.price_unit}:${payload.interval}:${payload.start_time || backendStartDate}:${payload.end_time || backendEndDate}`;
+      const label = `${asset?.label || payload.asset_type} · ${payload.price_unit} · ${payload.interval}`;
 
       setPriceHistoryStore((current) => ({
         ...current,
         [key]: {
           key,
-          instrumentType: historyInstrumentType,
-          instrumentId: historyInstrumentId,
+          instrumentType: "backend",
+          instrumentId: payload.asset_type,
           label,
-          sourceFileName: file.name,
+          sourceFileName: `${getBackendApiBaseUrl()}/api/v1/asset-history`,
           importedAt: new Date().toISOString(),
+          priceUnit: payload.price_unit,
+          interval: payload.interval as BackendHistoryInterval,
           candles,
         },
       }));
       setSelectedHistoryKey(key);
-      setHistoryStatus(`Loaded ${candles.length} candles from ${file.name}.`);
+      setBackendStatus(`Loaded ${candles.length} candles · ${payload.start_time} to ${payload.end_time}`);
+      setHistoryStatus(`Backend series loaded: ${label}.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to parse the historical CSV.";
-      setHistoryStatus(message);
+      const message = error instanceof Error ? error.message : "Unable to load backend history.";
+      setBackendStatus(message);
     } finally {
-      event.target.value = "";
+      setIsBackendHistoryLoading(false);
     }
   }
 
@@ -313,17 +341,6 @@ function App() {
     });
     setSelectedHistoryKey((current) => (current === key ? "" : current));
     setHistoryStatus("Historical series removed.");
-  }
-
-  function downloadHistoryTemplate() {
-    const label = historyInstrumentId
-      ? getHistoryInstrumentLabel(historyInstrumentType, historyInstrumentId)
-      : "Instrument";
-    downloadTextFile(
-      buildPriceHistoryTemplateCsv(label),
-      `${label.replace(/[^\w.-]+/g, "-").toLowerCase()}-history-template.csv`,
-      "text/csv;charset=utf-8",
-    );
   }
 
   async function syncLatestFxRates(trigger: "auto" | "manual") {
@@ -1163,12 +1180,12 @@ function App() {
         )}
 
         {activeTab === "prices" && (
-          <section className="panel active">
+          <section className="panel active price-panel">
             <div className="section-heading">
-              <h3>FX and Price Center</h3>
+              <h3>Price Workbench</h3>
             </div>
 
-            <div className="two-column">
+            <div className="two-column price-maintenance-grid">
               <section className="surface-card form-card">
                 <div className="section-heading">
                   <h4>FX Rates</h4>
@@ -1364,56 +1381,83 @@ function App() {
               </section>
             </div>
 
-            <section className="surface-card">
+            <section className="surface-card price-history-card">
               <div className="section-heading">
-                <h4>Historical Price CSV</h4>
+                <h4>Historical Price</h4>
               </div>
 
-              <div className="history-toolbar">
-                <label>
-                  <span>Series Type</span>
-                  <select className="field-input" value={historyInstrumentType} onChange={(event) => setHistoryInstrumentType(event.target.value as HistoryInstrumentType)}>
-                    <option value="quote">Quote / Gold</option>
-                    <option value="fx">FX Rate</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Instrument</span>
-                  <select className="field-input" value={historyInstrumentId} onChange={(event) => setHistoryInstrumentId(event.target.value)}>
-                    {!historyTargetOptions.length ? (
-                      <option value="">No instrument available</option>
-                    ) : (
-                      historyTargetOptions.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {getHistoryInstrumentLabel(historyInstrumentType, item.id)}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </label>
-
-                <div className="history-upload-actions">
-                  <label className="topbar-file-label history-file-label">
-                    <span>Import CSV</span>
-                    <input type="file" accept=".csv,text/csv" onChange={handleHistoryCsvImport} />
+              <div className="history-backend-panel">
+                <div className="history-toolbar">
+                  <label>
+                    <span>Backend Asset</span>
+                    <select className="field-input" value={backendAssetType} onChange={(event) => setBackendAssetType(event.target.value)}>
+                      {!backendAssets.length ? (
+                        <option value="">No backend assets</option>
+                      ) : (
+                        backendAssets.map((asset) => (
+                          <option key={asset.asset_type} value={asset.asset_type}>
+                            {asset.label}
+                          </option>
+                        ))
+                      )}
+                    </select>
                   </label>
-                  <button className="ghost-btn" type="button" onClick={downloadHistoryTemplate}>
-                    CSV Template
-                  </button>
-                  {activeHistorySeries ? (
-                    <button className="ghost-btn" type="button" onClick={() => removeHistorySeries(activeHistorySeries.key)}>
-                      Remove Series
+
+                  <label>
+                    <span>Start Date</span>
+                    <input className="field-input" type="date" value={backendStartDate} onChange={(event) => setBackendStartDate(event.target.value)} />
+                  </label>
+
+                  <label>
+                    <span>End Date</span>
+                    <input className="field-input" type="date" value={backendEndDate} onChange={(event) => setBackendEndDate(event.target.value)} />
+                  </label>
+
+                  <label>
+                    <span>Interval</span>
+                    <select className="field-input" value={backendInterval} onChange={(event) => setBackendInterval(event.target.value as BackendHistoryInterval)}>
+                      <option value="1d">Daily</option>
+                      <option value="1w">Weekly</option>
+                      <option value="1m">Monthly</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Price Unit</span>
+                    <select className="field-input" value={backendPriceUnit} onChange={(event) => setBackendPriceUnit(event.target.value)}>
+                      {HISTORY_PRICE_UNITS.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {unit}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="history-upload-actions">
+                    <button className="primary-btn" type="button" disabled={isBackendHistoryLoading || !backendAssetType} onClick={() => void handleBackendHistoryLoad()}>
+                      {isBackendHistoryLoading ? "Loading..." : "Load from Backend"}
                     </button>
-                  ) : null}
+                    <button className="ghost-btn" type="button" onClick={() => void loadBackendAssets()}>
+                      Refresh Assets
+                    </button>
+                  </div>
                 </div>
+                <p className="history-status">{backendStatus}</p>
               </div>
+
+              {activeHistorySeries ? (
+                <div className="history-upload-actions history-series-actions">
+                  <button className="ghost-btn" type="button" onClick={() => removeHistorySeries(activeHistorySeries.key)}>
+                    Remove Series
+                  </button>
+                </div>
+              ) : null}
 
               <p className="history-status">{historyStatus}</p>
 
               {!historySeriesList.length ? (
                 <div className="empty-state">
-                  Import a CSV with `date,open,high,low,close,volume` columns to render a stock-style candle chart.
+                  Load a backend series to render a stock-style candle chart.
                 </div>
               ) : (
                 <>

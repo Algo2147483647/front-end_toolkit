@@ -2,7 +2,8 @@ export type AssetType = "cash" | "gold" | "equity" | "fund" | "other";
 export type AccountType = "bank" | "broker" | "wallet" | "vault" | "other";
 export type TabKey = "overview" | "assets" | "prices" | "accounts";
 export type ImportMode = "replace" | "merge";
-export type HistoryInstrumentType = "quote" | "fx";
+export type HistoryInstrumentType = "quote" | "fx" | "backend";
+export type BackendHistoryInterval = "1d" | "1w" | "1m";
 
 export interface SnapshotMeta {
   schemaVersion: string;
@@ -176,5 +177,7 @@ export interface PriceHistorySeries {
   label: string;
   sourceFileName: string;
   importedAt: string;
+  priceUnit?: string;
+  interval?: BackendHistoryInterval;
   candles: PriceHistoryCandle[];
 }

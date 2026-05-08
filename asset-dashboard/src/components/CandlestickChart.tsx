@@ -12,12 +12,12 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
     return <div className="empty-state">No historical candles available.</div>;
   }
 
-  const width = Math.max(760, candles.length * 12);
-  const height = 360;
-  const marginTop = 20;
+  const width = Math.max(980, candles.length * 14);
+  const height = 560;
+  const marginTop = 28;
   const marginRight = 20;
-  const marginBottom = 30;
-  const marginLeft = 64;
+  const marginBottom = 38;
+  const marginLeft = 76;
   const plotWidth = width - marginLeft - marginRight;
   const plotHeight = height - marginTop - marginBottom;
 
@@ -28,7 +28,7 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
   const paddedLow = lowValue - range * 0.06;
   const paddedRange = paddedHigh - paddedLow;
   const step = plotWidth / Math.max(candles.length, 1);
-  const bodyWidth = Math.max(4, Math.min(10, step * 0.62));
+  const bodyWidth = Math.max(5, Math.min(12, step * 0.64));
 
   const yFor = (value: number) => marginTop + ((paddedHigh - value) / paddedRange) * plotHeight;
 

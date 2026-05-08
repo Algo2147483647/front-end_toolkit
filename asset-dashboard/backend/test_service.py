@@ -73,6 +73,43 @@ class AssetHistoryApiTest(unittest.TestCase):
         self.assertEqual(payload["records"][0]["date"], "1985-10-01")
         self.assertEqual(payload["records"][0]["close"], expected_close)
 
+    def test_validate_data_endpoint_reports_table_quality(self) -> None:
+        response = self.client.post("/api/v1/data/validate", json={"asset_type": "gold"})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["asset_type"], "gold")
+        self.assertIn("issue_counts", payload)
+        self.assertIn("issues", payload)
+        self.assertGreater(payload["row_count"], 0)
+
+    def test_backfill_endpoint_supports_dry_run(self) -> None:
+        response = self.client.post(
+            "/api/v1/data/backfill",
+            json={
+                "asset_type": "jpy_usd",
+                "start_date": "1971-01-04",
+                "end_date": "1971-01-04",
+                "dry_run": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload["dry_run"])
+        self.assertEqual(payload["asset_type"], "jpy_usd")
+        self.assertIn("change_count", payload)
+        self.assertIn("changes", payload)
+
+    def test_audit_endpoint_returns_events(self) -> None:
+        self.client.post("/api/v1/data/validate", json={"asset_type": "gold"})
+        response = self.client.get("/api/v1/data/audit", query_string={"limit": 5})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertIn("events", payload)
+        self.assertTrue(payload["events"])
+
 
 if __name__ == "__main__":
     unittest.main()

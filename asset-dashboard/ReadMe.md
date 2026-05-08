@@ -86,10 +86,12 @@ cd D:\Algo\Projects\front-end_toolkit\asset-dashboard
 python -m backend.app
 ```
 
+The frontend dev server proxies `/api/*` to `http://127.0.0.1:8010`, so the browser can call the backend through the same Vite origin during local development.
+
 Example query:
 
 ```text
-GET http://127.0.0.1:8000/api/v1/asset-history?asset_type=gold&start_date=1985-10-01&end_date=1985-12-31&time_interval=1w&price_unit=USD
+GET http://127.0.0.1:8010/api/v1/asset-history?asset_type=gold&start_date=1985-10-01&end_date=1985-12-31&time_interval=1w&price_unit=USD
 ```
 
 Available helper endpoints:
@@ -98,3 +100,26 @@ Available helper endpoints:
 - `GET /api/v1/assets`
 - `GET /api/v1/fx-rates`
 - `GET /api/v1/asset-history`
+- `POST /api/v1/data/validate`
+- `POST /api/v1/data/backfill`
+- `GET /api/v1/data/audit`
+
+Validate one table:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8010/api/v1/data/validate `
+  -ContentType application/json `
+  -Body '{"asset_type":"gold"}'
+```
+
+Preview a repair without writing the CSV:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8010/api/v1/data/backfill `
+  -ContentType application/json `
+  -Body '{"asset_type":"jpy_usd","start_date":"1971-01-04","end_date":"1971-01-08","dry_run":true}'
+```
+
+Backfill is conservative by design. FX tables can repair missing OHLC fields from `close` and fill missing business dates with the previous available close. Gold and index OHLCV gaps are reported for source-based backfill instead of being interpolated. Real write operations create a CSV backup under `database/backups/` and append an audit event under `database/audit/data_quality_audit.jsonl`.

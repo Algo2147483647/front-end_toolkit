@@ -23,19 +23,19 @@ def backfill_asset_table(
     methods: list[str] | None = None,
 ) -> dict[str, Any]:
     source = resolve_asset_source(asset_type)
-    selected_methods = set(methods or ["flat_fx_ohlc", "fx_forward_fill"])
-    frame = _load_backfill_frame(source.file_path)
-    frame = _limit_frame(frame, start_date, end_date)
+    selected_methods = _normalize_methods(methods)
+    full_frame = _load_backfill_frame(source.file_path)
+    window_frame = _limit_frame(full_frame, start_date, end_date)
 
     changes: list[dict[str, Any]] = []
-    repaired = frame.copy()
+    repaired_window = window_frame.copy()
 
     if "flat_fx_ohlc" in selected_methods:
-        repaired, flat_changes = _flat_fill_fx_ohlc(source, repaired)
+        repaired_window, flat_changes = _flat_fill_fx_ohlc(source, repaired_window)
         changes.extend(flat_changes)
 
     if "fx_forward_fill" in selected_methods:
-        repaired, forward_changes = _forward_fill_fx_missing_dates(source, repaired)
+        repaired_window, forward_changes = _forward_fill_fx_missing_dates(source, repaired_window)
         changes.extend(forward_changes)
 
     unsupported_methods = selected_methods.difference({"flat_fx_ohlc", "fx_forward_fill"})
@@ -54,6 +54,7 @@ def backfill_asset_table(
 
     if not dry_run and changes:
         backup_path = _backup_file(source.file_path)
+        repaired = _merge_repaired_window(full_frame, repaired_window, start_date, end_date)
         _write_curated_csv(source.file_path, repaired)
         refresh_asset_sources()
         result["backup_path"] = str(backup_path)
@@ -61,6 +62,14 @@ def backfill_asset_table(
     result["validation_after"] = validate_asset_table(source.asset_type) if not dry_run and changes else None
     write_audit_event("data_backfill", result)
     return result
+
+
+def _normalize_methods(methods: list[str] | str | None) -> set[str]:
+    if methods is None:
+        return {"flat_fx_ohlc", "fx_forward_fill"}
+    if isinstance(methods, str):
+        return {methods}
+    return {str(method) for method in methods}
 
 
 def _limit_frame(frame: pd.DataFrame, start_date: str | None, end_date: str | None) -> pd.DataFrame:
@@ -76,6 +85,22 @@ def _limit_frame(frame: pd.DataFrame, start_date: str | None, end_date: str | No
             raise AssetQueryError(f"Invalid end_date '{end_date}'. Use YYYY-MM-DD.")
         limited = limited.loc[limited["date"] <= end_ts]
     return limited.sort_values("date").reset_index(drop=True)
+
+
+def _merge_repaired_window(
+    full_frame: pd.DataFrame,
+    repaired_window: pd.DataFrame,
+    start_date: str | None,
+    end_date: str | None,
+) -> pd.DataFrame:
+    window_mask = pd.Series(True, index=full_frame.index)
+    if start_date:
+        window_mask &= full_frame["date"] >= pd.to_datetime(start_date)
+    if end_date:
+        window_mask &= full_frame["date"] <= pd.to_datetime(end_date)
+
+    outside = full_frame.loc[~window_mask]
+    return pd.concat([outside, repaired_window], ignore_index=True).sort_values("date").drop_duplicates("date", keep="last")
 
 
 def _flat_fill_fx_ohlc(source, frame: pd.DataFrame) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
