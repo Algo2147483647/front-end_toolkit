@@ -74,3 +74,27 @@ Open the local Vite URL shown in the terminal.
 cd D:\Algo\Projects\front-end_toolkit\asset-dashboard
 npm run build
 ```
+
+## Python Backend
+
+The repo now also includes a lightweight Python historical-price API in [backend/app.py](/D:/Algo/Projects/front-end_toolkit/asset-dashboard/backend/app.py).
+
+Run it locally:
+
+```powershell
+cd D:\Algo\Projects\front-end_toolkit\asset-dashboard
+python -m backend.app
+```
+
+Example query:
+
+```text
+GET http://127.0.0.1:8000/api/v1/asset-history?asset_type=gold&start_date=1985-10-01&end_date=1985-12-31&time_interval=1w&price_unit=USD
+```
+
+Available helper endpoints:
+
+- `GET /health`
+- `GET /api/v1/assets`
+- `GET /api/v1/fx-rates`
+- `GET /api/v1/asset-history`
