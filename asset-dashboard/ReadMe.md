@@ -123,3 +123,37 @@ Invoke-RestMethod -Method Post `
 ```
 
 Backfill is conservative by design. FX tables can repair missing OHLC fields from `close` and fill missing business dates with the previous available close. Gold and index OHLCV gaps are reported for source-based backfill instead of being interpolated. Real write operations create a CSV backup under `database/backups/` and append an audit event under `database/audit/data_quality_audit.jsonl`.
+
+To extend FX tables to today or the nearest previous business day:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8010/api/v1/data/backfill `
+  -ContentType application/json `
+  -Body '{"asset_type":"jpy_usd","dry_run":false,"methods":["fx_extend_to_recent"]}'
+```
+
+`fx_extend_to_recent` uses the previous available business close for generated FX candles. It does not synthesize gold or index OHLCV data.
+
+Gold source backfill supports licensed CME/LBMA exports:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8010/api/v1/data/backfill `
+  -ContentType application/json `
+  -Body '{"asset_type":"gold","dry_run":false,"methods":["gold_source_backfill"]}'
+```
+
+The backend looks for these local files by default:
+
+- `database/sources/cme_gold.csv`
+- `database/sources/lbma_gold.csv`
+
+You can also point it at an authorized CSV URL or local file:
+
+```powershell
+$env:GOLD_CME_SOURCE="D:\licensed-data\cme_gold.csv"
+$env:GOLD_LBMA_SOURCE="D:\licensed-data\lbma_gold.csv"
+```
+
+CME exports should contain a date column and a close-like field such as `settle`, `settlement`, `last`, or `close`; optional `open/high/low/volume` columns are used when available. LBMA exports should contain a date column and a PM price field such as `usd_pm`, `pm_usd`, `pm`, `price`, or `close`. LBMA close-only rows are loaded as flat OHLC candles because the LBMA benchmark is a twice-daily benchmark, not an exchange OHLCV bar.

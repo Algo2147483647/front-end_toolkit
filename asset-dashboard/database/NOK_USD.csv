@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,NOK/USD,0.107600929672,0.107600929672,0.107600929672,0.107600929672,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXNOUS
 2026-04-30,NOK/USD,0.107621774037,0.107621774037,0.107621774037,0.107621774037,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXNOUS
 2026-05-01,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXNOUS
+2026-05-04,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,NOK/USD,0.108069553565,0.108069553565,0.108069553565,0.108069553565,,,filled: fx_extend_to_recent from previous business close

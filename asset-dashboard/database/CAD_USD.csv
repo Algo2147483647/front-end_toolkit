@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,CAD/USD,0.731475385853,0.731475385853,0.731475385853,0.731475385853,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXCAUS
 2026-04-30,CAD/USD,0.734699875101,0.734699875101,0.734699875101,0.734699875101,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXCAUS
 2026-05-01,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXCAUS
+2026-05-04,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,CAD/USD,0.73664825046,0.73664825046,0.73664825046,0.73664825046,,,filled: fx_extend_to_recent from previous business close

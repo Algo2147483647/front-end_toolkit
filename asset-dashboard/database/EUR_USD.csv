@@ -7129,3 +7129,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,EUR/USD,0.8551,0.8551,0.8551,0.8551,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSEU
 2026-04-30,EUR/USD,0.8526,0.8526,0.8526,0.8526,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSEU
 2026-05-01,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSEU
+2026-05-04,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,EUR/USD,0.8507,0.8507,0.8507,0.8507,,,filled: fx_extend_to_recent from previous business close

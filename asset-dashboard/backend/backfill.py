@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 
 from .audit import write_audit_event
+from .providers.gold_sources import load_gold_source
 from .service import AssetQueryError, _normalize_column_name, refresh_asset_sources, resolve_asset_source
 from .validators import validate_asset_table
 
@@ -26,6 +27,7 @@ def backfill_asset_table(
     selected_methods = _normalize_methods(methods)
     full_frame = _load_backfill_frame(source.file_path)
     window_frame = _limit_frame(full_frame, start_date, end_date)
+    target_recent_business_date = _recent_business_date()
 
     changes: list[dict[str, Any]] = []
     repaired_window = window_frame.copy()
@@ -38,7 +40,26 @@ def backfill_asset_table(
         repaired_window, forward_changes = _forward_fill_fx_missing_dates(source, repaired_window)
         changes.extend(forward_changes)
 
-    unsupported_methods = selected_methods.difference({"flat_fx_ohlc", "fx_forward_fill"})
+    if "fx_extend_to_recent" in selected_methods:
+        repaired_window, extend_changes = _extend_fx_to_recent_business_date(
+            source,
+            repaired_window,
+            target_recent_business_date,
+        )
+        changes.extend(extend_changes)
+
+    provider_status = None
+    if "gold_source_backfill" in selected_methods:
+        repaired_window, gold_changes, provider_status = _backfill_gold_from_source(
+            source,
+            repaired_window,
+            target_recent_business_date,
+        )
+        changes.extend(gold_changes)
+
+    unsupported_methods = selected_methods.difference(
+        {"flat_fx_ohlc", "fx_forward_fill", "fx_extend_to_recent", "gold_source_backfill"}
+    )
     if unsupported_methods:
         raise AssetQueryError(f"Unsupported backfill methods: {', '.join(sorted(unsupported_methods))}.")
 
@@ -47,6 +68,8 @@ def backfill_asset_table(
         "file_path": str(source.file_path),
         "dry_run": bool(dry_run),
         "methods": sorted(selected_methods),
+        "target_recent_business_date": target_recent_business_date.strftime("%Y-%m-%d"),
+        "provider_status": provider_status,
         "change_count": len(changes),
         "changes": changes[:500],
         "truncated_changes": max(0, len(changes) - 500),
@@ -66,7 +89,7 @@ def backfill_asset_table(
 
 def _normalize_methods(methods: list[str] | str | None) -> set[str]:
     if methods is None:
-        return {"flat_fx_ohlc", "fx_forward_fill"}
+        return {"flat_fx_ohlc", "fx_forward_fill", "fx_extend_to_recent"}
     if isinstance(methods, str):
         return {methods}
     return {str(method) for method in methods}
@@ -182,6 +205,104 @@ def _forward_fill_fx_missing_dates(source, frame: pd.DataFrame) -> tuple[pd.Data
     return repaired, changes
 
 
+def _extend_fx_to_recent_business_date(source, frame: pd.DataFrame, target_date: pd.Timestamp) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
+    if not _is_fx_source(source) or frame.empty:
+        return frame, []
+
+    repaired = frame.sort_values("date").reset_index(drop=True)
+    last_date = pd.to_datetime(repaired["date"]).max()
+    if pd.isna(last_date) or last_date >= target_date:
+        return repaired, []
+
+    fill_dates = pd.bdate_range(last_date + pd.offsets.BDay(1), target_date)
+    if fill_dates.empty:
+        return repaired, []
+
+    previous_row = repaired.iloc[-1]
+    previous_close = previous_row["close"]
+    rows: list[dict[str, Any]] = []
+    changes: list[dict[str, Any]] = []
+
+    for fill_date in fill_dates:
+        row = {column: previous_row.get(column, pd.NA) for column in repaired.columns}
+        row.update(
+            {
+                "date": fill_date,
+                "open": previous_close,
+                "high": previous_close,
+                "low": previous_close,
+                "close": previous_close,
+                "adjusted_close": pd.NA,
+                "volume": pd.NA,
+                "source": "filled: fx_extend_to_recent from previous business close",
+            }
+        )
+        rows.append(row)
+        changes.append(
+            {
+                "date": fill_date.strftime("%Y-%m-%d"),
+                "field": "row",
+                "old_value": None,
+                "new_value": {
+                    "open": _round(previous_close),
+                    "high": _round(previous_close),
+                    "low": _round(previous_close),
+                    "close": _round(previous_close),
+                },
+                "method": "fx_extend_to_recent",
+                "source": "previous_business_close",
+            }
+        )
+
+    extended = pd.concat([repaired, pd.DataFrame(rows)], ignore_index=True)
+    return extended.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True), changes
+
+
+def _backfill_gold_from_source(source, frame: pd.DataFrame, target_date: pd.Timestamp) -> tuple[pd.DataFrame, list[dict[str, Any]], dict[str, Any]]:
+    if source.base_symbol != "GOLD" or frame.empty:
+        return frame, [], {"provider": None, "status": "Not a gold source."}
+
+    provider = load_gold_source()
+    provider_status = {
+        "provider": provider.provider,
+        "status": provider.status,
+        "source_ref": provider.source_ref,
+    }
+    if provider.frame.empty:
+        return frame, [], provider_status
+
+    repaired = frame.sort_values("date").reset_index(drop=True)
+    last_date = pd.to_datetime(repaired["date"]).max()
+    candidates = provider.frame.loc[(provider.frame["date"] > last_date) & (provider.frame["date"] <= target_date)]
+    if candidates.empty:
+        provider_status["status"] = f"{provider.status} No rows newer than {last_date.strftime('%Y-%m-%d')} up to {target_date.strftime('%Y-%m-%d')}."
+        return repaired, [], provider_status
+
+    rows = candidates.copy()
+    rows["source"] = f"{provider.provider}: licensed_source_backfill"
+    changes = [
+        {
+            "date": row["date"].strftime("%Y-%m-%d"),
+            "field": "row",
+            "old_value": None,
+            "new_value": {
+                "open": _round(row["open"]),
+                "high": _round(row["high"]),
+                "low": _round(row["low"]),
+                "close": _round(row["close"]),
+            },
+            "method": "gold_source_backfill",
+            "source": provider.provider,
+        }
+        for _, row in rows.iterrows()
+    ]
+
+    merged = pd.concat([repaired, rows], ignore_index=True)
+    merged = merged.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
+    provider_status["status"] = f"{provider.status} Applied {len(changes)} gold rows."
+    return merged, changes, provider_status
+
+
 def _is_fx_source(source) -> bool:
     return source.base_symbol != "GOLD" and source.quote_symbol == "USD"
 
@@ -231,3 +352,10 @@ def _round(value: Any) -> float | None:
 
 def _format_date(value: Any) -> str:
     return pd.to_datetime(value).strftime("%Y-%m-%d")
+
+
+def _recent_business_date(now: datetime | None = None) -> pd.Timestamp:
+    current = pd.Timestamp((now or datetime.now()).date())
+    if current.weekday() >= 5:
+        return current - pd.offsets.BDay(1)
+    return current

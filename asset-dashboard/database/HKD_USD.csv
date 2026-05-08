@@ -11825,3 +11825,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,HKD/USD,0.127609616661,0.127609616661,0.127609616661,0.127609616661,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXHKUS
 2026-04-30,HKD/USD,0.127658488013,0.127658488013,0.127658488013,0.127658488013,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXHKUS
 2026-05-01,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXHKUS
+2026-05-04,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,HKD/USD,0.127635676724,0.127635676724,0.127635676724,0.127635676724,,,filled: fx_extend_to_recent from previous business close

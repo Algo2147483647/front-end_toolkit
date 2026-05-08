@@ -100,6 +100,37 @@ class AssetHistoryApiTest(unittest.TestCase):
         self.assertEqual(payload["asset_type"], "jpy_usd")
         self.assertIn("change_count", payload)
         self.assertIn("changes", payload)
+        self.assertIn("target_recent_business_date", payload)
+
+    def test_backfill_endpoint_accepts_extend_to_recent_method(self) -> None:
+        response = self.client.post(
+            "/api/v1/data/backfill",
+            json={
+                "asset_type": "jpy_usd",
+                "dry_run": True,
+                "methods": ["fx_extend_to_recent"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["methods"], ["fx_extend_to_recent"])
+        self.assertIn("target_recent_business_date", payload)
+
+    def test_backfill_endpoint_accepts_gold_source_backfill_method(self) -> None:
+        response = self.client.post(
+            "/api/v1/data/backfill",
+            json={
+                "asset_type": "gold",
+                "dry_run": True,
+                "methods": ["gold_source_backfill"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["methods"], ["gold_source_backfill"])
+        self.assertIn("provider_status", payload)
 
     def test_audit_endpoint_returns_events(self) -> None:
         self.client.post("/api/v1/data/validate", json={"asset_type": "gold"})

@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,SEK/USD,0.107553480968,0.107553480968,0.107553480968,0.107553480968,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXSDUS
 2026-04-30,SEK/USD,0.108112783255,0.108112783255,0.108112783255,0.108112783255,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXSDUS
 2026-05-01,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXSDUS
+2026-05-04,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,SEK/USD,0.108798537748,0.108798537748,0.108798537748,0.108798537748,,,filled: fx_extend_to_recent from previous business close

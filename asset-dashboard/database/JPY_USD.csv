@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,JPY/USD,0.0062410285215,0.0062410285215,0.0062410285215,0.0062410285215,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXJPUS
 2026-04-30,JPY/USD,0.00638325035108,0.00638325035108,0.00638325035108,0.00638325035108,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXJPUS
 2026-05-01,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXJPUS
+2026-05-04,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,JPY/USD,0.00637917836183,0.00637917836183,0.00637917836183,0.00637917836183,,,filled: fx_extend_to_recent from previous business close

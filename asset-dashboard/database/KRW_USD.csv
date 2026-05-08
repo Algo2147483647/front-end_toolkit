@@ -11754,3 +11754,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,KRW/USD,0.000672183048888,0.000672183048888,0.000672183048888,0.000672183048888,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXKOUS
 2026-04-30,KRW/USD,0.000676622032167,0.000676622032167,0.000676622032167,0.000676622032167,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXKOUS
 2026-05-01,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXKOUS
+2026-05-04,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,KRW/USD,0.000676947238732,0.000676947238732,0.000676947238732,0.000676947238732,,,filled: fx_extend_to_recent from previous business close

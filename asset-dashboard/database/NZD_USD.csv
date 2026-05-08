@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,NZD/USD,1.7132,1.7132,1.7132,1.7132,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSNZ
 2026-04-30,NZD/USD,1.6972,1.6972,1.6972,1.6972,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSNZ
 2026-05-01,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSNZ
+2026-05-04,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,NZD/USD,1.6898,1.6898,1.6898,1.6898,,,filled: fx_extend_to_recent from previous business close

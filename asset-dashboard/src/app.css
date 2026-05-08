@@ -563,8 +563,10 @@ textarea.field-input {
 
 .candle-chart {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: none;
   min-width: 980px;
+  height: 560px;
 }
 
 .candle-chart-bg {

@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,AUD/USD,1.4025,1.4025,1.4025,1.4025,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSAL
 2026-04-30,AUD/USD,1.392,1.392,1.392,1.392,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSAL
 2026-05-01,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSAL
+2026-05-04,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,AUD/USD,1.3852,1.3852,1.3852,1.3852,,,filled: fx_extend_to_recent from previous business close

@@ -14434,3 +14434,8 @@ date,currency_pair,open,high,low,close,adjusted_close,volume,source
 2026-04-29,GBP/USD,0.7411,0.7411,0.7411,0.7411,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSUK
 2026-04-30,GBP/USD,0.7364,0.7364,0.7364,0.7364,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSUK
 2026-05-01,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,https://datahub.io/core/exchange-rates/_r/-/data/daily.csv ; original FRED series https://fred.stlouisfed.org/series/DEXUSUK
+2026-05-04,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,filled: fx_extend_to_recent from previous business close
+2026-05-05,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,filled: fx_extend_to_recent from previous business close
+2026-05-06,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,filled: fx_extend_to_recent from previous business close
+2026-05-07,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,filled: fx_extend_to_recent from previous business close
+2026-05-08,GBP/USD,0.7342,0.7342,0.7342,0.7342,,,filled: fx_extend_to_recent from previous business close

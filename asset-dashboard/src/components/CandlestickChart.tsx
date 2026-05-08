@@ -12,7 +12,9 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
     return <div className="empty-state">No historical candles available.</div>;
   }
 
-  const width = Math.max(980, candles.length * 14);
+  const visibleCandles = candles.slice(-260);
+  const hiddenCount = Math.max(0, candles.length - visibleCandles.length);
+  const width = Math.max(980, visibleCandles.length * 14);
   const height = 560;
   const marginTop = 28;
   const marginRight = 20;
@@ -21,23 +23,30 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
   const plotWidth = width - marginLeft - marginRight;
   const plotHeight = height - marginTop - marginBottom;
 
-  const highValue = Math.max(...candles.map((candle) => candle.high));
-  const lowValue = Math.min(...candles.map((candle) => candle.low));
+  const highValue = Math.max(...visibleCandles.map((candle) => candle.high));
+  const lowValue = Math.min(...visibleCandles.map((candle) => candle.low));
   const range = Math.max(highValue - lowValue, 1);
   const paddedHigh = highValue + range * 0.06;
   const paddedLow = lowValue - range * 0.06;
   const paddedRange = paddedHigh - paddedLow;
-  const step = plotWidth / Math.max(candles.length, 1);
+  const step = plotWidth / Math.max(visibleCandles.length, 1);
   const bodyWidth = Math.max(5, Math.min(12, step * 0.64));
 
   const yFor = (value: number) => marginTop + ((paddedHigh - value) / paddedRange) * plotHeight;
 
   const gridValues = Array.from({ length: 5 }, (_, index) => paddedLow + (paddedRange / 4) * index).reverse();
-  const xLabelStep = Math.max(1, Math.floor(candles.length / 6));
+  const xLabelStep = Math.max(1, Math.floor(visibleCandles.length / 6));
 
   return (
     <div className="candle-chart-scroll">
-      <svg className="candle-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Historical candlestick chart">
+      <svg
+        className="candle-chart"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="Historical candlestick chart"
+      >
         <rect x={0} y={0} width={width} height={height} rx={16} className="candle-chart-bg" />
 
         {gridValues.map((value) => {
@@ -52,7 +61,13 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
           );
         })}
 
-        {candles.map((candle, index) => {
+        {hiddenCount ? (
+          <text x={marginLeft} y={marginTop - 8} className="candle-axis-label">
+            Showing latest {visibleCandles.length} of {candles.length} candles
+          </text>
+        ) : null}
+
+        {visibleCandles.map((candle, index) => {
           const xCenter = marginLeft + step * index + step / 2;
           const openY = yFor(candle.open);
           const closeY = yFor(candle.close);
@@ -77,8 +92,8 @@ export default function CandlestickChart({ candles, locale }: CandlestickChartPr
           );
         })}
 
-        {candles.map((candle, index) => {
-          if (index % xLabelStep !== 0 && index !== candles.length - 1) {
+        {visibleCandles.map((candle, index) => {
+          if (index % xLabelStep !== 0 && index !== visibleCandles.length - 1) {
             return null;
           }
           const x = marginLeft + step * index + step / 2;
