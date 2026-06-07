@@ -317,16 +317,20 @@ button {
   align-items: center;
 }
 
+.asset-ledger-head span:first-child {
+  padding-left: 12px;
+}
+
 .asset-ledger-head {
   min-height: 28px;
-  padding: 0 14px;
+  padding: 0 14px 0 16px;
   border-bottom: 1px solid rgba(91, 109, 142, 0.095);
   background: linear-gradient(180deg, rgba(251, 252, 254, 0.94), rgba(243, 247, 252, 0.88));
   color: #7d899b;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-family: "Times New Roman", "Georgia", serif;
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -376,8 +380,9 @@ button {
 
 .asset-cell strong {
   color: #182235;
-  font-size: 13px;
-  font-weight: 650;
+  font-family: "Times New Roman", "Georgia", serif;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
@@ -385,7 +390,8 @@ button {
 .asset-cell span {
   margin-top: 2px;
   color: #768398;
-  font-size: 10.5px;
+  font-family: "Times New Roman", "Georgia", serif;
+  font-size: 11.5px;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
@@ -402,15 +408,11 @@ button {
 }
 
 .asset-name-cell strong {
-  font-size: 13.5px;
+  font-size: 16px;
 }
 
-.asset-ledger-head span:nth-child(3),
-.asset-ledger-head span:nth-child(4),
-.asset-ledger-head span:nth-child(5),
-.asset-ledger-row .asset-cell:nth-child(3),
-.asset-ledger-row .asset-cell:nth-child(4),
-.asset-ledger-row .asset-cell:nth-child(5) {
+.asset-ledger-head span:nth-child(n + 3),
+.asset-ledger-row .asset-cell:nth-of-type(n + 3) {
   text-align: right;
 }
 
@@ -442,7 +444,7 @@ button {
   min-height: 18px;
   padding: 2px 6px;
   border-radius: 999px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-family: "Times New Roman", "Georgia", serif;
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -460,9 +462,9 @@ button {
 
 .asset-usd-cell strong {
   color: #1e8f5a;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-  font-size: 15px;
-  font-weight: 700;
+  font-family: "Times New Roman", "Georgia", serif;
+  font-size: 18px;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
