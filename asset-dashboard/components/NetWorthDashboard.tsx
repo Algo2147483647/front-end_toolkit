@@ -50,6 +50,13 @@ const sampleConfig = {
       quantity: 2250
     },
     {
+      id: "cash_jpy_001",
+      type: "fx",
+      name: "JPY Cash",
+      currency: "JPY",
+      quantity: 10000
+    },
+    {
       id: "cash_usd_001",
       type: "fx",
       name: "USD Cash 850",
@@ -150,6 +157,7 @@ export function NetWorthDashboard() {
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parsed = useMemo(() => {
@@ -234,6 +242,7 @@ export function NetWorthDashboard() {
 
   const assets = valuation?.assets ?? [];
   const hasFailures = (valuation?.failedAssetCount ?? 0) > 0;
+  const selectedAsset = assets.find((asset) => asset.id === selectedAssetId) ?? null;
 
   return (
     <main className="app-shell">
@@ -314,65 +323,107 @@ export function NetWorthDashboard() {
             {assets.length === 0 ? (
               <div className="empty-state">{loading ? "Fetching latest valuation..." : "Load a JSON file or use the sample configuration."}</div>
             ) : (
-              <div className="asset-list">
+              <div className="asset-ledger" role="table" aria-label="Asset breakdown">
+                <div className="asset-ledger-head" role="row">
+                  <span>Status</span>
+                  <span>Asset</span>
+                  <span>Quantity</span>
+                  <span>FX</span>
+                  <span>Price</span>
+                </div>
                 {assets.map((asset) => (
-                  <article key={asset.id} className="asset-card">
-                    <div className="asset-title">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`status-pill ${statusTone(asset.status)}`}>
-                          <StatusIcon status={asset.status} />
-                          {asset.status}
-                        </span>
-                        <span className="type-pill">{asset.type}</span>
-                      </div>
-                      <h3>{asset.name}</h3>
-                      <p>{asset.id}</p>
+                  <button key={asset.id} type="button" className="asset-ledger-row" role="row" onClick={() => setSelectedAssetId(asset.id)}>
+                    <div className="asset-cell asset-status-cell" role="cell">
+                      <span className={`status-pill ${statusTone(asset.status)}`}>
+                        <StatusIcon status={asset.status} />
+                        {asset.status}
+                      </span>
+                      <span className="type-pill">{asset.type}</span>
                     </div>
-
-                    <dl className="asset-meta">
-                      <div>
-                        <dt>Quantity</dt>
-                        <dd>
-                          {formatNumber(asset.quantity)} {asset.unit ?? asset.symbol ?? ""}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Price</dt>
-                        <dd>{asset.price == null ? "N/A" : `${formatNumber(asset.price, 6)} ${asset.pricingCurrency ?? ""}`}</dd>
-                      </div>
-                      <div>
-                        <dt>Currency</dt>
-                        <dd>{asset.pricingCurrency ?? "N/A"}</dd>
-                      </div>
-                      <div>
-                        <dt>USD FX</dt>
-                        <dd>{formatNumber(asset.fxRateToUsd, 6)}</dd>
-                      </div>
-                      <div className="meta-wide">
-                        <dt>Data Source</dt>
-                        <dd>{asset.source}</dd>
-                      </div>
-                      <div className="meta-wide">
-                        <dt>Last Updated</dt>
-                        <dd>{formatDate(asset.updatedAt)}</dd>
-                      </div>
-                      <div className="meta-full">
-                        <dt>Status Detail</dt>
-                        <dd>{asset.message}</dd>
-                      </div>
-                    </dl>
-
-                    <div className="asset-value">
-                      <p>USD Value</p>
+                    <div className="asset-cell asset-name-cell" role="cell">
+                      <strong>{asset.name}</strong>
+                      <span>{asset.id}</span>
+                    </div>
+                    <div className="asset-cell" role="cell">
+                      <strong>
+                        {formatNumber(asset.quantity)} {asset.unit ?? asset.symbol ?? ""}
+                      </strong>
+                    </div>
+                    <div className="asset-cell" role="cell">
+                      <strong>{formatNumber(asset.fxRateToUsd, 6)}</strong>
+                      <span>to USD</span>
+                    </div>
+                    <div className="asset-cell asset-usd-cell" role="cell">
                       <strong>{formatUsd(asset.usdValue)}</strong>
                     </div>
-                  </article>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         </section>
       </section>
+
+      {selectedAsset ? (
+        <div className="asset-modal" role="dialog" aria-modal="true" aria-labelledby="asset-modal-title" onClick={() => setSelectedAssetId(null)}>
+          <div className="asset-dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="asset-dialog-header">
+              <div>
+                <p className="eyebrow">{selectedAsset.type}</p>
+                <h2 id="asset-modal-title">{selectedAsset.name}</h2>
+                <p>{selectedAsset.id}</p>
+              </div>
+              <button type="button" className="studio-btn studio-btn-ghost" onClick={() => setSelectedAssetId(null)}>
+                Close
+              </button>
+            </div>
+            <dl className="asset-detail-grid">
+              <div>
+                <dt>Status</dt>
+                <dd>{selectedAsset.status}</dd>
+              </div>
+              <div>
+                <dt>Type</dt>
+                <dd>{selectedAsset.type}</dd>
+              </div>
+              <div>
+                <dt>Quantity</dt>
+                <dd>
+                  {formatNumber(selectedAsset.quantity)} {selectedAsset.unit ?? selectedAsset.symbol ?? ""}
+                </dd>
+              </div>
+              <div>
+                <dt>Current Price</dt>
+                <dd>{selectedAsset.price == null ? "N/A" : `${formatNumber(selectedAsset.price, 6)} ${selectedAsset.pricingCurrency ?? ""}`}</dd>
+              </div>
+              <div>
+                <dt>Pricing Currency</dt>
+                <dd>{selectedAsset.pricingCurrency ?? "N/A"}</dd>
+              </div>
+              <div>
+                <dt>USD FX</dt>
+                <dd>{formatNumber(selectedAsset.fxRateToUsd, 6)}</dd>
+              </div>
+              <div>
+                <dt>USD Value</dt>
+                <dd>{formatUsd(selectedAsset.usdValue)}</dd>
+              </div>
+              <div>
+                <dt>Last Updated</dt>
+                <dd>{formatDate(selectedAsset.updatedAt)}</dd>
+              </div>
+              <div className="detail-wide">
+                <dt>Data Source</dt>
+                <dd>{selectedAsset.source}</dd>
+              </div>
+              <div className="detail-wide">
+                <dt>Status Detail</dt>
+                <dd>{selectedAsset.message}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
