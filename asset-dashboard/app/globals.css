@@ -331,9 +331,10 @@ button {
 }
 
 .asset-ledger-row {
+  position: relative;
   width: 100%;
   min-height: 44px;
-  padding: 6px 14px;
+  padding: 6px 14px 6px 16px;
   border-top: none;
   border-right: none;
   border-left: none;
@@ -353,15 +354,12 @@ button {
 
 .asset-ledger-row:hover {
   background: rgba(236, 242, 250, 0.82);
-  box-shadow: inset 3px 0 0 rgba(40, 95, 223, 0.26);
 }
 
 .asset-ledger-row:focus-visible {
   outline: none;
   background: rgba(230, 239, 253, 0.92);
-  box-shadow:
-    inset 3px 0 0 rgba(40, 95, 223, 0.55),
-    inset 0 0 0 1px rgba(40, 95, 223, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(40, 95, 223, 0.22);
 }
 
 .asset-cell {
@@ -396,10 +394,9 @@ button {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
-.asset-status-cell .status-dot,
 .asset-status-cell .type-pill {
   flex: 0 0 auto;
 }
@@ -417,10 +414,25 @@ button {
   text-align: right;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
+.status-strip {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 6px;
+  width: 3px;
   border-radius: 999px;
+}
+
+.status-strip-ok {
+  background: #34c759;
+}
+
+.status-strip-warning {
+  background: #ff9f0a;
+}
+
+.status-strip-failed {
+  background: #ff3b30;
 }
 
 .type-pill {
