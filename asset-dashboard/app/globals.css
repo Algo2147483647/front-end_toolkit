@@ -34,7 +34,7 @@ body {
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.86), transparent 30%),
     radial-gradient(circle at 80% 18%, rgba(40, 95, 223, 0.08), transparent 22%),
     linear-gradient(155deg, var(--bg-top), var(--bg-bottom));
-  font-family: "IBM Plex Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 body::before {
@@ -161,13 +161,9 @@ button {
 }
 
 .workspace-shell {
-  display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
-  gap: 12px;
   margin-top: 12px;
 }
 
-.control-panel,
 .stage-panel,
 .total-card,
 .breakdown-panel {
@@ -175,17 +171,6 @@ button {
   background: linear-gradient(180deg, var(--panel-strong), rgba(255, 255, 255, 0.62));
   box-shadow: 0 12px 24px rgba(26, 39, 63, 0.04);
   backdrop-filter: blur(12px);
-}
-
-.control-panel {
-  position: sticky;
-  top: 72px;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  height: calc(100vh - 92px);
-  padding: 14px;
-  border-radius: 14px;
 }
 
 .panel-section {
@@ -232,22 +217,6 @@ button {
   border: 1px solid rgba(192, 76, 76, 0.22);
   background: rgba(192, 76, 76, 0.1);
   color: #a33838;
-}
-
-.source-notes {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(91, 109, 142, 0.1);
-  border-radius: 8px;
-  background: rgba(248, 250, 252, 0.72);
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.source-notes p {
-  margin: 0;
 }
 
 .stage-panel {
@@ -354,7 +323,7 @@ button {
   border-bottom: 1px solid rgba(91, 109, 142, 0.095);
   background: linear-gradient(180deg, rgba(251, 252, 254, 0.94), rgba(243, 247, 252, 0.88));
   color: #7d899b;
-  font-family: "Consolas", "SFMono-Regular", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -412,6 +381,7 @@ button {
   font-size: 13px;
   font-weight: 650;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .asset-cell span {
@@ -419,6 +389,7 @@ button {
   color: #768398;
   font-size: 10.5px;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .asset-status-cell {
@@ -459,7 +430,7 @@ button {
   min-height: 18px;
   padding: 2px 6px;
   border-radius: 999px;
-  font-family: "Consolas", "SFMono-Regular", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -477,22 +448,13 @@ button {
 
 .asset-usd-cell strong {
   color: #1e8f5a;
-  font-family: "Consolas", "SFMono-Regular", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
 }
 
 @media (max-width: 1180px) {
-  .workspace-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .control-panel {
-    position: static;
-    height: auto;
-  }
-
   .asset-ledger {
     overflow-x: auto;
   }
@@ -609,6 +571,25 @@ button {
 
 .asset-detail-grid .detail-wide {
   grid-column: 1 / -1;
+}
+
+.config-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.config-panel-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.config-actions .studio-btn {
+  flex: 1 1 160px;
 }
 
 @media (max-width: 640px) {

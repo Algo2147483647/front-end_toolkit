@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileJson, Loader2, RefreshCcw, RotateCcw, Upload } from "lucide-react";
+import { FileJson, Loader2, RefreshCcw, RotateCcw, Settings2, Upload } from "lucide-react";
 import type { AssetStatus, ValuationResponse } from "@/lib/valuation/types";
 
 const sampleConfigPath = "/sample-config.json";
@@ -42,12 +42,12 @@ function formatDate(value: string | null | undefined): string {
 
 function statusDotTone(status: AssetStatus): string {
   if (status === "ok") {
-    return "bg-[#34c759] shadow-[0_0_0_3px_rgba(52,199,89,0.14)]";
+    return "status-strip-ok";
   }
   if (status === "warning") {
-    return "bg-[#ff9f0a] shadow-[0_0_0_3px_rgba(255,159,10,0.14)]";
+    return "status-strip-warning";
   }
-  return "bg-[#ff3b30] shadow-[0_0_0_3px_rgba(255,59,48,0.14)]";
+  return "status-strip-failed";
 }
 
 function conversionFactor(asset: ValuationResponse["assets"][number]): number | null {
@@ -87,6 +87,7 @@ export function NetWorthDashboard() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [sampleLoading, setSampleLoading] = useState(true);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parsed = useMemo(() => {
@@ -206,17 +207,10 @@ export function NetWorthDashboard() {
           <h1>Current Net Worth</h1>
         </div>
         <div className="topbar-actions">
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="studio-btn studio-btn-ghost">
-            <Upload className="h-4 w-4" aria-hidden="true" />
-            Load JSON
+          <button type="button" onClick={() => setConfigOpen(true)} className="studio-btn studio-btn-ghost">
+            <Settings2 className="h-4 w-4" aria-hidden="true" />
+            Config
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="sr-only"
-            onChange={(event) => void loadLocalJson(event.target.files?.[0])}
-          />
           <button type="button" onClick={useSample} className="studio-btn studio-btn-ghost">
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Sample
@@ -228,35 +222,9 @@ export function NetWorthDashboard() {
         </div>
       </header>
 
+      <input ref={fileInputRef} type="file" accept="application/json,.json" className="sr-only" onChange={(event) => void loadLocalJson(event.target.files?.[0])} />
+
       <section className="workspace-shell">
-        <aside className="control-panel">
-          <div className="panel-section">
-            <p className="control-label">Loaded Configuration</p>
-            <div className="file-tile">
-              <FileJson className="h-5 w-5 text-[#285fdf]" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="m-0 truncate font-semibold text-[#162033]">{fileName}</p>
-                <p className="m-0 mt-1 text-xs text-[#5f6d82]">
-                  {configSummary.assetCount} assets · {configSummary.baseCurrency} valuation
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel-section">
-            <p className="control-label">Validation</p>
-            {parsed.error ? (
-              <p className="status-box status-error">{parsed.error}</p>
-            ) : sampleLoading ? (
-              <p className="status-box status-ok">Loading sample JSON...</p>
-            ) : (
-              <p className="status-box status-ok">JSON format is valid and ready to price.</p>
-            )}
-            {apiError ? <p className="status-box status-error">{apiError}</p> : null}
-          </div>
-
-        </aside>
-
         <section className="stage-panel">
           <div className="total-card">
             <div>
@@ -289,8 +257,8 @@ export function NetWorthDashboard() {
                 </div>
                 {assets.map((asset) => (
                   <button key={asset.id} type="button" className="asset-ledger-row" role="row" onClick={() => setSelectedAssetId(asset.id)}>
+                    <span className={`status-strip ${statusDotTone(asset.status)}`} aria-label={`Status ${asset.status}`} />
                     <div className="asset-cell asset-status-cell" role="cell">
-                      <span className={`status-dot ${statusDotTone(asset.status)}`} aria-label={`Status ${asset.status}`} />
                       <span className="type-pill">{asset.type}</span>
                     </div>
                     <div className="asset-cell asset-name-cell" role="cell">
@@ -374,6 +342,61 @@ export function NetWorthDashboard() {
                 <dd>{selectedAsset.message}</dd>
               </div>
             </dl>
+          </div>
+        </div>
+      ) : null}
+
+      {configOpen ? (
+        <div className="asset-modal" role="dialog" aria-modal="true" aria-labelledby="config-modal-title" onClick={() => setConfigOpen(false)}>
+          <div className="asset-dialog config-dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="asset-dialog-header">
+              <div>
+                <p className="eyebrow">Configuration</p>
+                <h2 id="config-modal-title">Asset JSON</h2>
+                <p>Load and validate the active portfolio file.</p>
+              </div>
+              <button type="button" className="studio-btn studio-btn-ghost" onClick={() => setConfigOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="config-panel-grid">
+              <div className="panel-section">
+                <p className="control-label">Loaded Configuration</p>
+                <div className="file-tile">
+                  <FileJson className="h-5 w-5 text-[#285fdf]" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="m-0 truncate font-semibold text-[#162033]">{fileName}</p>
+                    <p className="m-0 mt-1 text-xs text-[#5f6d82]">
+                      {configSummary.assetCount} assets / {configSummary.baseCurrency} valuation
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="panel-section">
+                <p className="control-label">Validation</p>
+                {parsed.error ? (
+                  <p className="status-box status-error">{parsed.error}</p>
+                ) : sampleLoading ? (
+                  <p className="status-box status-ok">Loading sample JSON...</p>
+                ) : (
+                  <p className="status-box status-ok">JSON format is valid and ready to price.</p>
+                )}
+                {apiError ? <p className="status-box status-error">{apiError}</p> : null}
+              </div>
+
+              <div className="config-actions">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="studio-btn studio-btn-primary">
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                  Load JSON
+                </button>
+                <button type="button" onClick={useSample} className="studio-btn studio-btn-ghost">
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  Sample
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
