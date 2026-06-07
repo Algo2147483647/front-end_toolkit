@@ -10,6 +10,7 @@ interface NasdaqQuoteResponse {
     primaryData?: {
       lastSalePrice?: string;
       lastTradeTimestamp?: string;
+      percentageChange?: string;
     };
   } | null;
   status?: {
@@ -71,10 +72,13 @@ export async function fetchFrankfurterRate(fromCurrency: string, toCurrency = "U
     throw new ValuationError(`No ${from}/${to} exchange rate was returned by Frankfurter.`);
   }
 
+  const previousRate = await fetchPreviousFrankfurterRate(from, to, data.date).catch(() => null);
+
   return {
     rate,
     source: "Frankfurter API, official central-bank reference rates",
-    updatedAt: data.date ? `${data.date}T00:00:00.000Z` : new Date().toISOString()
+    updatedAt: data.date ? `${data.date}T00:00:00.000Z` : new Date().toISOString(),
+    dailyChangePercent: previousRate && previousRate > 0 ? ((rate - previousRate) / previousRate) * 100 : null
   };
 }
 
@@ -161,7 +165,8 @@ export async function fetchAlphaVantageQuote(symbol: string): Promise<PricePoint
       currency: "USD",
       unit: "share",
       source: "Alpha Vantage Global Quote",
-      updatedAt: tradingDay ? `${tradingDay}T21:00:00.000Z` : new Date().toISOString()
+      updatedAt: tradingDay ? `${tradingDay}T21:00:00.000Z` : new Date().toISOString(),
+      dailyChangePercent: quote?.["10. change percent"] ? Number(quote["10. change percent"].replace("%", "")) : null
     };
   } catch {
     return fetchNasdaqStockQuote(symbol);
@@ -231,6 +236,37 @@ async function fetchNasdaqStockQuote(symbol: string): Promise<PricePoint> {
     source: data.data.exchange ? `Nasdaq quote API, ${data.data.exchange}` : "Nasdaq quote API",
     updatedAt: data.data.primaryData?.lastTradeTimestamp
       ? new Date(`${data.data.primaryData.lastTradeTimestamp} 21:00:00 UTC`).toISOString()
-      : new Date().toISOString()
+      : new Date().toISOString(),
+    dailyChangePercent: data.data.primaryData?.percentageChange ? Number(data.data.primaryData.percentageChange.replace("%", "")) : null
   };
+}
+
+async function fetchPreviousFrankfurterRate(from: string, to: string, latestDate?: string): Promise<number | null> {
+  if (!latestDate) {
+    return null;
+  }
+
+  const latest = new Date(`${latestDate}T00:00:00.000Z`);
+  if (Number.isNaN(latest.getTime())) {
+    return null;
+  }
+
+  const start = new Date(latest);
+  start.setUTCDate(start.getUTCDate() - 7);
+  const startDate = start.toISOString().slice(0, 10);
+  const url = `https://api.frankfurter.app/${startDate}..${latestDate}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const response = await fetch(url, {
+    next: { revalidate: 300 }
+  });
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = (await response.json()) as {
+    rates?: Record<string, Record<string, number>>;
+  };
+  const dates = Object.keys(data.rates ?? {}).sort();
+  const previousDate = dates.filter((date) => date < latestDate).pop();
+  const previous = previousDate ? data.rates?.[previousDate]?.[to] : undefined;
+  return typeof previous === "number" && Number.isFinite(previous) ? previous : null;
 }

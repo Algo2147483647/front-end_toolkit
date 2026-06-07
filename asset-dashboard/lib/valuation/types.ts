@@ -42,12 +42,14 @@ export interface PricePoint {
   unit?: string;
   source: string;
   updatedAt: string;
+  dailyChangePercent?: number | null;
 }
 
 export interface FxRatePoint {
   rate: number;
   source: string;
   updatedAt: string;
+  dailyChangePercent?: number | null;
 }
 
 export interface AssetValuation {
@@ -62,6 +64,7 @@ export interface AssetValuation {
   priceUnit?: string;
   fxRateToUsd: number | null;
   usdValue: number | null;
+  dailyChangePercent?: number | null;
   source: string;
   updatedAt: string | null;
   status: AssetStatus;

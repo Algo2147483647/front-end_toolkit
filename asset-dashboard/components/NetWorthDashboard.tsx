@@ -57,6 +57,13 @@ function conversionFactor(asset: ValuationResponse["assets"][number]): number | 
   return asset.usdValue / asset.quantity;
 }
 
+function changeTone(change: number | null | undefined): string {
+  if (change == null || !Number.isFinite(change) || Math.abs(change) < 0.000001) {
+    return "change-neutral";
+  }
+  return change > 0 ? "change-up" : "change-down";
+}
+
 function summarizeConfig(value: unknown) {
   if (!value || typeof value !== "object") {
     return {
@@ -203,7 +210,6 @@ export function NetWorthDashboard() {
     <main className="app-shell">
       <header className="topbar-shell">
         <div className="topbar-brand">
-          <p className="eyebrow">USD BASE</p>
           <h1>Current Net Worth</h1>
         </div>
         <div className="topbar-actions">
@@ -252,7 +258,7 @@ export function NetWorthDashboard() {
                   <span>Type</span>
                   <span>Asset</span>
                   <span>Quantity</span>
-                  <span>FX</span>
+                  <span>Unit Value</span>
                   <span>Price</span>
                 </div>
                 {assets.map((asset) => (
@@ -271,7 +277,7 @@ export function NetWorthDashboard() {
                       </strong>
                     </div>
                     <div className="asset-cell" role="cell">
-                      <strong>{formatNumber(conversionFactor(asset), 6)}</strong>
+                      <strong className={changeTone(asset.dailyChangePercent)}>{formatNumber(conversionFactor(asset), 6)}</strong>
                       <span>per {asset.unit ?? asset.symbol ?? asset.pricingCurrency ?? "unit"}</span>
                     </div>
                     <div className="asset-cell asset-usd-cell" role="cell">
@@ -322,8 +328,8 @@ export function NetWorthDashboard() {
                 <dd>{selectedAsset.pricingCurrency ?? "N/A"}</dd>
               </div>
               <div>
-                <dt>USD FX</dt>
-                <dd>{formatNumber(selectedAsset.fxRateToUsd, 6)}</dd>
+                <dt>Unit Value</dt>
+                <dd>{formatNumber(conversionFactor(selectedAsset), 6)}</dd>
               </div>
               <div>
                 <dt>USD Value</dt>

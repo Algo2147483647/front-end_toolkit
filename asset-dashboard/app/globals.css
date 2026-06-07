@@ -468,6 +468,18 @@ button {
   letter-spacing: 0;
 }
 
+.change-up {
+  color: #1e8f5a !important;
+}
+
+.change-down {
+  color: #c04c4c !important;
+}
+
+.change-neutral {
+  color: #182235 !important;
+}
+
 @media (max-width: 1180px) {
   .asset-ledger {
     overflow-x: auto;
