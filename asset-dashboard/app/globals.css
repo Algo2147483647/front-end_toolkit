@@ -424,11 +424,11 @@ button {
 .asset-status-cell {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  gap: 5px;
+  align-items: center;
+  gap: 7px;
 }
 
-.asset-status-cell .status-pill,
+.asset-status-cell .status-dot,
 .asset-status-cell .type-pill {
   flex: 0 0 auto;
 }
@@ -446,7 +446,12 @@ button {
   text-align: right;
 }
 
-.status-pill,
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
 .type-pill {
   display: inline-flex;
   align-items: center;

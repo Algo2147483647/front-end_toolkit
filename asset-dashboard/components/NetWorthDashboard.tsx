@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, FileJson, Loader2, RefreshCcw, RotateCcw, Upload, XCircle } from "lucide-react";
+import { FileJson, Loader2, RefreshCcw, RotateCcw, Upload } from "lucide-react";
 import type { AssetStatus, ValuationResponse } from "@/lib/valuation/types";
 
 const sampleConfigPath = "/sample-config.json";
@@ -40,24 +40,21 @@ function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
-function statusTone(status: AssetStatus): string {
+function statusDotTone(status: AssetStatus): string {
   if (status === "ok") {
-    return "border-[#2f8f6b]/25 bg-[#1e8f5a]/10 text-[#24724f]";
+    return "bg-[#34c759] shadow-[0_0_0_3px_rgba(52,199,89,0.14)]";
   }
   if (status === "warning") {
-    return "border-[#ba8b34]/30 bg-[#d3982d]/12 text-[#8a611d]";
+    return "bg-[#ff9f0a] shadow-[0_0_0_3px_rgba(255,159,10,0.14)]";
   }
-  return "border-[#c44f4f]/30 bg-[#c04c4c]/10 text-[#a33838]";
+  return "bg-[#ff3b30] shadow-[0_0_0_3px_rgba(255,59,48,0.14)]";
 }
 
-function StatusIcon({ status }: { status: AssetStatus }) {
-  if (status === "ok") {
-    return <Check className="h-3.5 w-3.5" aria-hidden="true" />;
+function conversionFactor(asset: ValuationResponse["assets"][number]): number | null {
+  if (asset.usdValue == null || !Number.isFinite(asset.quantity) || asset.quantity === 0) {
+    return null;
   }
-  if (status === "warning") {
-    return <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />;
-  }
-  return <XCircle className="h-3.5 w-3.5" aria-hidden="true" />;
+  return asset.usdValue / asset.quantity;
 }
 
 function summarizeConfig(value: unknown) {
@@ -284,7 +281,7 @@ export function NetWorthDashboard() {
             ) : (
               <div className="asset-ledger" role="table" aria-label="Asset breakdown">
                 <div className="asset-ledger-head" role="row">
-                  <span>Status</span>
+                  <span>Type</span>
                   <span>Asset</span>
                   <span>Quantity</span>
                   <span>FX</span>
@@ -293,10 +290,7 @@ export function NetWorthDashboard() {
                 {assets.map((asset) => (
                   <button key={asset.id} type="button" className="asset-ledger-row" role="row" onClick={() => setSelectedAssetId(asset.id)}>
                     <div className="asset-cell asset-status-cell" role="cell">
-                      <span className={`status-pill ${statusTone(asset.status)}`}>
-                        <StatusIcon status={asset.status} />
-                        {asset.status}
-                      </span>
+                      <span className={`status-dot ${statusDotTone(asset.status)}`} aria-label={`Status ${asset.status}`} />
                       <span className="type-pill">{asset.type}</span>
                     </div>
                     <div className="asset-cell asset-name-cell" role="cell">
@@ -309,8 +303,8 @@ export function NetWorthDashboard() {
                       </strong>
                     </div>
                     <div className="asset-cell" role="cell">
-                      <strong>{formatNumber(asset.fxRateToUsd, 6)}</strong>
-                      <span>to USD</span>
+                      <strong>{formatNumber(conversionFactor(asset), 6)}</strong>
+                      <span>per {asset.unit ?? asset.symbol ?? asset.pricingCurrency ?? "unit"}</span>
                     </div>
                     <div className="asset-cell asset-usd-cell" role="cell">
                       <strong>{formatUsd(asset.usdValue)}</strong>
