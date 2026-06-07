@@ -4,76 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, FileJson, Loader2, RefreshCcw, RotateCcw, Upload, XCircle } from "lucide-react";
 import type { AssetStatus, ValuationResponse } from "@/lib/valuation/types";
 
-const sampleConfig = {
-  baseCurrency: "USD",
-  assets: [
-    {
-      id: "gold_001",
-      type: "gold",
-      name: "Physical Gold",
-      quantity: 17,
-      unit: "gram"
-    },
-    {
-      id: "cash_cny_001",
-      type: "fx",
-      name: "CNY Cash",
-      currency: "CNY",
-      quantity: 500000
-    },
-    {
-      id: "cash_hkd_001",
-      type: "fx",
-      name: "HKD Cash",
-      currency: "HKD",
-      quantity: 1000
-    },
-    {
-      id: "cash_hkd_002",
-      type: "fx",
-      name: "HKD Cash Separate",
-      currency: "HKD",
-      quantity: 11223.76
-    },
-    {
-      id: "cash_eur_001",
-      type: "fx",
-      name: "EUR Cash",
-      currency: "EUR",
-      quantity: 200
-    },
-    {
-      id: "cash_chf_001",
-      type: "fx",
-      name: "CHF Cash",
-      currency: "CHF",
-      quantity: 2250
-    },
-    {
-      id: "cash_jpy_001",
-      type: "fx",
-      name: "JPY Cash",
-      currency: "JPY",
-      quantity: 10000
-    },
-    {
-      id: "cash_usd_001",
-      type: "fx",
-      name: "USD Cash 850",
-      currency: "USD",
-      quantity: 850
-    },
-    {
-      id: "cash_usd_002",
-      type: "fx",
-      name: "USD Cash 900",
-      currency: "USD",
-      quantity: 900
-    }
-  ]
-};
-
-const sampleJson = JSON.stringify(sampleConfig, null, 2);
+const sampleConfigPath = "/sample-config.json";
 
 function formatUsd(value: number | null | undefined): string {
   if (value == null) {
@@ -152,16 +83,23 @@ function summarizeConfig(value: unknown) {
 }
 
 export function NetWorthDashboard() {
-  const [jsonInput, setJsonInput] = useState(sampleJson);
+  const [jsonInput, setJsonInput] = useState("");
   const [fileName, setFileName] = useState("sample-config.json");
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [sampleLoading, setSampleLoading] = useState(true);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parsed = useMemo(() => {
     try {
+      if (!jsonInput.trim()) {
+        return {
+          value: null,
+          error: "No JSON configuration loaded."
+        };
+      }
       return {
         value: JSON.parse(jsonInput) as unknown,
         error: null
@@ -227,16 +165,35 @@ export function NetWorthDashboard() {
   }
 
   function useSample() {
-    setJsonInput(sampleJson);
-    setFileName("sample-config.json");
-    setValuation(null);
+    void loadSampleConfig();
+  }
+
+  async function loadSampleConfig() {
+    setSampleLoading(true);
     setApiError(null);
-    void refreshValuation(sampleConfig);
+    try {
+      const response = await fetch(sampleConfigPath, {
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load sample JSON: HTTP ${response.status}.`);
+      }
+      const text = await response.text();
+      const value = JSON.parse(text) as unknown;
+      setJsonInput(text);
+      setFileName("sample-config.json");
+      setValuation(null);
+      void refreshValuation(value);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Failed to load sample JSON.");
+    } finally {
+      setSampleLoading(false);
+    }
   }
 
   useEffect(() => {
-    void refreshValuation(sampleConfig);
-    // Run once to avoid an empty/N/A dashboard on first load.
+    void loadSampleConfig();
+    // Load the local sample JSON once on startup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -293,6 +250,8 @@ export function NetWorthDashboard() {
             <p className="control-label">Validation</p>
             {parsed.error ? (
               <p className="status-box status-error">{parsed.error}</p>
+            ) : sampleLoading ? (
+              <p className="status-box status-ok">Loading sample JSON...</p>
             ) : (
               <p className="status-box status-ok">JSON format is valid and ready to price.</p>
             )}
