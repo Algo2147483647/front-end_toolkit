@@ -109,6 +109,55 @@ button {
   gap: 6px;
 }
 
+.base-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow: inset 0 0 0 1px rgba(91, 109, 142, 0.06);
+}
+
+.base-control span {
+  color: var(--text-soft);
+  font-family: "Times New Roman", "Georgia", serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.base-control input,
+.base-control select {
+  width: 86px;
+  min-height: 26px;
+  border: 1px solid rgba(96, 118, 151, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--text-strong);
+  font-family: "Times New Roman", "Georgia", serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+
+.base-control select {
+  cursor: pointer;
+}
+
+.base-control input {
+  width: 64px;
+}
+
+.base-control input:focus,
+.base-control select:focus {
+  border-color: rgba(40, 95, 223, 0.38);
+  box-shadow: 0 0 0 3px rgba(40, 95, 223, 0.12);
+}
+
 .studio-btn {
   display: inline-flex;
   min-height: 34px;
@@ -310,6 +359,7 @@ button {
   grid-template-columns:
     minmax(104px, 0.62fr)
     minmax(220px, 1.48fr)
+    minmax(86px, 0.42fr)
     minmax(150px, 0.76fr)
     minmax(100px, 0.42fr)
     minmax(158px, 0.7fr);
@@ -487,7 +537,7 @@ button {
 
   .asset-ledger-head,
   .asset-ledger-row {
-    min-width: 760px;
+    min-width: 860px;
   }
 }
 

@@ -5,6 +5,7 @@ import { FileJson, Loader2, RefreshCcw, RotateCcw, Settings2, Upload } from "luc
 import type { AssetStatus, ValuationResponse } from "@/lib/valuation/types";
 
 const sampleConfigPath = "/sample-config.json";
+const baseOptions = ["USD", "CNY", "HKD", "EUR", "JPY", "CHF", "GBP", "GOLD"];
 
 function formatUsd(value: number | null | undefined): string {
   if (value == null) {
@@ -15,6 +16,19 @@ function formatUsd(value: number | null | undefined): string {
     currency: "USD",
     maximumFractionDigits: value >= 100000 ? 0 : 2
   }).format(value);
+}
+
+function formatBaseValue(value: number | null | undefined, unit = "USD"): string {
+  if (value == null) {
+    return unit === "g gold" ? "0 g gold" : `0 ${unit}`;
+  }
+  if (unit === "USD") {
+    return formatUsd(value);
+  }
+  if (unit === "g gold") {
+    return `${formatNumber(value, 4)} g gold`;
+  }
+  return `${formatNumber(value, value >= 100000 ? 0 : 2)} ${unit}`;
 }
 
 function formatNumber(value: number | null | undefined, digits = 4): string {
@@ -57,6 +71,14 @@ function conversionFactor(asset: ValuationResponse["assets"][number]): number | 
   return asset.usdValue / asset.quantity;
 }
 
+function displayConversionFactor(asset: ValuationResponse["assets"][number], valuation: ValuationResponse | null): number | null {
+  const usdFactor = conversionFactor(asset);
+  if (usdFactor == null || !valuation) {
+    return null;
+  }
+  return usdFactor * valuation.displayRateFromUsd;
+}
+
 function changeTone(change: number | null | undefined): string {
   if (change == null || !Number.isFinite(change) || Math.abs(change) < 0.000001) {
     return "change-neutral";
@@ -95,6 +117,8 @@ export function NetWorthDashboard() {
   const [sampleLoading, setSampleLoading] = useState(true);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [displayBase, setDisplayBase] = useState("USD");
+  const [customBase, setCustomBase] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parsed = useMemo(() => {
@@ -133,7 +157,10 @@ export function NetWorthDashboard() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(valueToPrice)
+        body: JSON.stringify({
+          ...(valueToPrice as Record<string, unknown>),
+          displayBase
+        })
       });
       const data = (await response.json()) as ValuationResponse | { error?: string };
       if (!response.ok) {
@@ -202,9 +229,26 @@ export function NetWorthDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!parsed.value || parsed.error) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void refreshValuation();
+    }, 350);
+    return () => window.clearTimeout(timer);
+    // Reprice when the display base changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayBase]);
+
   const assets = valuation?.assets ?? [];
   const hasFailures = (valuation?.failedAssetCount ?? 0) > 0;
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId) ?? null;
+  const totalUsd = valuation?.totalUsd ?? 0;
+  const sortedAssets = useMemo(
+    () => [...assets].sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0)),
+    [assets]
+  );
 
   return (
     <main className="app-shell">
@@ -213,6 +257,41 @@ export function NetWorthDashboard() {
           <h1>Current Net Worth</h1>
         </div>
         <div className="topbar-actions">
+          <label className="base-control">
+            <span>Base</span>
+            <select
+              value={baseOptions.includes(displayBase) ? displayBase : "CUSTOM"}
+              onChange={(event) => {
+                if (event.target.value === "CUSTOM") {
+                  const next = customBase || "AUD";
+                  setCustomBase(next);
+                  setDisplayBase(next);
+                  return;
+                }
+                setDisplayBase(event.target.value);
+              }}
+              aria-label="Display base"
+            >
+              {baseOptions.map((base) => (
+                <option key={base} value={base}>
+                  {base}
+                </option>
+              ))}
+              <option value="CUSTOM">Custom</option>
+            </select>
+            {!baseOptions.includes(displayBase) ? (
+              <input
+                value={customBase}
+                onChange={(event) => {
+                  const next = event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+                  setCustomBase(next);
+                  setDisplayBase(next || "USD");
+                }}
+                placeholder="AUD"
+                aria-label="Custom display base"
+              />
+            ) : null}
+          </label>
           <button type="button" onClick={() => setConfigOpen(true)} className="studio-btn studio-btn-ghost">
             <Settings2 className="h-4 w-4" aria-hidden="true" />
             Config
@@ -234,8 +313,8 @@ export function NetWorthDashboard() {
         <section className="stage-panel">
           <div className="total-card">
             <div>
-              <p className="eyebrow">Total Current Asset Value in USD</p>
-              <p className="total-value">{loading && !valuation ? "Pricing..." : formatUsd(valuation?.totalUsd)}</p>
+              <p className="eyebrow">Total Current Asset Value in {valuation?.displayUnit ?? displayBase}</p>
+              <p className="total-value">{loading && !valuation ? "Pricing..." : formatBaseValue(valuation?.totalValue, valuation?.displayUnit ?? displayBase)}</p>
             </div>
             <div className="summary-chip-grid">
               <span>VALUED {valuation?.pricedAssetCount ?? 0}</span>
@@ -257,11 +336,12 @@ export function NetWorthDashboard() {
                 <div className="asset-ledger-head" role="row">
                   <span>Type</span>
                   <span>Asset</span>
+                  <span>Share</span>
                   <span>Quantity</span>
                   <span>Unit Value</span>
                   <span>Price</span>
                 </div>
-                {assets.map((asset) => (
+                {sortedAssets.map((asset) => (
                   <button key={asset.id} type="button" className="asset-ledger-row" role="row" onClick={() => setSelectedAssetId(asset.id)}>
                     <span className={`status-strip ${statusDotTone(asset.status)}`} aria-label={`Status ${asset.status}`} />
                     <div className="asset-cell asset-status-cell" role="cell">
@@ -272,16 +352,19 @@ export function NetWorthDashboard() {
                       <span>{asset.id}</span>
                     </div>
                     <div className="asset-cell" role="cell">
+                      <strong>{totalUsd > 0 && asset.usdValue != null ? `${formatNumber((asset.usdValue / totalUsd) * 100, 2)}%` : "N/A"}</strong>
+                    </div>
+                    <div className="asset-cell" role="cell">
                       <strong>
                         {formatNumber(asset.quantity)} {asset.unit ?? asset.symbol ?? ""}
                       </strong>
                     </div>
                     <div className="asset-cell" role="cell">
-                      <strong className={changeTone(asset.dailyChangePercent)}>{formatNumber(conversionFactor(asset), 6)}</strong>
+                      <strong className={changeTone(asset.dailyChangePercent)}>{formatNumber(displayConversionFactor(asset, valuation), 6)}</strong>
                       <span>per {asset.unit ?? asset.symbol ?? asset.pricingCurrency ?? "unit"}</span>
                     </div>
                     <div className="asset-cell asset-usd-cell" role="cell">
-                      <strong>{formatUsd(asset.usdValue)}</strong>
+                      <strong>{formatBaseValue(asset.usdValue == null || !valuation ? null : asset.usdValue * valuation.displayRateFromUsd, valuation?.displayUnit ?? displayBase)}</strong>
                     </div>
                   </button>
                 ))}
@@ -329,11 +412,11 @@ export function NetWorthDashboard() {
               </div>
               <div>
                 <dt>Unit Value</dt>
-                <dd>{formatNumber(conversionFactor(selectedAsset), 6)}</dd>
+                <dd>{formatNumber(displayConversionFactor(selectedAsset, valuation), 6)}</dd>
               </div>
               <div>
-                <dt>USD Value</dt>
-                <dd>{formatUsd(selectedAsset.usdValue)}</dd>
+                <dt>Base Value</dt>
+                <dd>{formatBaseValue(selectedAsset.usdValue == null || !valuation ? null : selectedAsset.usdValue * valuation.displayRateFromUsd, valuation?.displayUnit ?? displayBase)}</dd>
               </div>
               <div>
                 <dt>Last Updated</dt>

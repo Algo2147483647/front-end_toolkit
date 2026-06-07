@@ -72,8 +72,11 @@ export interface AssetValuation {
 }
 
 export interface ValuationResponse {
-  baseCurrency: "USD";
+  baseCurrency: string;
   totalUsd: number;
+  totalValue: number;
+  displayRateFromUsd: number;
+  displayUnit: string;
   pricedAssetCount: number;
   failedAssetCount: number;
   generatedAt: string;

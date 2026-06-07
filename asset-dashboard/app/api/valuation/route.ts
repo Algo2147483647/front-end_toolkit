@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const config = validatePortfolioConfig(body);
-    const result = await valuePortfolio(config);
+    const displayBase = typeof body?.displayBase === "string" ? body.displayBase : "USD";
+    const result = await valuePortfolio(config, displayBase);
     return NextResponse.json(result);
   } catch (error) {
     const message =

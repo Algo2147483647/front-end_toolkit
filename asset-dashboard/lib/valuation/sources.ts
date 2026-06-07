@@ -26,6 +26,31 @@ interface FreeGoldApiResponse {
   updatedAt?: string;
 }
 
+interface TwelveDataQuoteResponse {
+  symbol?: string;
+  name?: string;
+  exchange?: string;
+  currency?: string;
+  datetime?: string;
+  timestamp?: number;
+  close?: string;
+  previous_close?: string;
+  percent_change?: string;
+  code?: number;
+  message?: string;
+  status?: string;
+}
+
+interface ExchangeRateHostLiveResponse {
+  success?: boolean;
+  timestamp?: number;
+  source?: string;
+  quotes?: Record<string, number>;
+  error?: {
+    info?: string;
+  };
+}
+
 export function goldQuantityToTroyOunces(quantity: number, unit = "gram"): number {
   const normalized = unit.trim().toLowerCase();
   if (["g", "gram", "grams"].includes(normalized)) {
@@ -52,6 +77,16 @@ export async function fetchFrankfurterRate(fromCurrency: string, toCurrency = "U
       source: "USD base currency",
       updatedAt: new Date().toISOString()
     };
+  }
+
+  const preferred = await fetchTwelveDataFxRate(from, to).catch(() => null);
+  if (preferred) {
+    return preferred;
+  }
+
+  const exchangerate = await fetchExchangeRateHostRate(from, to).catch(() => null);
+  if (exchangerate) {
+    return exchangerate;
   }
 
   const url = `https://api.frankfurter.app/latest?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
@@ -83,6 +118,11 @@ export async function fetchFrankfurterRate(fromCurrency: string, toCurrency = "U
 }
 
 export async function fetchGoldSpotUsd(): Promise<PricePoint> {
+  const twelveData = await fetchTwelveDataQuote("XAU/USD", "troy ounce", "Twelve Data XAU/USD quote").catch(() => null);
+  if (twelveData) {
+    return twelveData;
+  }
+
   const apiKey = process.env.GOLDAPI_KEY;
   if (!apiKey) {
     return fetchFreeGoldQuote();
@@ -171,6 +211,93 @@ export async function fetchAlphaVantageQuote(symbol: string): Promise<PricePoint
   } catch {
     return fetchNasdaqStockQuote(symbol);
   }
+}
+
+async function fetchTwelveDataFxRate(from: string, to: string): Promise<FxRatePoint | null> {
+  const quote = await fetchTwelveDataQuote(`${from}/${to}`, "currency unit", "Twelve Data Forex quote");
+  if (!quote) {
+    return null;
+  }
+
+  return {
+    rate: quote.price,
+    source: quote.source,
+    updatedAt: quote.updatedAt,
+    dailyChangePercent: quote.dailyChangePercent ?? null
+  };
+}
+
+async function fetchTwelveDataQuote(symbol: string, unit: string, sourceLabel: string): Promise<PricePoint | null> {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const url = new URL("https://api.twelvedata.com/quote");
+  url.searchParams.set("symbol", symbol);
+  url.searchParams.set("apikey", apiKey);
+
+  const response = await fetch(url, {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new ValuationError(`Twelve Data request failed with HTTP ${response.status}.`);
+  }
+
+  const data = (await response.json()) as TwelveDataQuoteResponse;
+  if (data.status === "error" || data.code || data.message) {
+    throw new ValuationError(data.message ?? `Twelve Data returned no quote for ${symbol}.`);
+  }
+
+  const price = Number(data.close);
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new ValuationError(`Twelve Data returned no usable price for ${symbol}.`);
+  }
+
+  return {
+    price,
+    currency: data.currency ?? "USD",
+    unit,
+    source: data.exchange ? `${sourceLabel}, ${data.exchange}` : sourceLabel,
+    updatedAt: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : data.datetime ? new Date(data.datetime).toISOString() : new Date().toISOString(),
+    dailyChangePercent: data.percent_change ? Number(data.percent_change) : null
+  };
+}
+
+async function fetchExchangeRateHostRate(from: string, to: string): Promise<FxRatePoint | null> {
+  const apiKey = process.env.EXCHANGERATE_HOST_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const url = new URL("https://api.exchangerate.host/live");
+  url.searchParams.set("access_key", apiKey);
+  url.searchParams.set("source", from);
+  url.searchParams.set("currencies", to);
+
+  const response = await fetch(url, {
+    next: { revalidate: 300 }
+  });
+  if (!response.ok) {
+    throw new ValuationError(`exchangerate.host request failed with HTTP ${response.status}.`);
+  }
+
+  const data = (await response.json()) as ExchangeRateHostLiveResponse;
+  if (!data.success) {
+    throw new ValuationError(data.error?.info ?? "exchangerate.host returned no usable FX quote.");
+  }
+
+  const rate = data.quotes?.[`${from}${to}`];
+  if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) {
+    throw new ValuationError(`exchangerate.host returned no ${from}/${to} quote.`);
+  }
+
+  return {
+    rate,
+    source: "exchangerate.host live market FX quote",
+    updatedAt: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString(),
+    dailyChangePercent: null
+  };
 }
 
 async function fetchFreeGoldQuote(): Promise<PricePoint> {

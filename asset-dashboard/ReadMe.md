@@ -22,6 +22,8 @@ Copy-Item .env.example .env.local
 
 - `GOLDAPI_KEY`: used for GoldAPI.io spot gold pricing.
 - `ALPHA_VANTAGE_API_KEY`: used for U.S. stock quotes.
+- `TWELVE_DATA_API_KEY`: optional preferred source for FX and XAU/USD quotes.
+- `EXCHANGERATE_HOST_API_KEY`: optional FX fallback before Frankfurter.
 
 FX conversion uses Frankfurter's public API and does not need a key.
 

@@ -3,6 +3,7 @@ import { ValuationError } from "./types";
 import { fetchAlphaVantageQuote, fetchFrankfurterRate, fetchGoldSpotUsd, goldQuantityToTroyOunces } from "./sources";
 
 type FxCache = Map<string, Promise<FxRatePoint>>;
+const TROY_OUNCE_GRAMS = 31.1034768;
 
 function assetName(asset: AssetConfig): string {
   if (asset.name) {
@@ -140,7 +141,41 @@ async function valueAsset(asset: AssetConfig, fxCache: FxCache): Promise<AssetVa
   }
 }
 
-export async function valuePortfolio(config: PortfolioConfig): Promise<ValuationResponse> {
+function normalizeDisplayBase(base?: string): string {
+  const normalized = (base ?? "USD").trim().toUpperCase();
+  if (["GOLD", "XAU", "XAU_GRAM", "GOLD_GRAM"].includes(normalized)) {
+    return "GOLD_GRAM";
+  }
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : "USD";
+}
+
+async function getDisplayRateFromUsd(base: string): Promise<{ rate: number; unit: string; baseCurrency: string }> {
+  if (base === "USD") {
+    return {
+      rate: 1,
+      unit: "USD",
+      baseCurrency: "USD"
+    };
+  }
+
+  if (base === "GOLD_GRAM") {
+    const quote = await fetchGoldSpotUsd();
+    return {
+      rate: TROY_OUNCE_GRAMS / quote.price,
+      unit: "g gold",
+      baseCurrency: "GOLD"
+    };
+  }
+
+  const fx = await fetchFrankfurterRate("USD", base);
+  return {
+    rate: fx.rate,
+    unit: base,
+    baseCurrency: base
+  };
+}
+
+export async function valuePortfolio(config: PortfolioConfig, displayBase = "USD"): Promise<ValuationResponse> {
   if (config.baseCurrency !== "USD") {
     throw new ValuationError("Valuation base must be USD.");
   }
@@ -148,10 +183,15 @@ export async function valuePortfolio(config: PortfolioConfig): Promise<Valuation
   const fxCache: FxCache = new Map();
   const assets = await Promise.all(config.assets.map((asset) => valueAsset(asset, fxCache)));
   const totalUsd = assets.reduce((sum, asset) => sum + (asset.usdValue ?? 0), 0);
+  const base = normalizeDisplayBase(displayBase);
+  const display = await getDisplayRateFromUsd(base);
 
   return {
-    baseCurrency: "USD",
+    baseCurrency: display.baseCurrency,
     totalUsd,
+    totalValue: totalUsd * display.rate,
+    displayRateFromUsd: display.rate,
+    displayUnit: display.unit,
     pricedAssetCount: assets.filter((asset) => asset.usdValue !== null).length,
     failedAssetCount: assets.filter((asset) => asset.status === "failed").length,
     generatedAt: new Date().toISOString(),
