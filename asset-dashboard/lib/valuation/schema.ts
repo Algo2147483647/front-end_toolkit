@@ -1,7 +1,11 @@
 import type { AssetConfig, AssetType, PortfolioConfig } from "./types";
 import { ValuationError } from "./types";
 
-const assetTypes = new Set<AssetType>(["gold", "fx", "stock_us", "custom"]);
+const assetTypes = new Set<AssetType>(["gold", "cash", "stock", "custom"]);
+const legacyAssetTypeMap: Record<string, AssetType> = {
+  fx: "cash",
+  stock_us: "stock"
+};
 const currencyPattern = /^[A-Z]{3}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -70,9 +74,10 @@ export function validatePortfolioConfig(value: unknown): PortfolioConfig {
     }
     ids.add(id);
 
-    const type = readString(entry, "type") as AssetType | undefined;
+    const rawType = readString(entry, "type");
+    const type = rawType ? legacyAssetTypeMap[rawType] ?? (rawType as AssetType) : undefined;
     if (!type || !assetTypes.has(type)) {
-      throw new ValuationError(`Asset "${id}" has unsupported type "${type ?? ""}".`);
+      throw new ValuationError(`Asset "${id}" has unsupported type "${rawType ?? ""}".`);
     }
 
     const base = {
@@ -90,7 +95,7 @@ export function validatePortfolioConfig(value: unknown): PortfolioConfig {
       };
     }
 
-    if (type === "fx") {
+    if (type === "cash") {
       return {
         ...base,
         type,
@@ -98,7 +103,7 @@ export function validatePortfolioConfig(value: unknown): PortfolioConfig {
       };
     }
 
-    if (type === "stock_us") {
+    if (type === "stock") {
       const symbol = readString(entry, "symbol")?.toUpperCase();
       if (!symbol || !/^[A-Z][A-Z0-9.-]{0,14}$/.test(symbol)) {
         throw new ValuationError(`Asset "${id}" needs a valid U.S. stock symbol.`);

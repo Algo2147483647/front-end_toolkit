@@ -42,14 +42,14 @@ FX conversion uses Frankfurter's public API and does not need a key.
     },
     {
       "id": "cash_eur_001",
-      "type": "fx",
+      "type": "cash",
       "name": "EUR Cash",
       "currency": "EUR",
       "quantity": 5000
     },
     {
       "id": "stock_aapl_001",
-      "type": "stock_us",
+      "type": "stock",
       "name": "Apple Inc.",
       "symbol": "AAPL",
       "quantity": 20
@@ -66,4 +66,4 @@ FX conversion uses Frankfurter's public API and does not need a key.
 }
 ```
 
-The asset `type` union is intentionally small now: `gold`, `fx`, `stock_us`, and `custom`. New asset classes can be added by extending the server-side source adapter switch in `lib/valuation/valuation.ts`.
+The asset `type` union is intentionally small now: `gold`, `cash`, `stock`, and `custom`. Legacy JSON using `fx` or `stock_us` is still accepted and normalized to `cash` or `stock`.

@@ -1,7 +1,7 @@
-export type AssetType = "gold" | "fx" | "stock_us" | "custom";
+export type AssetType = "gold" | "cash" | "stock" | "custom";
 export type AssetStatus = "ok" | "warning" | "failed";
 
-export type AssetConfig = GoldAsset | FxAsset | StockUsAsset | CustomAsset;
+export type AssetConfig = GoldAsset | CashAsset | StockAsset | CustomAsset;
 
 export interface PortfolioConfig {
   baseCurrency: "USD";
@@ -20,13 +20,13 @@ export interface GoldAsset extends AssetBase {
   unit?: string;
 }
 
-export interface FxAsset extends AssetBase {
-  type: "fx";
+export interface CashAsset extends AssetBase {
+  type: "cash";
   currency: string;
 }
 
-export interface StockUsAsset extends AssetBase {
-  type: "stock_us";
+export interface StockAsset extends AssetBase {
+  type: "stock";
   symbol: string;
 }
 

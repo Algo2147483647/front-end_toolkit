@@ -9,10 +9,10 @@ function assetName(asset: AssetConfig): string {
   if (asset.name) {
     return asset.name;
   }
-  if (asset.type === "stock_us") {
+  if (asset.type === "stock") {
     return asset.symbol;
   }
-  if (asset.type === "fx") {
+  if (asset.type === "cash") {
     return `${asset.currency} Cash`;
   }
   if (asset.type === "gold") {
@@ -77,7 +77,7 @@ async function valueAsset(asset: AssetConfig, fxCache: FxCache): Promise<AssetVa
       };
     }
 
-    if (asset.type === "fx") {
+    if (asset.type === "cash") {
       const fx = await getFxRate(fxCache, asset.currency);
       return {
         id: asset.id,
@@ -98,7 +98,7 @@ async function valueAsset(asset: AssetConfig, fxCache: FxCache): Promise<AssetVa
       };
     }
 
-    if (asset.type === "stock_us") {
+    if (asset.type === "stock") {
       const quote = await fetchAlphaVantageQuote(asset.symbol);
       return {
         id: asset.id,
