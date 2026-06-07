@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileJson, Loader2, RefreshCcw, RotateCcw, Settings2, Upload } from "lucide-react";
+import { FileJson, Loader2, RefreshCcw, Settings2, Upload } from "lucide-react";
 import type { AssetStatus, ValuationResponse } from "@/lib/valuation/types";
 
 const sampleConfigPath = "/sample-config.json";
@@ -196,10 +196,6 @@ export function NetWorthDashboard() {
     }
   }
 
-  function useSample() {
-    void loadSampleConfig();
-  }
-
   async function loadSampleConfig() {
     setSampleLoading(true);
     setApiError(null);
@@ -254,7 +250,7 @@ export function NetWorthDashboard() {
     <main className="app-shell">
       <header className="topbar-shell">
         <div className="topbar-brand">
-          <h1>Current Net Worth</h1>
+          <h1>Worth</h1>
         </div>
         <div className="topbar-actions">
           <label className="base-control">
@@ -295,10 +291,6 @@ export function NetWorthDashboard() {
           <button type="button" onClick={() => setConfigOpen(true)} className="studio-btn studio-btn-ghost">
             <Settings2 className="h-4 w-4" aria-hidden="true" />
             Config
-          </button>
-          <button type="button" onClick={useSample} className="studio-btn studio-btn-ghost">
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            Sample
           </button>
           <button type="button" onClick={() => void refreshValuation()} disabled={!canRefresh} className="studio-btn studio-btn-primary">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCcw className="h-4 w-4" aria-hidden="true" />}
@@ -479,10 +471,6 @@ export function NetWorthDashboard() {
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="studio-btn studio-btn-primary">
                   <Upload className="h-4 w-4" aria-hidden="true" />
                   Load JSON
-                </button>
-                <button type="button" onClick={useSample} className="studio-btn studio-btn-ghost">
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                  Sample
                 </button>
               </div>
             </div>
