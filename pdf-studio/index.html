@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Studio</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="tool-rail" aria-label="PDF tools">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <h1>PDF Studio</h1>
+          <p>Import, annotate, save</p>
+        </div>
+      </div>
+
+      <div class="rail-section">
+        <button class="command primary" id="openPdfBtn" type="button">
+          <i data-lucide="file-up"></i>
+          <span>Import PDF</span>
+        </button>
+        <button class="command" id="openProjectBtn" type="button">
+          <i data-lucide="folder-open"></i>
+          <span>Open Project</span>
+        </button>
+      </div>
+
+      <div class="rail-section">
+        <div class="section-title">Insert</div>
+        <div class="tool-grid" id="toolGrid">
+          <button class="tool-button active" data-tool="select" type="button" title="Select">
+            <i data-lucide="mouse-pointer-2"></i>
+            <span>Select</span>
+          </button>
+          <button class="tool-button" data-tool="text" type="button" title="Text box">
+            <i data-lucide="type"></i>
+            <span>Text</span>
+          </button>
+          <button class="tool-button" data-tool="image" type="button" title="Image">
+            <i data-lucide="image"></i>
+            <span>Image</span>
+          </button>
+          <button class="tool-button" data-tool="rect" type="button" title="Box">
+            <i data-lucide="square"></i>
+            <span>Box</span>
+          </button>
+          <button class="tool-button" data-tool="line" type="button" title="Line">
+            <i data-lucide="minus"></i>
+            <span>Line</span>
+          </button>
+          <button class="tool-button" data-tool="arrow" type="button" title="Arrow">
+            <i data-lucide="move-right"></i>
+            <span>Arrow</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="rail-section">
+        <div class="section-title">View</div>
+        <div class="zoom-row">
+          <button class="icon-button" id="zoomOutBtn" type="button" title="Zoom out">
+            <i data-lucide="zoom-out"></i>
+          </button>
+          <output id="zoomLabel">100%</output>
+          <button class="icon-button" id="zoomInBtn" type="button" title="Zoom in">
+            <i data-lucide="zoom-in"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="rail-section rail-bottom">
+        <button class="command" id="saveProjectBtn" type="button">
+          <i data-lucide="save"></i>
+          <span>Save Project</span>
+        </button>
+        <button class="command accent" id="exportPdfBtn" type="button">
+          <i data-lucide="download"></i>
+          <span>Export PDF</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-bar">
+        <div>
+          <div class="eyebrow">Document</div>
+          <h2 id="documentTitle">No PDF loaded</h2>
+        </div>
+        <div class="status-strip">
+          <span id="pageCount">0 pages</span>
+          <span id="objectCount">0 objects</span>
+          <span id="autosaveState">Ready</span>
+        </div>
+      </header>
+
+      <section class="canvas-shell" id="canvasShell">
+        <div class="empty-state" id="emptyState">
+          <i data-lucide="file-text"></i>
+          <h2>Open a PDF to start editing</h2>
+          <p>Text boxes, images, boxes, lines, and arrows can be positioned directly on any page.</p>
+          <button class="command primary" id="emptyOpenPdfBtn" type="button">
+            <i data-lucide="file-up"></i>
+            <span>Import PDF</span>
+          </button>
+        </div>
+        <div class="pages" id="pages"></div>
+      </section>
+    </main>
+
+    <aside class="inspector" aria-label="Selection inspector">
+      <div class="inspector-header">
+        <div>
+          <div class="eyebrow">Inspector</div>
+          <h2 id="selectionTitle">No selection</h2>
+        </div>
+        <button class="icon-button danger" id="deleteBtn" type="button" title="Delete selection" disabled>
+          <i data-lucide="trash-2"></i>
+        </button>
+      </div>
+
+      <div id="inspectorContent" class="inspector-content">
+        <div class="empty-inspector">
+          <i data-lucide="scan-search"></i>
+          <p>Select an object on the page to edit its position and styling.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden>
+  <input type="file" id="projectInput" accept="application/json,.json" hidden>
+  <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script type="module" src="scripts/app.js"></script>
+</body>
+</html>

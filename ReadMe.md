@@ -23,6 +23,8 @@ Front-End Toolkit is a browser-based collection of front-end utilities for form 
 | `svg/` | SVG Studio | In-browser SVG editor | Usable |
 | `time/` | Geometric Clock and Calendar | Clock, calendar, and globe with timezone interaction | Usable |
 | `asset-dashboard/` | Global Asset Net Worth Board | React + TypeScript board with USD-base online FX sync for current-snapshot cash, gold, stocks, and ETFs | Usable |
+| `highway-network/` | Procedural 3D Highway Network Generator | Geographic graph to full-flow interchange topology and Three.js visualization | Prototype |
+| `pdf-studio/` | PDF Studio | Browser PDF import, overlay editing, project save, and PDF export | Prototype |
 
 ## Recommended Ways to Run
 
@@ -43,6 +45,8 @@ Then open:
 - `http://localhost:8080/timeline/`
 - `http://localhost:8080/svg/`
 - `http://localhost:8080/time/`
+- `http://localhost:8080/highway-network/`
+- `http://localhost:8080/pdf-studio/`
 
 ### Option 2: Open HTML Files Directly
 
@@ -246,6 +250,36 @@ Notes:
 - Geolocation depends on browser permission.
 - Timezone handling is approximate and based on longitude, so this is better treated as a visualization feature than a strict timezone utility.
 
+### `highway-network/` Procedural 3D Highway Network Generator
+
+This module is a standalone Three.js prototype for generating full-flow, grade-separated highway interchanges from a geographic graph. It normalizes graph input, creates directional half-edges, places portals away from node anchors, enumerates movements, synthesizes connector ramps, detects plan-view conflicts, assigns vertical layers, solves simple vertical profiles, builds a lane graph, and renders the resulting structures in 3D.
+
+Good fit for:
+
+- Exploring all-movement interchange topology.
+- Inspecting generated connector layers and validation warnings.
+- Prototyping the staged compiler architecture described in the system design plan.
+
+### `pdf-studio/` PDF Studio
+
+This module is a standalone browser PDF overlay editor built around PDF.js for rendering and PDF-Lib for exporting.
+
+Key capabilities:
+
+- Import a local PDF.
+- Insert editable text boxes at arbitrary positions on any page.
+- Edit text content, font, size, color, bold, italic, alignment, opacity, and geometry.
+- Insert PNG and JPEG images at arbitrary positions.
+- Insert boxes, lines, and arrows.
+- Save the editable workspace as a `.pdf-studio.json` project file.
+- Export a flattened PDF with the visual edits applied.
+- Re-import PDFs exported by PDF Studio and continue editing their stored overlay objects.
+
+Notes:
+
+- Exported PDFs include an attached `pdf-studio-project.json` payload so this tool can restore editable overlay state later.
+- The first load requires internet access for the PDF.js, PDF-Lib, and Lucide CDN assets unless they are already cached.
+
 ## Directory Structure
 
 ```text
@@ -256,6 +290,8 @@ front-end_toolkit/
 |-- svg/                   # SVG editor
 |-- time/                  # Clock / calendar / globe tool
 |-- timeline/              # Timeline DAG visualization
+|-- highway-network/       # Procedural 3D highway interchange generator
+|-- pdf-studio/            # PDF overlay editor
 |-- scripts/               # Repository-level helper scripts
 |-- ReadMe.md              # Root documentation
 `-- start-codex-proxy.ps1  # Local helper script
