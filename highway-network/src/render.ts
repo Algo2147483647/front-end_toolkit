@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import type { Connector, GenerationResult, HighwayNetwork, LaneGraph, Point3, RoadSurface, Validation } from "./generator";
 
 const LAYER_COLORS = [
   0x59c2a6,
@@ -11,7 +12,22 @@ const LAYER_COLORS = [
 ];
 
 export class HighwayRenderer {
-  constructor(host, callbacks = {}) {
+  host: HTMLElement;
+  callbacks: { onSelect?: (connector: Connector) => void };
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
+  controls: OrbitControls;
+  groups: Record<"roads" | "structures" | "laneGraph" | "validation", THREE.Group>;
+  pickables: THREE.Mesh[];
+  raycaster: THREE.Raycaster;
+  pointer: THREE.Vector2;
+  result?: GenerationResult;
+  animationFrame = 0;
+  handleResize = () => this.onResize();
+  handlePointerDown = (event: PointerEvent) => this.onPointerDown(event);
+
+  constructor(host: HTMLElement, callbacks: { onSelect?: (connector: Connector) => void } = {}) {
     this.host = host;
     this.callbacks = callbacks;
     this.scene = new THREE.Scene();
@@ -44,8 +60,8 @@ export class HighwayRenderer {
     this.setupLighting();
     this.addGround();
     this.onResize();
-    this.renderer.domElement.addEventListener("pointerdown", (event) => this.onPointerDown(event));
-    window.addEventListener("resize", () => this.onResize());
+    this.renderer.domElement.addEventListener("pointerdown", this.handlePointerDown);
+    window.addEventListener("resize", this.handleResize);
     this.animate();
   }
 
@@ -81,7 +97,7 @@ export class HighwayRenderer {
     this.scene.add(grid);
   }
 
-  renderNetwork(result) {
+  renderNetwork(result: GenerationResult) {
     this.result = result;
     this.pickables = [];
     for (const group of Object.values(this.groups)) {
@@ -89,6 +105,9 @@ export class HighwayRenderer {
     }
 
     const network = result.network;
+    for (const surface of network.roadSurfaces ?? []) {
+      this.addRoadSurface(surface);
+    }
     for (const interchange of network.interchanges) {
       this.addInterchange(interchange);
     }
@@ -119,7 +138,7 @@ export class HighwayRenderer {
     this.addLaneGraph(interchange.laneGraph);
   }
 
-  addPortalStub(center, portal) {
+  addPortalStub(center: Point3, portal) {
     const samples = [
       center,
       { x: portal.position.x, y: portal.elevation, z: portal.position.z }
@@ -135,7 +154,28 @@ export class HighwayRenderer {
     this.groups.roads.add(mesh);
   }
 
-  addConnector(connector) {
+  addRoadSurface(surface: RoadSurface) {
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x2b3133,
+      roughness: 0.82,
+      metalness: 0.03
+    });
+    const mesh = makeRibbon(surface.samples, surface.width, material);
+    mesh.position.y += 0.04;
+    mesh.receiveShadow = true;
+    mesh.userData = { kind: "road-surface", surface };
+    this.groups.roads.add(mesh);
+
+    const markingMaterial = new THREE.LineBasicMaterial({
+      color: 0xd7d4c8,
+      transparent: true,
+      opacity: 0.32
+    });
+    const points = surface.samples.map((point) => new THREE.Vector3(point.x, point.y + 0.2, point.z));
+    this.groups.roads.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), markingMaterial));
+  }
+
+  addConnector(connector: Connector) {
     const color = layerColor(connector.layer);
     const width = connector.crossSection.laneCount * connector.crossSection.laneWidth + connector.crossSection.shoulderWidth * 2;
     const material = new THREE.MeshStandardMaterial({
@@ -155,7 +195,7 @@ export class HighwayRenderer {
     this.addLaneMarkings(connector.horizontalAlignment.samples);
   }
 
-  addLaneMarkings(samples) {
+  addLaneMarkings(samples: Point3[]) {
     const material = new THREE.LineBasicMaterial({
       color: 0xf4f0e7,
       transparent: true,
@@ -165,7 +205,7 @@ export class HighwayRenderer {
     this.groups.roads.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
   }
 
-  addStructure(connector) {
+  addStructure(connector: Connector) {
     const samples = connector.horizontalAlignment.samples;
     const material = new THREE.MeshStandardMaterial({
       color: connector.layer > 0 ? 0x7d8b91 : 0x42515a,
@@ -174,19 +214,7 @@ export class HighwayRenderer {
       opacity: connector.layer < 0 ? 0.42 : 1
     });
 
-    if (connector.layer > 0) {
-      for (let i = 8; i < samples.length - 8; i += 14) {
-        const point = samples[i];
-        if (point.y < 2.5) continue;
-        const pier = new THREE.Mesh(
-          new THREE.CylinderGeometry(2.5, 3.4, Math.max(point.y, 2), 12),
-          material
-        );
-        pier.position.set(point.x, point.y / 2, point.z);
-        pier.castShadow = true;
-        this.groups.structures.add(pier);
-      }
-    } else {
+    if (connector.layer < 0) {
       const width = connector.crossSection.laneCount * connector.crossSection.laneWidth + connector.crossSection.shoulderWidth * 2 + 5;
       const tunnel = makeRibbon(samples, width, material);
       tunnel.position.y -= 0.8;
@@ -194,7 +222,7 @@ export class HighwayRenderer {
     }
   }
 
-  addLaneGraph(laneGraph) {
+  addLaneGraph(laneGraph: LaneGraph) {
     const nodeById = new Map(laneGraph.nodes.map((node) => [node.id, node]));
     const material = new THREE.LineBasicMaterial({
       color: 0x8ad8ff,
@@ -213,7 +241,7 @@ export class HighwayRenderer {
     }
   }
 
-  addValidationMarkers(validation) {
+  addValidationMarkers(validation: Validation) {
     const issues = [
       ...validation.hardCollisions,
       ...validation.clearanceViolations,
@@ -235,14 +263,14 @@ export class HighwayRenderer {
     }
   }
 
-  findConnector(id) {
+  findConnector(id?: string) {
     if (!this.result || !id) return null;
     return this.result.network.interchanges
       .flatMap((interchange) => interchange.connectors)
       .find((connector) => connector.id === id);
   }
 
-  setVisibility(target, visible) {
+  setVisibility(target: "roads" | "structures" | "laneGraph" | "validation", visible: boolean) {
     if (this.groups[target]) {
       this.groups[target].visible = visible;
     }
@@ -302,7 +330,7 @@ export class HighwayRenderer {
     this.controls.update();
   }
 
-  frameNetwork(network) {
+  frameNetwork(network: HighwayNetwork) {
     const points = network.interchanges.flatMap((interchange) => [
       interchange.center,
       ...interchange.portals.map((portal) => portal.position)
@@ -323,7 +351,7 @@ export class HighwayRenderer {
     this.controls.update();
   }
 
-  onPointerDown(event) {
+  onPointerDown(event: PointerEvent) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -343,11 +371,30 @@ export class HighwayRenderer {
   animate() {
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
-    requestAnimationFrame(() => this.animate());
+    this.animationFrame = requestAnimationFrame(() => this.animate());
+  }
+
+  dispose() {
+    cancelAnimationFrame(this.animationFrame);
+    window.removeEventListener("resize", this.handleResize);
+    this.renderer.domElement.removeEventListener("pointerdown", this.handlePointerDown);
+    this.controls.dispose();
+    this.scene.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      mesh.geometry?.dispose?.();
+      const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(material)) {
+        material.forEach((item) => item.dispose());
+      } else {
+        material?.dispose?.();
+      }
+    });
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
   }
 }
 
-function makeRibbon(samples, width, material) {
+function makeRibbon(samples: Point3[], width: number, material: THREE.Material) {
   const positions = [];
   const normals = [];
   const indices = [];
@@ -379,7 +426,7 @@ function makeRibbon(samples, width, material) {
   return new THREE.Mesh(geometry, material);
 }
 
-function layerColor(layer) {
+function layerColor(layer: number) {
   const index = Math.abs(layer) % LAYER_COLORS.length;
   const color = new THREE.Color(LAYER_COLORS[index]);
   if (layer < 0) color.multiplyScalar(0.78);

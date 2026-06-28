@@ -271,13 +271,16 @@ Key capabilities:
 - Edit text content, font, size, color, bold, italic, alignment, opacity, and geometry.
 - Insert PNG and JPEG images at arbitrary positions.
 - Insert boxes, lines, and arrows.
-- Save the editable workspace as a `.pdf-studio.json` project file.
-- Export a flattened PDF with the visual edits applied.
+- Drag highlighter marks over PDF content.
+- Optionally download the editable workspace as a `.pdf-studio.json` backup file.
+- Export a flattened PDF copy with the visual edits applied.
+- Overwrite the imported PDF in browsers that grant file write access through the top import button.
 - Re-import PDFs exported by PDF Studio and continue editing their stored overlay objects.
 
 Notes:
 
 - Exported PDFs include an attached `pdf-studio-project.json` payload so this tool can restore editable overlay state later.
+- The separate `.pdf-studio.json` download is an optional editable-project backup, not the normal PDF save/export path.
 - The first load requires internet access for the PDF.js, PDF-Lib, and Lucide CDN assets unless they are already cached.
 
 ## Directory Structure

@@ -20,17 +20,6 @@
       </div>
 
       <div class="rail-section">
-        <button class="command primary" id="openPdfBtn" type="button">
-          <i data-lucide="file-up"></i>
-          <span>Import PDF</span>
-        </button>
-        <button class="command" id="openProjectBtn" type="button">
-          <i data-lucide="folder-open"></i>
-          <span>Open Project</span>
-        </button>
-      </div>
-
-      <div class="rail-section">
         <div class="section-title">Insert</div>
         <div class="tool-grid" id="toolGrid">
           <button class="tool-button active" data-tool="select" type="button" title="Select">
@@ -57,32 +46,13 @@
             <i data-lucide="move-right"></i>
             <span>Arrow</span>
           </button>
-        </div>
-      </div>
-
-      <div class="rail-section">
-        <div class="section-title">View</div>
-        <div class="zoom-row">
-          <button class="icon-button" id="zoomOutBtn" type="button" title="Zoom out">
-            <i data-lucide="zoom-out"></i>
-          </button>
-          <output id="zoomLabel">100%</output>
-          <button class="icon-button" id="zoomInBtn" type="button" title="Zoom in">
-            <i data-lucide="zoom-in"></i>
+          <button class="tool-button" data-tool="highlight" type="button" title="Highlighter">
+            <i data-lucide="highlighter"></i>
+            <span>Highlight</span>
           </button>
         </div>
       </div>
 
-      <div class="rail-section rail-bottom">
-        <button class="command" id="saveProjectBtn" type="button">
-          <i data-lucide="save"></i>
-          <span>Save Project</span>
-        </button>
-        <button class="command accent" id="exportPdfBtn" type="button">
-          <i data-lucide="download"></i>
-          <span>Export PDF</span>
-        </button>
-      </div>
     </aside>
 
     <main class="workspace">
@@ -95,6 +65,35 @@
           <span id="pageCount">0 pages</span>
           <span id="objectCount">0 objects</span>
           <span id="autosaveState">Ready</span>
+        </div>
+        <div class="workspace-actions">
+          <div class="zoom-row top-zoom">
+            <button class="icon-button" id="zoomOutBtn" type="button" title="Zoom out" aria-label="Zoom out">
+              <i data-lucide="zoom-out"></i>
+            </button>
+            <output id="zoomLabel">100%</output>
+            <button class="icon-button" id="zoomInBtn" type="button" title="Zoom in" aria-label="Zoom in">
+              <i data-lucide="zoom-in"></i>
+            </button>
+          </div>
+          <button class="icon-button" id="topOpenPdfBtn" type="button" title="Import PDF" aria-label="Import PDF">
+            <i data-lucide="file-up"></i>
+          </button>
+          <button class="icon-button" id="topOpenProjectBtn" type="button" title="Open editable project (.json)" aria-label="Open editable project">
+            <i data-lucide="folder-open"></i>
+          </button>
+          <button class="icon-button" id="topDownloadProjectBtn" type="button" title="Download editable project (.json)" aria-label="Download editable project">
+            <i data-lucide="save"></i>
+          </button>
+          <div class="export-menu-shell">
+            <button class="icon-button accent" id="topExportPdfBtn" type="button" title="Export PDF" aria-label="Export PDF">
+              <i data-lucide="download"></i>
+            </button>
+            <div class="export-menu" id="exportMenu" hidden>
+              <button id="exportOverwriteBtn" type="button">Overwrite original PDF</button>
+              <button id="exportCopyBtn" type="button">Export PDF copy</button>
+            </div>
+          </div>
         </div>
       </header>
 

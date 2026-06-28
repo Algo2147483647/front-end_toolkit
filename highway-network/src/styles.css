@@ -272,6 +272,10 @@ input[type="range"] {
   font-weight: 700;
 }
 
+.stat-row {
+  display: contents;
+}
+
 .selection-details {
   display: grid;
   gap: 0.45rem;

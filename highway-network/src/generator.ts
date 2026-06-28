@@ -1,11 +1,142 @@
 const EARTH_RADIUS_METERS = 6378137;
 
-export const DEFAULT_OPTIONS = {
+export type Status = "valid" | "valid-with-warnings" | "infeasible";
+export type TurnClass = "through" | "right" | "left" | "diagonal";
+
+export interface Point3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface InputNode {
+  id: string;
+  lat: number;
+  lon: number;
+  elevation?: number;
+}
+
+export interface InputEdge {
+  id: string;
+  from: string;
+  to: string;
+  designSpeed?: number;
+  lanesForward?: number;
+  lanesBackward?: number;
+  roadClass?: string;
+}
+
+export interface InputGraph {
+  nodes: InputNode[];
+  edges: InputEdge[];
+}
+
+export interface GeneratorOptions {
+  portalDistance: number;
+  layerHeight: number;
+  runout: number;
+  minRadius: number;
+  laneWidth: number;
+  oneWayRoadWidth: number;
+  maxVehicleHeight: number;
+  maxGrade: number;
+  minimumMergeSpacing: number;
+  clearance: number;
+  deckDepth: number;
+  sampleCount: number;
+}
+
+export interface RoadSurface {
+  id: string;
+  edgeId: string;
+  direction: "forward" | "backward";
+  laneCount: number;
+  width: number;
+  maxVehicleHeight: number;
+  samples: Point3[];
+}
+
+export interface Connector {
+  id: string;
+  movementId: string;
+  fromPortalId: string;
+  toPortalId: string;
+  turnClass: TurnClass;
+  horizontalAlignment: { id: string; segments: unknown[]; samples: Point3[] };
+  verticalProfile: unknown;
+  crossSection: { laneCount: number; laneWidth: number; shoulderWidth: number };
+  layer: number;
+  targetElevation: number;
+  designSpeed: number;
+  minRadius: number;
+  maxGrade: number;
+  maxObservedGrade: number;
+  length: number;
+}
+
+export interface LaneGraph {
+  id?: string;
+  nodes: { id: string; position: Point3; kind?: string }[];
+  edges: { id: string; from: string; to: string; laneCount?: number }[];
+}
+
+export interface ValidationIssue {
+  connectorId?: string;
+  connectorA?: string;
+  connectorB?: string;
+  edgeId?: string;
+  type: string;
+  message: string;
+  severity?: "error" | "warning";
+}
+
+export interface Validation {
+  hardCollisions: ValidationIssue[];
+  clearanceViolations: ValidationIssue[];
+  designViolations: ValidationIssue[];
+  operationalViolations: ValidationIssue[];
+}
+
+export interface HighwayNetwork {
+  geoGraph: { nodes: Array<InputNode & { local: Point3 }>; edges: Required<InputEdge>[] };
+  halfEdges: unknown[];
+  roadSurfaces: RoadSurface[];
+  interchanges: Array<{
+    id: string;
+    anchorNodeId: string;
+    center: Point3;
+    portals: Array<{ id: string; position: Point3; elevation: number; laneRange: { count: number } }>;
+    movements: unknown[];
+    connectors: Connector[];
+    structures: unknown[];
+    conflicts: unknown[];
+    validation: Validation;
+    laneGraph: LaneGraph;
+    status: Status;
+    radius: number;
+  }>;
+  laneGraph: LaneGraph;
+  alignments: unknown[];
+  structures: Array<{ kind: string; geometry: { length: number; width: number } }>;
+  meshes: { generatedByRenderer: boolean };
+  validation: Validation;
+}
+
+export interface GenerationResult {
+  status: Status;
+  network: HighwayNetwork;
+  warnings: ValidationIssue[];
+  cost: number;
+}
+
+export const DEFAULT_OPTIONS: GeneratorOptions = {
   portalDistance: 320,
   layerHeight: 7,
   runout: 180,
   minRadius: 140,
   laneWidth: 3.65,
+  oneWayRoadWidth: 12,
+  maxVehicleHeight: 5.4,
   maxGrade: 0.065,
   minimumMergeSpacing: 160,
   clearance: 5.4,
@@ -13,7 +144,7 @@ export const DEFAULT_OPTIONS = {
   sampleCount: 80
 };
 
-export const SAMPLE_GRAPHS = {
+export const SAMPLE_GRAPHS: Record<string, InputGraph> = {
   stack4: {
     nodes: [
       { id: "N", lat: 40.0000, lon: -74.0000, elevation: 0 },
@@ -61,10 +192,12 @@ export const SAMPLE_GRAPHS = {
   }
 };
 
-export function generateHighwayNetwork(inputGraph, options = {}) {
+export function generateHighwayNetwork(inputGraph: InputGraph, options: Partial<GeneratorOptions> = {}): GenerationResult {
   const settings = { ...DEFAULT_OPTIONS, ...options };
+  settings.clearance = Number(options.clearance ?? options.maxVehicleHeight ?? settings.clearance);
   const geoGraph = normalizeInputGraph(inputGraph);
   const halfEdges = buildHalfEdges(geoGraph);
+  const roadSurfaces = buildRoadSurfaces(geoGraph, settings);
   const interchanges = [];
   const laneGraph = { nodes: [], edges: [] };
   const alignments = [];
@@ -98,6 +231,7 @@ export function generateHighwayNetwork(inputGraph, options = {}) {
   const network = {
     geoGraph,
     halfEdges,
+    roadSurfaces,
     interchanges,
     laneGraph,
     alignments,
@@ -125,7 +259,7 @@ function normalizeInputGraph(inputGraph) {
     elevation: Number(node.elevation ?? 0),
     local: toENU(origin, node)
   }));
-  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const nodeMap = new Map<string, any>(nodes.map((node) => [node.id, node]));
   const edges = inputGraph.edges.map((edge) => {
     if (!nodeMap.has(edge.from) || !nodeMap.has(edge.to)) {
       throw new Error(`Edge ${edge.id} references a missing node.`);
@@ -162,7 +296,7 @@ function toENU(origin, point) {
 }
 
 function buildHalfEdges(geoGraph) {
-  const nodeMap = new Map(geoGraph.nodes.map((node) => [node.id, node]));
+  const nodeMap = new Map<string, any>(geoGraph.nodes.map((node) => [node.id, node]));
   const halfEdges = [];
 
   for (const edge of geoGraph.edges) {
@@ -179,6 +313,51 @@ function buildHalfEdges(geoGraph) {
   }
 
   return halfEdges;
+}
+
+function buildRoadSurfaces(geoGraph, settings) {
+  const nodeMap = new Map<string, any>(geoGraph.nodes.map((node) => [node.id, node]));
+  const surfaces = [];
+
+  for (const edge of geoGraph.edges) {
+    const from = nodeMap.get(edge.from);
+    const to = nodeMap.get(edge.to);
+    const tangent = normalize2(sub2(to.local, from.local));
+    const normal = { x: -tangent.z, z: tangent.x };
+    const offset = Math.max(settings.oneWayRoadWidth * 0.58, 5);
+
+    if (edge.lanesForward > 0) {
+      surfaces.push(createRoadSurface(edge, from, to, normal, offset, edge.lanesForward, "forward", settings));
+    }
+    if (edge.lanesBackward > 0) {
+      surfaces.push(createRoadSurface(edge, to, from, normal, -offset, edge.lanesBackward, "backward", settings));
+    }
+  }
+
+  return surfaces;
+}
+
+function createRoadSurface(edge, from, to, normal, offset, laneCount, direction, settings) {
+  const start = {
+    x: from.local.x + normal.x * offset,
+    y: from.local.y,
+    z: from.local.z + normal.z * offset
+  };
+  const end = {
+    x: to.local.x + normal.x * offset,
+    y: to.local.y,
+    z: to.local.z + normal.z * offset
+  };
+
+  return {
+    id: `road-surface:${edge.id}:${direction}`,
+    edgeId: edge.id,
+    direction,
+    laneCount,
+    width: settings.oneWayRoadWidth,
+    maxVehicleHeight: settings.maxVehicleHeight,
+    samples: [start, end]
+  };
 }
 
 function createHalfEdge(edge, node, neighbor, direction, laneCount) {
@@ -312,7 +491,7 @@ function enumerateMovements(portals) {
 }
 
 function synthesizeConnectorRamps(movements, portals, settings) {
-  const portalMap = new Map(portals.map((portal) => [portal.id, portal]));
+  const portalMap = new Map<string, any>(portals.map((portal) => [portal.id, portal]));
   return movements.map((movement) => {
     const from = portalMap.get(movement.fromPortalId);
     const to = portalMap.get(movement.toPortalId);
@@ -362,7 +541,7 @@ function synthesizeConnectorRamps(movements, portals, settings) {
 
 function detectPlanViewConflicts(connectors, settings) {
   const conflicts = [];
-  const adjacency = new Map(connectors.map((connector) => [connector.id, new Set()]));
+  const adjacency = new Map<string, Set<string>>(connectors.map((connector) => [connector.id, new Set<string>()]));
 
   for (let i = 0; i < connectors.length; i += 1) {
     for (let j = i + 1; j < connectors.length; j += 1) {
@@ -585,8 +764,8 @@ function buildLaneGraph(node, portals, movements, connectors) {
 
 function resolveGlobalOverlaps(geoGraph, interchanges, settings) {
   const warnings = [];
-  const interchangeByNode = new Map(interchanges.map((interchange) => [interchange.anchorNodeId, interchange]));
-  const nodeMap = new Map(geoGraph.nodes.map((node) => [node.id, node]));
+  const interchangeByNode = new Map<string, any>(interchanges.map((interchange) => [interchange.anchorNodeId, interchange]));
+  const nodeMap = new Map<string, any>(geoGraph.nodes.map((node) => [node.id, node]));
   for (const edge of geoGraph.edges) {
     const a = interchangeByNode.get(edge.from);
     const b = interchangeByNode.get(edge.to);

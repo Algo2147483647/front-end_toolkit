@@ -11,17 +11,37 @@ const {
 const PROJECT_ATTACHMENT = "pdf-studio-project.json";
 const PROJECT_VERSION = 1;
 const DEFAULT_ZOOM = 1.2;
+const DEFAULT_MARKUP_COLOR = "#dc2626";
+const DEFAULT_HIGHLIGHT_COLOR = "#facc15";
+const FONT_OPTIONS = [
+  { value: "Helvetica", label: "Helvetica", exportFamily: "Helvetica" },
+  { value: "Arial", label: "Arial", exportFamily: "Helvetica" },
+  { value: "Verdana", label: "Verdana", exportFamily: "Helvetica" },
+  { value: "Tahoma", label: "Tahoma", exportFamily: "Helvetica" },
+  { value: "Trebuchet MS", label: "Trebuchet MS", exportFamily: "Helvetica" },
+  { value: "Times Roman", label: "Times Roman", exportFamily: "Times Roman" },
+  { value: "Georgia", label: "Georgia", exportFamily: "Times Roman" },
+  { value: "Garamond", label: "Garamond", exportFamily: "Times Roman" },
+  { value: "Courier", label: "Courier", exportFamily: "Courier" },
+  { value: "Courier New", label: "Courier New", exportFamily: "Courier" },
+  { value: "Lucida Console", label: "Lucida Console", exportFamily: "Courier" },
+  { value: "Impact", label: "Impact", exportFamily: "Helvetica" },
+];
 
 const els = {
-  openPdfBtn: document.getElementById("openPdfBtn"),
   emptyOpenPdfBtn: document.getElementById("emptyOpenPdfBtn"),
-  openProjectBtn: document.getElementById("openProjectBtn"),
-  saveProjectBtn: document.getElementById("saveProjectBtn"),
-  exportPdfBtn: document.getElementById("exportPdfBtn"),
+  topOpenPdfBtn: document.getElementById("topOpenPdfBtn"),
+  topOpenProjectBtn: document.getElementById("topOpenProjectBtn"),
+  topDownloadProjectBtn: document.getElementById("topDownloadProjectBtn"),
+  topExportPdfBtn: document.getElementById("topExportPdfBtn"),
+  exportMenu: document.getElementById("exportMenu"),
+  exportOverwriteBtn: document.getElementById("exportOverwriteBtn"),
+  exportCopyBtn: document.getElementById("exportCopyBtn"),
   pdfInput: document.getElementById("pdfInput"),
   projectInput: document.getElementById("projectInput"),
   imageInput: document.getElementById("imageInput"),
   toolGrid: document.getElementById("toolGrid"),
+  canvasShell: document.getElementById("canvasShell"),
   pages: document.getElementById("pages"),
   emptyState: document.getElementById("emptyState"),
   documentTitle: document.getElementById("documentTitle"),
@@ -39,16 +59,19 @@ const els = {
 const state = {
   fileName: "",
   sourcePdfBytes: null,
+  pdfFileHandle: null,
   pdfjsDoc: null,
   pageInfos: [],
   elements: [],
   selectedId: null,
+  selectedIds: [],
   editingTextId: null,
   activeTool: "select",
   zoom: DEFAULT_ZOOM,
   pendingImage: null,
   drag: null,
   suppressNextOverlayClick: false,
+  zoomRenderId: 0,
 };
 
 lucide.createIcons();
@@ -56,16 +79,20 @@ wireEvents();
 renderShell();
 
 function wireEvents() {
-  els.openPdfBtn.addEventListener("click", () => els.pdfInput.click());
-  els.emptyOpenPdfBtn.addEventListener("click", () => els.pdfInput.click());
-  els.openProjectBtn.addEventListener("click", () => els.projectInput.click());
-  els.saveProjectBtn.addEventListener("click", saveProject);
-  els.exportPdfBtn.addEventListener("click", exportPdf);
+  els.topOpenPdfBtn.addEventListener("click", openPdfFromPicker);
+  els.emptyOpenPdfBtn.addEventListener("click", openPdfFromPicker);
+  els.topOpenProjectBtn.addEventListener("click", () => els.projectInput.click());
+  els.topDownloadProjectBtn.addEventListener("click", downloadProject);
+  els.topExportPdfBtn.addEventListener("click", toggleExportMenu);
+  els.exportOverwriteBtn.addEventListener("click", () => exportPdf("overwrite"));
+  els.exportCopyBtn.addEventListener("click", () => exportPdf("copy"));
   els.pdfInput.addEventListener("change", handlePdfInput);
   els.projectInput.addEventListener("change", handleProjectInput);
   els.imageInput.addEventListener("change", handleImageInput);
   els.zoomInBtn.addEventListener("click", () => setZoom(Math.min(2.4, state.zoom + 0.1)));
   els.zoomOutBtn.addEventListener("click", () => setZoom(Math.max(0.6, state.zoom - 0.1)));
+  document.addEventListener("wheel", handleDocumentWheel, { passive: false, capture: true });
+  els.canvasShell.addEventListener("wheel", handleCanvasWheel, { passive: false, capture: true });
   els.deleteBtn.addEventListener("click", deleteSelection);
   els.toolGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-tool]");
@@ -75,7 +102,7 @@ function wireEvents() {
   document.addEventListener("pointermove", handlePointerMove);
   document.addEventListener("pointerup", endDrag);
   document.addEventListener("keydown", (event) => {
-    if ((event.key === "Delete" || event.key === "Backspace") && state.selectedId && !isTypingTarget(event.target)) {
+    if ((event.key === "Delete" || event.key === "Backspace") && state.selectedIds.length && !isTypingTarget(event.target)) {
       event.preventDefault();
       deleteSelection();
     }
@@ -84,11 +111,41 @@ function wireEvents() {
       setTool("select");
     }
   });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".export-menu-shell")) closeExportMenu();
+  });
+}
+
+async function openPdfFromPicker() {
+  closeExportMenu();
+  if (!window.showOpenFilePicker) {
+    els.pdfInput.click();
+    return;
+  }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: "PDF files", accept: { "application/pdf": [".pdf"] } }],
+      excludeAcceptAllOption: false,
+      multiple: false,
+    });
+    const file = await handle.getFile();
+    await openPdfFile(file, handle);
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.error(error);
+      toast("Could not open that PDF.");
+    }
+  }
 }
 
 async function handlePdfInput(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  await openPdfFile(file, null);
+  event.target.value = "";
+}
+
+async function openPdfFile(file, fileHandle) {
   try {
     setStatus("Loading PDF...");
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -99,16 +156,16 @@ async function handlePdfInput(event) {
         fileName: file.name.replace(/\.pdf$/i, " editable.pdf"),
         sourcePdfBytes: sourceBytes,
         elements: embeddedProject.elements || [],
+        pdfFileHandle: fileHandle,
       });
       toast("Editable project data restored from the imported PDF.");
     } else {
-      await loadDocument({ fileName: file.name, sourcePdfBytes: bytes, elements: [] });
+      await loadDocument({ fileName: file.name, sourcePdfBytes: bytes, elements: [], pdfFileHandle: fileHandle });
     }
   } catch (error) {
     console.error(error);
     toast("Could not open that PDF.");
   } finally {
-    event.target.value = "";
     setStatus("Ready");
   }
 }
@@ -123,8 +180,9 @@ async function handleProjectInput(event) {
       fileName: project.fileName || file.name.replace(/\.json$/i, ".pdf"),
       sourcePdfBytes: base64ToBytes(project.sourcePdfBase64),
       elements: project.elements || [],
+      pdfFileHandle: null,
     });
-    toast("Project opened.");
+    toast("Editable project opened.");
   } catch (error) {
     console.error(error);
     toast("Could not open that project file.");
@@ -156,11 +214,14 @@ async function handleImageInput(event) {
   event.target.value = "";
 }
 
-async function loadDocument({ fileName, sourcePdfBytes, elements }) {
+async function loadDocument({ fileName, sourcePdfBytes, elements, pdfFileHandle = null }) {
   state.fileName = fileName;
   state.sourcePdfBytes = sourcePdfBytes;
+  state.pdfFileHandle = pdfFileHandle;
   state.elements = hydrateElements(elements);
   state.selectedId = null;
+  state.selectedIds = [];
+  state.editingTextId = null;
   state.pdfjsDoc = await pdfjsLib.getDocument({ data: sourcePdfBytes.slice() }).promise;
   state.pageInfos = [];
   for (let index = 1; index <= state.pdfjsDoc.numPages; index += 1) {
@@ -241,7 +302,8 @@ function renderElement(element) {
     selectElement(element.id);
   });
 
-  if (element.id === state.selectedId) node.classList.add("selected");
+  const isSelected = state.selectedIds.includes(element.id);
+  if (isSelected) node.classList.add("selected");
 
   if (element.type === "text") {
     const isEditing = element.id === state.editingTextId;
@@ -273,13 +335,19 @@ function renderElement(element) {
     node.append(image);
   }
 
-  if (element.type === "rect") {
-    node.style.border = `${Math.max(1, element.strokeWidth || 2) * state.zoom}px solid ${element.strokeColor}`;
+  if (element.type === "rect" || element.type === "highlight") {
+    const strokeWidth = element.type === "highlight" ? 0 : Math.max(1, element.strokeWidth || 2) * state.zoom;
+    node.style.border = strokeWidth > 0 ? `${strokeWidth}px solid ${element.strokeColor}` : "0";
     node.style.background = element.fillColor || "transparent";
+    if (element.type === "highlight") node.style.mixBlendMode = "multiply";
   }
 
-  if (element.id === state.selectedId) {
-    node.append(createResizeHandle(element.id));
+  if (isSelected && state.selectedIds.length === 1) {
+    if (element.type === "rect") {
+      ["nw", "ne", "sw", "se"].forEach((corner) => node.append(createResizeHandle(element.id, corner)));
+    } else {
+      node.append(createResizeHandle(element.id, "se"));
+    }
   }
   return node;
 }
@@ -299,7 +367,8 @@ function renderLineElement(element) {
     event.stopPropagation();
     selectElement(element.id);
   });
-  if (element.id === state.selectedId) node.classList.add("selected");
+  const isSelected = state.selectedIds.includes(element.id);
+  if (isSelected) node.classList.add("selected");
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", `${Math.max(1, bounds.width * state.zoom)}`);
@@ -329,25 +398,26 @@ function renderLineElement(element) {
   }
 
   node.append(svg);
-  if (element.id === state.selectedId) {
+  if (isSelected && state.selectedIds.length === 1) {
     node.append(createPointHandle(element.id, "start", element.x1 - bounds.left, element.y1 - bounds.top));
     node.append(createPointHandle(element.id, "end", element.x2 - bounds.left, element.y2 - bounds.top));
   }
   return node;
 }
 
-function createResizeHandle(id) {
+function createResizeHandle(id, corner = "se") {
   const handle = document.createElement("div");
-  handle.className = "resize-handle";
+  handle.className = `resize-handle ${corner}`;
   handle.addEventListener("pointerdown", (event) => {
     event.stopPropagation();
     const element = findElement(id);
     state.drag = {
       mode: "resize",
       id,
+      corner,
       startX: event.clientX,
       startY: event.clientY,
-      origin: { w: element.w, h: element.h },
+      origin: structuredClone(element),
     };
     safeSetPointerCapture(handle, event.pointerId);
   });
@@ -376,10 +446,10 @@ function createPointHandle(id, point, x, y) {
 function handleOverlayPointerDown(event) {
   if (event.target !== event.currentTarget) return;
   if (state.activeTool === "select") {
-    selectElement(null);
+    beginMarqueeSelect(event, event.currentTarget);
     return;
   }
-  if (["rect", "line", "arrow"].includes(state.activeTool)) {
+  if (["rect", "line", "arrow", "highlight"].includes(state.activeTool)) {
     beginOverlayCreate(event, event.currentTarget);
   }
 }
@@ -394,7 +464,6 @@ function handleOverlayClick(event) {
   const point = eventToPdfPoint(event, event.currentTarget);
   if (state.activeTool === "text") {
     addElement(defaultTextElement(pageNumber, point));
-    setTool("select");
   } else if (state.activeTool === "image") {
     if (!state.pendingImage) {
       els.imageInput.click();
@@ -402,8 +471,27 @@ function handleOverlayClick(event) {
     }
     addElement(defaultImageElement(pageNumber, point, state.pendingImage));
     state.pendingImage = null;
-    setTool("select");
+    renderShell();
   }
+}
+
+function beginMarqueeSelect(event, overlay) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  const pageNumber = Number(overlay.dataset.pageNumber);
+  const start = eventToPdfPoint(event, overlay);
+  const marquee = document.createElement("div");
+  marquee.className = "selection-marquee";
+  overlay.append(marquee);
+  state.drag = {
+    mode: "marquee",
+    page: pageNumber,
+    overlay,
+    marquee,
+    start,
+    moved: false,
+  };
+  safeSetPointerCapture(overlay, event.pointerId);
 }
 
 function beginOverlayCreate(event, overlay) {
@@ -413,11 +501,13 @@ function beginOverlayCreate(event, overlay) {
   const pageNumber = Number(overlay.dataset.pageNumber);
   const start = eventToPdfPoint(event, overlay);
   const type = state.activeTool;
-  const element = type === "rect"
+  const element = type === "rect" || type === "highlight"
     ? rectFromDrag(pageNumber, start, start)
     : lineFromDrag(pageNumber, start, start, type);
+  if (type === "highlight") applyHighlightDefaults(element);
   state.elements.push(element);
   state.selectedId = element.id;
+  state.selectedIds = [element.id];
   state.editingTextId = null;
   state.drag = {
     mode: "create",
@@ -440,7 +530,7 @@ function startElementDrag(event, id) {
   event.stopPropagation();
   const element = findElement(id);
   if (element?.type === "text" && state.editingTextId === id) return;
-  selectElement(id);
+  if (!state.selectedIds.includes(id)) selectElement(id);
   if (element.type === "text" && event.detail > 1) return;
   state.drag = {
     mode: "move",
@@ -448,18 +538,25 @@ function startElementDrag(event, id) {
     startX: event.clientX,
     startY: event.clientY,
     origin: structuredClone(element),
+    origins: state.selectedIds.map((selectedId) => [selectedId, structuredClone(findElement(selectedId))]),
   };
   safeSetPointerCapture(event.currentTarget, event.pointerId);
 }
 
 function handlePointerMove(event) {
   if (!state.drag) return;
+  if (state.drag.mode === "marquee") {
+    const current = eventToPdfPoint(event, state.drag.overlay);
+    state.drag.moved = state.drag.moved || distanceBetween(state.drag.start, current) > 3;
+    updateMarqueeNode(state.drag.marquee, rectGeometryFromPoints(state.drag.start, current));
+    return;
+  }
   const element = findElement(state.drag.id);
   if (!element) return;
   if (state.drag.mode === "create") {
     const current = eventToPdfPoint(event, state.drag.overlay);
     state.drag.moved = state.drag.moved || distanceBetween(state.drag.start, current) > 3;
-    if (state.drag.type === "rect") {
+    if (state.drag.type === "rect" || state.drag.type === "highlight") {
       Object.assign(element, rectGeometryFromPoints(state.drag.start, current));
     } else {
       element.x2 = current.x;
@@ -473,19 +570,18 @@ function handlePointerMove(event) {
   const dx = (event.clientX - state.drag.startX) / state.zoom;
   const dy = (event.clientY - state.drag.startY) / state.zoom;
   if (state.drag.mode === "move") {
-    if (element.type === "line" || element.type === "arrow") {
-      element.x1 = state.drag.origin.x1 + dx;
-      element.y1 = state.drag.origin.y1 + dy;
-      element.x2 = state.drag.origin.x2 + dx;
-      element.y2 = state.drag.origin.y2 + dy;
+    if (state.drag.origins?.length > 1) {
+      state.drag.origins.forEach(([id, origin]) => {
+        const selectedElement = findElement(id);
+        if (!selectedElement) return;
+        moveElementFromOrigin(selectedElement, origin, dx, dy);
+      });
     } else {
-      element.x = Math.max(0, state.drag.origin.x + dx);
-      element.y = Math.max(0, state.drag.origin.y + dy);
+      moveElementFromOrigin(element, state.drag.origin, dx, dy);
     }
   }
   if (state.drag.mode === "resize") {
-    element.w = Math.max(24, state.drag.origin.w + dx);
-    element.h = Math.max(18, state.drag.origin.h + dy);
+    resizeBoxElement(element, state.drag.origin, state.drag.corner, dx, dy);
   }
   if (state.drag.mode === "point") {
     const suffix = state.drag.point === "start" ? "1" : "2";
@@ -500,12 +596,30 @@ function handlePointerMove(event) {
 }
 
 function endDrag() {
+  if (state.drag?.mode === "marquee") {
+    const selectionRect = parseMarqueeRect(state.drag.marquee);
+    state.drag.marquee.remove();
+    if (state.drag.moved) {
+      const ids = state.elements
+        .filter((element) => element.page === state.drag.page)
+        .filter((element) => rectsIntersect(selectionRect, getElementRect(element)))
+        .map((element) => element.id);
+      setSelection(ids);
+    } else {
+      selectElement(null);
+    }
+    state.drag = null;
+    return;
+  }
   if (state.drag?.mode === "create") {
     const element = findElement(state.drag.id);
     if (element) {
-      if (state.drag.type === "rect") {
-        if (!state.drag.moved || element.w < 6 || element.h < 6) {
-          const fallback = defaultRectElement(element.page, state.drag.start);
+      if (state.drag.type === "rect" || state.drag.type === "highlight") {
+        const tooSmall = state.drag.type === "highlight" ? element.w < 1 || element.h < 1 : element.w < 6 || element.h < 6;
+        if (!state.drag.moved || tooSmall) {
+          const fallback = state.drag.type === "highlight"
+            ? defaultHighlightElement(element.page, state.drag.start)
+            : defaultRectElement(element.page, state.drag.start);
           Object.assign(element, { x: fallback.x, y: fallback.y, w: fallback.w, h: fallback.h });
         }
       } else if (!state.drag.moved || distanceBetween({ x: element.x1, y: element.y1 }, { x: element.x2, y: element.y2 }) < 6) {
@@ -518,7 +632,6 @@ function endDrag() {
       markChanged();
     }
     state.suppressNextOverlayClick = true;
-    setTool("select");
   }
   state.drag = null;
 }
@@ -542,10 +655,21 @@ function selectElement(id, force = false) {
     state.editingTextId = null;
   }
   state.selectedId = id;
+  state.selectedIds = id ? [id] : [];
   const current = id ? findElement(id) : null;
   if (previous) renderPageElements(previous.page);
   if (current && (!previous || previous.page !== current.page)) renderPageElements(current.page);
   if (current && previous?.page === current.page) renderPageElements(current.page);
+  renderInspector();
+}
+
+function setSelection(ids) {
+  const previousPages = new Set(state.selectedIds.map((id) => findElement(id)?.page).filter(Boolean));
+  state.selectedIds = [...new Set(ids)];
+  state.selectedId = state.selectedIds[0] || null;
+  if (!state.selectedIds.includes(state.editingTextId)) state.editingTextId = null;
+  const nextPages = new Set(state.selectedIds.map((id) => findElement(id)?.page).filter(Boolean));
+  new Set([...previousPages, ...nextPages]).forEach((page) => renderPageElements(page));
   renderInspector();
 }
 
@@ -556,11 +680,12 @@ function enterTextEdit(id) {
 }
 
 function deleteSelection() {
-  if (!state.selectedId) return;
-  const element = findElement(state.selectedId);
-  state.elements = state.elements.filter((item) => item.id !== state.selectedId);
+  if (!state.selectedIds.length) return;
+  const pages = new Set(state.selectedIds.map((id) => findElement(id)?.page).filter(Boolean));
+  state.elements = state.elements.filter((item) => !state.selectedIds.includes(item.id));
   state.selectedId = null;
-  if (element) renderPageElements(element.page);
+  state.selectedIds = [];
+  pages.forEach((page) => renderPageElements(page));
   renderInspector();
   renderShell();
   markChanged();
@@ -568,7 +693,18 @@ function deleteSelection() {
 
 function renderInspector() {
   const element = state.selectedId ? findElement(state.selectedId) : null;
-  els.deleteBtn.disabled = !element;
+  els.deleteBtn.disabled = !state.selectedIds.length;
+  if (state.selectedIds.length > 1) {
+    els.selectionTitle.textContent = `${state.selectedIds.length} selected`;
+    els.inspectorContent.innerHTML = `
+      <div class="empty-inspector">
+        <i data-lucide="mouse-pointer-2"></i>
+        <p>${state.selectedIds.length} objects selected. Drag any selected object to move the group, or delete them together.</p>
+      </div>
+    `;
+    lucide.createIcons();
+    return;
+  }
   if (!element) {
     els.selectionTitle.textContent = "No selection";
     els.inspectorContent.innerHTML = `
@@ -635,9 +771,7 @@ function textFields(element) {
         <div class="field">
           <label for="prop-fontFamily">Font</label>
           <select id="prop-fontFamily" data-prop="fontFamily">
-            ${option("Helvetica", element.fontFamily)}
-            ${option("Times Roman", element.fontFamily)}
-            ${option("Courier", element.fontFamily)}
+            ${FONT_OPTIONS.map((font) => option(font.value, element.fontFamily, font.label)).join("")}
           </select>
         </div>
         ${numberField("fontSize", "Size", element.fontSize, 6, 96, 1)}
@@ -663,14 +797,14 @@ function textFields(element) {
 }
 
 function shapeFields(element) {
-  if (!["rect", "line", "arrow"].includes(element.type)) return "";
+  if (!["rect", "line", "arrow", "highlight"].includes(element.type)) return "";
   return `
     <section class="field-group">
       <h3>Style</h3>
       <div class="field-grid">
         ${element.type === "rect" ? numberField("strokeWidth", "Stroke", element.strokeWidth || 2, 0, 64, 1) : ""}
-        ${colorField("strokeColor", "Stroke", element.strokeColor)}
-        ${element.type === "rect" ? colorField("fillColor", "Fill", element.fillColor || "#ffffff") : ""}
+        ${element.type === "highlight" ? "" : colorField("strokeColor", "Stroke", element.strokeColor)}
+        ${element.type === "rect" || element.type === "highlight" ? colorField("fillColor", element.type === "highlight" ? "Highlight" : "Fill", element.fillColor || DEFAULT_HIGHLIGHT_COLOR) : ""}
       </div>
     </section>
   `;
@@ -697,7 +831,7 @@ function wireInspectorFields(element) {
       const prop = input.dataset.prop;
       const isNumber = input.type === "number" || input.type === "range" || input.dataset.valueType === "number";
       element[prop] = isNumber ? Number(input.value) : input.value;
-      updateRangeOutput(input);
+      syncLinkedInputs(input);
       renderPageElements(element.page);
       renderShell();
       markChanged();
@@ -725,8 +859,10 @@ function renderShell() {
   els.pageCount.textContent = `${state.pageInfos.length} page${state.pageInfos.length === 1 ? "" : "s"}`;
   els.objectCount.textContent = `${state.elements.length} object${state.elements.length === 1 ? "" : "s"}`;
   els.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
-  els.saveProjectBtn.disabled = !state.sourcePdfBytes;
-  els.exportPdfBtn.disabled = !state.sourcePdfBytes;
+  els.topDownloadProjectBtn.disabled = !state.sourcePdfBytes;
+  els.topExportPdfBtn.disabled = !state.sourcePdfBytes;
+  els.exportOverwriteBtn.disabled = !state.sourcePdfBytes || !state.pdfFileHandle;
+  els.exportOverwriteBtn.title = state.pdfFileHandle ? "" : "Import with the top import button in a supported browser to overwrite the original file.";
   document.querySelectorAll("[data-tool]").forEach((button) => {
     button.classList.toggle("active", button.dataset.tool === state.activeTool);
   });
@@ -744,9 +880,67 @@ function setTool(tool) {
 }
 
 async function setZoom(zoom) {
-  state.zoom = Number(zoom.toFixed(2));
+  state.zoom = clampZoom(zoom);
   renderShell();
+  const renderId = ++state.zoomRenderId;
   await renderPages();
+  if (renderId !== state.zoomRenderId) return;
+}
+
+async function handleCanvasWheel(event) {
+  if (!state.pdfjsDoc || (!event.ctrlKey && !event.metaKey)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  const oldZoom = state.zoom;
+  const direction = event.deltaY > 0 ? -1 : 1;
+  const step = Math.abs(event.deltaY) > 90 ? 0.16 : 0.08;
+  const nextZoom = clampZoom(oldZoom + direction * step);
+  if (nextZoom === oldZoom) return;
+  const scrollLeft = els.canvasShell.scrollLeft;
+  const scrollTop = els.canvasShell.scrollTop;
+  await setZoom(nextZoom);
+  els.canvasShell.scrollLeft = scrollLeft;
+  els.canvasShell.scrollTop = scrollTop;
+}
+
+function handleDocumentWheel(event) {
+  if (!state.pdfjsDoc || (!event.ctrlKey && !event.metaKey)) return;
+  if (!event.target.closest?.("#canvasShell")) return;
+  handleCanvasWheel(event);
+}
+
+function clampZoom(zoom) {
+  return Number(Math.min(2.4, Math.max(0.6, zoom)).toFixed(2));
+}
+
+function resizeBoxElement(element, origin, corner, dx, dy) {
+  if (element.type !== "rect" && element.type !== "highlight" && corner !== "se") {
+    element.w = Math.max(24, origin.w + dx);
+    element.h = Math.max(18, origin.h + dy);
+    return;
+  }
+
+  let left = origin.x;
+  let top = origin.y;
+  let right = origin.x + origin.w;
+  let bottom = origin.y + origin.h;
+
+  if (corner.includes("w")) left += dx;
+  if (corner.includes("e")) right += dx;
+  if (corner.includes("n")) top += dy;
+  if (corner.includes("s")) bottom += dy;
+
+  const minSize = element.type === "highlight" ? 1 : 6;
+  const nextLeft = Math.min(left, right);
+  const nextTop = Math.min(top, bottom);
+  const nextRight = Math.max(left, right);
+  const nextBottom = Math.max(top, bottom);
+
+  element.x = nextLeft;
+  element.y = nextTop;
+  element.w = Math.max(minSize, nextRight - nextLeft);
+  element.h = Math.max(minSize, nextBottom - nextTop);
 }
 
 function setStatus(text) {
@@ -757,7 +951,7 @@ function markChanged() {
   setStatus("Unsaved changes");
 }
 
-async function saveProject() {
+async function downloadProject() {
   if (!state.sourcePdfBytes) {
     toast("Import a PDF first.");
     return;
@@ -767,44 +961,74 @@ async function saveProject() {
     new Blob([JSON.stringify(project, null, 2)], { type: "application/json" }),
     `${baseName(state.fileName || "document")}.pdf-studio.json`,
   );
-  setStatus("Project saved");
+  setStatus("Editable project downloaded");
 }
 
-async function exportPdf() {
+function toggleExportMenu(event) {
+  event.stopPropagation();
   if (!state.sourcePdfBytes) {
     toast("Import a PDF first.");
     return;
   }
+  els.exportMenu.hidden = !els.exportMenu.hidden;
+}
+
+function closeExportMenu() {
+  els.exportMenu.hidden = true;
+}
+
+async function exportPdf(mode = "copy") {
+  closeExportMenu();
+  if (!state.sourcePdfBytes) {
+    toast("Import a PDF first.");
+    return;
+  }
+  if (mode === "overwrite" && !state.pdfFileHandle) {
+    toast("Overwrite is only available when the original PDF was imported with file access.");
+    return;
+  }
   try {
     setStatus("Exporting...");
-    const pdfDoc = await PDFDocument.load(state.sourcePdfBytes.slice());
-    const fonts = await loadFonts(pdfDoc);
-    for (const element of state.elements) {
-      const page = pdfDoc.getPage(element.page - 1);
-      if (!page) continue;
-      if (element.type === "text") drawTextElement(page, element, fonts);
-      if (element.type === "image") await drawImageElement(pdfDoc, page, element);
-      if (element.type === "rect") drawRectElement(page, element);
-      if (element.type === "line" || element.type === "arrow") drawLineAnnotation(page, element);
+    const bytes = await buildEditedPdfBytes();
+    if (mode === "overwrite") {
+      const writable = await state.pdfFileHandle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      setStatus("Original PDF overwritten");
+      toast("Original PDF overwritten.");
+    } else {
+      downloadBlob(new Blob([bytes], { type: "application/pdf" }), `${baseName(state.fileName || "document")}-edited.pdf`);
+      setStatus("PDF copy exported");
+      toast("PDF copy exported.");
     }
-    const project = await buildProjectPayload();
-    await pdfDoc.attach(new TextEncoder().encode(JSON.stringify(project)), PROJECT_ATTACHMENT, {
-      mimeType: "application/json",
-      description: "Editable PDF Studio project data",
-      creationDate: new Date(),
-      modificationDate: new Date(),
-    });
-    pdfDoc.setTitle(baseName(state.fileName || "PDF Studio export"));
-    pdfDoc.setProducer("PDF Studio");
-    const bytes = await pdfDoc.save();
-    downloadBlob(new Blob([bytes], { type: "application/pdf" }), `${baseName(state.fileName || "document")}-edited.pdf`);
-    setStatus("Exported");
-    toast("PDF exported with editable project data attached.");
   } catch (error) {
     console.error(error);
     toast("Export failed.");
     setStatus("Ready");
   }
+}
+
+async function buildEditedPdfBytes() {
+  const pdfDoc = await PDFDocument.load(state.sourcePdfBytes.slice());
+  const fonts = await loadFonts(pdfDoc);
+  for (const element of state.elements) {
+    const page = pdfDoc.getPage(element.page - 1);
+    if (!page) continue;
+    if (element.type === "text") drawTextElement(page, element, fonts);
+    if (element.type === "image") await drawImageElement(pdfDoc, page, element);
+    if (element.type === "rect" || element.type === "highlight") drawRectElement(page, element);
+    if (element.type === "line" || element.type === "arrow") drawLineAnnotation(page, element);
+  }
+  const project = await buildProjectPayload();
+  await pdfDoc.attach(new TextEncoder().encode(JSON.stringify(project)), PROJECT_ATTACHMENT, {
+    mimeType: "application/json",
+    description: "Editable PDF Studio project data",
+    creationDate: new Date(),
+    modificationDate: new Date(),
+  });
+  pdfDoc.setTitle(baseName(state.fileName || "PDF Studio export"));
+  pdfDoc.setProducer("PDF Studio");
+  return pdfDoc.save();
 }
 
 async function buildProjectPayload() {
@@ -853,7 +1077,7 @@ async function loadFonts(pdfDoc) {
 }
 
 function drawTextElement(page, element, fonts) {
-  const fontSet = fonts[element.fontFamily] || fonts.Helvetica;
+  const fontSet = fonts[getExportFontFamily(element.fontFamily)] || fonts.Helvetica;
   const font = element.bold && element.italic ? fontSet.boldItalic : element.bold ? fontSet.bold : element.italic ? fontSet.italic : fontSet.regular;
   const fontSize = Number(element.fontSize || 16);
   const lineHeight = fontSize * (element.lineHeight || 1.25);
@@ -887,16 +1111,17 @@ async function drawImageElement(pdfDoc, page, element) {
 }
 
 function drawRectElement(page, element) {
+  const isHighlight = element.type === "highlight";
   page.drawRectangle({
     x: element.x,
     y: page.getHeight() - element.y - element.h,
     width: element.w,
     height: element.h,
-    borderColor: hexToRgb(element.strokeColor),
-    color: hexToRgb(element.fillColor || "#ffffff"),
-    borderWidth: element.strokeWidth || 2,
+    borderColor: hexToRgb(element.strokeColor || DEFAULT_MARKUP_COLOR),
+    color: hexToRgb(element.fillColor || (isHighlight ? DEFAULT_HIGHLIGHT_COLOR : "#ffffff")),
+    borderWidth: isHighlight ? 0 : element.strokeWidth || 2,
     opacity: element.fillColor === "transparent" ? 0 : element.opacity ?? 1,
-    borderOpacity: element.opacity ?? 1,
+    borderOpacity: isHighlight ? 0 : element.opacity ?? 1,
   });
 }
 
@@ -967,7 +1192,7 @@ function defaultTextElement(page, point) {
     fontFamily: "Helvetica",
     fontSize: 18,
     lineHeight: 1.25,
-    color: "#172026",
+    color: DEFAULT_MARKUP_COLOR,
     bold: false,
     italic: false,
     align: "left",
@@ -1000,10 +1225,26 @@ function defaultRectElement(page, point) {
     y: point.y,
     w: 180,
     h: 92,
-    strokeColor: "#2563eb",
+    strokeColor: DEFAULT_MARKUP_COLOR,
     fillColor: "transparent",
     strokeWidth: 2,
     opacity: 1,
+  };
+}
+
+function defaultHighlightElement(page, point) {
+  return {
+    id: createId(),
+    type: "highlight",
+    page,
+    x: point.x,
+    y: point.y,
+    w: 220,
+    h: 30,
+    strokeColor: DEFAULT_HIGHLIGHT_COLOR,
+    fillColor: DEFAULT_HIGHLIGHT_COLOR,
+    strokeWidth: 0,
+    opacity: 0.45,
   };
 }
 
@@ -1016,7 +1257,7 @@ function defaultLineElement(page, point, type) {
     y1: point.y,
     x2: point.x + 170,
     y2: point.y,
-    strokeColor: type === "arrow" ? "#b45309" : "#0f766e",
+    strokeColor: DEFAULT_MARKUP_COLOR,
     strokeWidth: 3,
     opacity: 1,
   };
@@ -1028,11 +1269,20 @@ function rectFromDrag(page, start, current) {
     type: "rect",
     page,
     ...rectGeometryFromPoints(start, current),
-    strokeColor: "#2563eb",
+    strokeColor: DEFAULT_MARKUP_COLOR,
     fillColor: "transparent",
     strokeWidth: 2,
     opacity: 1,
   };
+}
+
+function applyHighlightDefaults(element) {
+  element.type = "highlight";
+  element.strokeColor = DEFAULT_HIGHLIGHT_COLOR;
+  element.fillColor = DEFAULT_HIGHLIGHT_COLOR;
+  element.strokeWidth = 0;
+  element.opacity = 0.45;
+  return element;
 }
 
 function lineFromDrag(page, start, current, type) {
@@ -1044,10 +1294,14 @@ function lineFromDrag(page, start, current, type) {
     y1: start.y,
     x2: current.x,
     y2: current.y,
-    strokeColor: type === "arrow" ? "#b45309" : "#0f766e",
+    strokeColor: DEFAULT_MARKUP_COLOR,
     strokeWidth: 3,
     opacity: 1,
   };
+}
+
+function getExportFontFamily(fontFamily) {
+  return FONT_OPTIONS.find((font) => font.value === fontFamily)?.exportFamily || "Helvetica";
 }
 
 function rectGeometryFromPoints(start, current) {
@@ -1057,6 +1311,53 @@ function rectGeometryFromPoints(start, current) {
     w: Math.abs(current.x - start.x),
     h: Math.abs(current.y - start.y),
   };
+}
+
+function updateMarqueeNode(node, rect) {
+  node.style.left = `${rect.x * state.zoom}px`;
+  node.style.top = `${rect.y * state.zoom}px`;
+  node.style.width = `${rect.w * state.zoom}px`;
+  node.style.height = `${rect.h * state.zoom}px`;
+  node.dataset.x = String(rect.x);
+  node.dataset.y = String(rect.y);
+  node.dataset.w = String(rect.w);
+  node.dataset.h = String(rect.h);
+}
+
+function parseMarqueeRect(node) {
+  return {
+    x: Number(node.dataset.x || 0),
+    y: Number(node.dataset.y || 0),
+    w: Number(node.dataset.w || 0),
+    h: Number(node.dataset.h || 0),
+  };
+}
+
+function getElementRect(element) {
+  if (element.type === "line" || element.type === "arrow") {
+    const bounds = getLineBounds(element);
+    return { x: bounds.left, y: bounds.top, w: bounds.width, h: bounds.height };
+  }
+  return { x: element.x, y: element.y, w: element.w, h: element.h };
+}
+
+function rectsIntersect(a, b) {
+  return a.x <= b.x + b.w
+    && a.x + a.w >= b.x
+    && a.y <= b.y + b.h
+    && a.y + a.h >= b.y;
+}
+
+function moveElementFromOrigin(element, origin, dx, dy) {
+  if (element.type === "line" || element.type === "arrow") {
+    element.x1 = origin.x1 + dx;
+    element.y1 = origin.y1 + dy;
+    element.x2 = origin.x2 + dx;
+    element.y2 = origin.y2 + dy;
+    return;
+  }
+  element.x = Math.max(0, origin.x + dx);
+  element.y = Math.max(0, origin.y + dy);
 }
 
 function numberField(prop, label, value, min = 0, max = 99999, step = 1) {
@@ -1072,8 +1373,11 @@ function rangeField(prop, label, value, min = 0, max = 1, step = 0.05) {
   const rounded = round(value);
   return `
     <div class="field span-2">
-      <label for="prop-${prop}">${label} <output data-output-for="${prop}">${rounded}</output></label>
-      <input id="prop-${prop}" data-prop="${prop}" data-value-type="number" type="range" min="${min}" max="${max}" step="${step}" value="${rounded}">
+      <label for="prop-${prop}">${label}</label>
+      <div class="range-number-row">
+        <input id="prop-${prop}" data-prop="${prop}" data-pair="${prop}" data-value-type="number" type="range" min="${min}" max="${max}" step="${step}" value="${rounded}">
+        <input id="prop-${prop}-number" data-prop="${prop}" data-pair="${prop}" data-value-type="number" type="number" min="${min}" max="${max}" step="${step}" value="${rounded}">
+      </div>
     </div>
   `;
 }
@@ -1087,8 +1391,8 @@ function colorField(prop, label, value) {
   `;
 }
 
-function option(value, current) {
-  return `<option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`;
+function option(value, current, label = value) {
+  return `<option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>${escapeHtml(label)}</option>`;
 }
 
 function eventToPdfPoint(event, overlay) {
@@ -1137,7 +1441,7 @@ function getOverlay(pageNumber) {
 }
 
 function titleForElement(element) {
-  const labels = { text: "Text box", image: "Image", rect: "Box", line: "Line", arrow: "Arrow" };
+  const labels = { text: "Text box", image: "Image", rect: "Box", line: "Line", arrow: "Arrow", highlight: "Highlighter" };
   return labels[element.type] || "Object";
 }
 
@@ -1232,10 +1536,12 @@ function isTypingTarget(target) {
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName) || target?.isContentEditable;
 }
 
-function updateRangeOutput(input) {
-  if (input.type !== "range") return;
-  const output = els.inspectorContent.querySelector(`[data-output-for="${input.dataset.prop}"]`);
-  if (output) output.textContent = round(input.value);
+function syncLinkedInputs(input) {
+  const pair = input.dataset.pair;
+  if (!pair) return;
+  els.inspectorContent.querySelectorAll(`[data-pair="${pair}"]`).forEach((linkedInput) => {
+    if (linkedInput !== input) linkedInput.value = input.value;
+  });
 }
 
 function focusTextElement(id) {

@@ -1,6 +1,6 @@
 # Procedural 3D Highway Network Generator
 
-This folder implements a browser-based prototype for the system design plan in:
+This folder implements a React + TypeScript browser prototype for the system design plan in:
 
 `C:\Users\29753\Desktop\System Design Plan Procedural 3D Highway Network and Full-Flow Interchange Generator.md`
 
@@ -20,16 +20,23 @@ It is a standalone static tool that turns a geographic graph into:
 
 ## Run
 
-From the repository root:
+From this folder:
 
 ```powershell
-python -m http.server 8080
+npm install
+npm run dev
 ```
 
-Open:
+Open the Vite URL printed by the dev server, for example:
 
 ```text
-http://localhost:8080/highway-network/
+http://127.0.0.1:5177/
+```
+
+For a production build:
+
+```powershell
+npm run build
 ```
 
 ## Input Shape
@@ -61,6 +68,6 @@ The prototype follows the staged compiler model from the plan:
 geo graph -> half-edges -> portals -> movements -> connectors -> conflicts -> layers -> profiles -> structures -> lane graph -> validation -> meshes
 ```
 
-The lane graph and generated geometric samples are kept separate from render meshes. The Three.js scene is only a view over generated stores.
+The lane graph and generated geometric samples are kept separate from render meshes. React owns controls, inspector state, and selected-connector state; the Three.js scene is a typed renderer over generated stores.
 
 This is the first universal fallback implementation. It does not yet include specialized trumpet, turbine, or clover-stack templates, terrain-aware earthworks, real clothoid sampling, swept-volume collision geometry, or corridor-level optimization.
