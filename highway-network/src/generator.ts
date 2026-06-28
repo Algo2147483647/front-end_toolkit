@@ -113,6 +113,7 @@ export interface HighwayNetwork {
     validation: Validation;
     laneGraph: LaneGraph;
     status: Status;
+    template?: { id: string; name: string; score: Record<string, number> };
     radius: number;
   }>;
   laneGraph: LaneGraph;
@@ -380,14 +381,8 @@ function generateInterchange(node, incidentHalfEdges, settings) {
   const legs = collectAndSortIncidentLegs(node, incidentHalfEdges);
   const portals = placePortals(node, legs, settings);
   const movements = enumerateMovements(portals);
-  const connectors = synthesizeConnectorRamps(movements, portals, settings);
-  const conflictGraph = detectPlanViewConflicts(connectors, settings);
-  const layers = colorConflictGraph(conflictGraph, connectors);
-  applyLayers(connectors, layers, settings);
-  solveVerticalProfiles(connectors, settings);
-  const structures = generateStructures(connectors, settings);
-  const validation = validateInterchange(connectors, conflictGraph, settings);
-  const laneGraph = buildLaneGraph(node, portals, movements, connectors);
+  const candidate = selectBestLayoutCandidate(node, portals, movements, settings);
+  const { connectors, conflictGraph, structures, validation, laneGraph, template } = candidate;
   const status = validation.hardCollisions.length || validation.clearanceViolations.length
     ? "infeasible"
     : validation.designViolations.length || validation.operationalViolations.length
@@ -407,6 +402,7 @@ function generateInterchange(node, incidentHalfEdges, settings) {
     validation,
     laneGraph,
     status,
+    template,
     radius: settings.portalDistance + settings.runout
   };
 }
@@ -490,7 +486,111 @@ function enumerateMovements(portals) {
   return movements;
 }
 
-function synthesizeConnectorRamps(movements, portals, settings) {
+const LAYOUT_TEMPLATES = [
+  {
+    id: "direct-stack",
+    name: "Direct stack",
+    mode: "direct",
+    rightBand: 0.12,
+    leftBand: 0.28,
+    diagonalBand: 0.42,
+    throughRunout: 1.25,
+    rampRunout: 1
+  },
+  {
+    id: "compact-corridor",
+    name: "Compact semi-directional corridor",
+    mode: "corridor",
+    rightBand: 0.18,
+    leftBand: 0.34,
+    diagonalBand: 0.5,
+    throughRunout: 1.35,
+    rampRunout: 0.58
+  },
+  {
+    id: "wide-turbine",
+    name: "Wide turbine corridor",
+    mode: "corridor",
+    rightBand: 0.26,
+    leftBand: 0.48,
+    diagonalBand: 0.64,
+    throughRunout: 1.45,
+    rampRunout: 0.72
+  }
+];
+
+function selectBestLayoutCandidate(node, portals, movements, settings) {
+  const candidates = LAYOUT_TEMPLATES.map((template) => buildLayoutCandidate(node, portals, movements, settings, template));
+  candidates.sort((a, b) => a.score.total - b.score.total);
+  return candidates[0];
+}
+
+function buildLayoutCandidate(node, portals, movements, settings, template) {
+  const connectors = synthesizeConnectorRamps(movements, portals, node.local, settings, template);
+  repairConnectorGeometry(connectors, settings);
+  const conflictGraph = detectPlanViewConflicts(connectors, settings);
+  const layers = colorConflictGraph(conflictGraph, connectors);
+  applyLayers(connectors, layers, settings);
+  solveVerticalProfiles(connectors, settings);
+  const structures = generateStructures(connectors, settings);
+  const validation = validateInterchange(connectors, conflictGraph, settings);
+  const laneGraph = buildLaneGraph(node, portals, movements, connectors);
+  const score = scoreLayoutCandidate(connectors, conflictGraph, validation, structures, settings);
+
+  return {
+    connectors,
+    conflictGraph,
+    structures,
+    validation,
+    laneGraph,
+    template: {
+      id: template.id,
+      name: template.name,
+      score
+    },
+    score
+  };
+}
+
+function scoreLayoutCandidate(connectors, conflictGraph, validation, structures, settings) {
+  const totalLength = connectors.reduce((sum, connector) => sum + connector.length, 0);
+  const maxLayer = Math.max(0, ...connectors.map((connector) => Math.abs(connector.layer ?? 0)));
+  const bridgeLength = structures
+    .filter((structure) => structure.kind === "bridge")
+    .reduce((sum, structure) => sum + structure.geometry.length, 0);
+  const tunnelLength = structures
+    .filter((structure) => structure.kind === "tunnel")
+    .reduce((sum, structure) => sum + structure.geometry.length, 0);
+  const hard = validation.hardCollisions.length;
+  const clearance = validation.clearanceViolations.length;
+  const design = validation.designViolations.length;
+  const operational = validation.operationalViolations.length;
+  const smallRadius = connectors.filter((connector) => connector.minRadius < settings.minRadius).length;
+  const total =
+    hard * 100000 +
+    clearance * 24000 +
+    conflictGraph.conflicts.length * 900 +
+    design * 2400 +
+    operational * 1000 +
+    smallRadius * 1800 +
+    maxLayer * 700 +
+    totalLength * 0.26 +
+    bridgeLength * 0.35 +
+    tunnelLength * 0.55;
+
+  return {
+    total: Math.round(total),
+    conflicts: conflictGraph.conflicts.length,
+    hard,
+    clearance,
+    design,
+    operational,
+    totalLength: Math.round(totalLength),
+    maxLayer
+  };
+}
+
+function synthesizeConnectorRamps(movements, portals, center, settings, template) {
   const portalMap = new Map<string, any>(portals.map((portal) => [portal.id, portal]));
   return movements.map((movement) => {
     const from = portalMap.get(movement.fromPortalId);
@@ -498,14 +598,12 @@ function synthesizeConnectorRamps(movements, portals, settings) {
     const laneCount = movement.turnClass === "through"
       ? Math.min(from.laneRange.count, to.laneRange.count)
       : 1;
-    const runout = movement.turnClass === "through" ? settings.runout * 1.25 : settings.runout;
-    const start = from.position;
-    const end = to.position;
-    const c1 = add2(start, scale2(from.tangent, runout));
-    const c2 = sub2(end, scale2(to.tangent, runout));
-    const samples = sampleCubic(start, c1, c2, end, settings.sampleCount);
+    const samples = sampleConnectorAlignment(from, to, movement.turnClass, center, settings, template);
     const length = polylineLength(samples);
     const minRadius = estimateMinimumRadius(samples);
+    const designRunout = movement.turnClass === "through"
+      ? settings.runout * template.throughRunout
+      : settings.runout * template.rampRunout;
 
     return {
       id: `connector:${movement.id}`,
@@ -516,11 +614,11 @@ function synthesizeConnectorRamps(movements, portals, settings) {
       horizontalAlignment: {
         id: `alignment:${movement.id}:H`,
         segments: [
-          { kind: "line", length: runout * 0.35 },
-          { kind: "clothoid", length: runout * 0.3, startCurvature: 0, endCurvature: 1 / Math.max(minRadius, settings.minRadius) },
+          { kind: "line", length: designRunout * 0.35 },
+          { kind: "clothoid", length: designRunout * 0.3, startCurvature: 0, endCurvature: 1 / Math.max(minRadius, settings.minRadius) },
           { kind: "arc", radius: Math.max(minRadius, settings.minRadius), angle: estimateTurnAngle(from.tangent, to.tangent) },
-          { kind: "clothoid", length: runout * 0.3, startCurvature: 1 / Math.max(minRadius, settings.minRadius), endCurvature: 0 },
-          { kind: "line", length: runout * 0.35 }
+          { kind: "clothoid", length: designRunout * 0.3, startCurvature: 1 / Math.max(minRadius, settings.minRadius), endCurvature: 0 },
+          { kind: "line", length: designRunout * 0.35 }
         ],
         samples
       },
@@ -537,6 +635,89 @@ function synthesizeConnectorRamps(movements, portals, settings) {
       length
     };
   });
+}
+
+function sampleConnectorAlignment(from, to, turnClass, center, settings, template) {
+  if (turnClass === "through") {
+    return sampleThroughCorridor(from, to, settings, template);
+  }
+  if (template.mode === "direct") {
+    return sampleDirectRamp(from, to, turnClass, settings, template);
+  }
+  return sampleConnectorCorridor(from, to, turnClass, center, settings, template);
+}
+
+function sampleDirectRamp(from, to, turnClass, settings, template) {
+  const start = from.position;
+  const end = to.position;
+  const runoutScale = turnClass === "right" ? 0.6 : turnClass === "left" ? 1.05 : 1.15;
+  const runout = Math.max(settings.runout * template.rampRunout * runoutScale, settings.minRadius * 0.65);
+  const c1 = add2(start, scale2(from.tangent, runout));
+  const c2 = sub2(end, scale2(to.tangent, runout));
+  return sampleCubic(start, c1, c2, end, settings.sampleCount);
+}
+
+function sampleConnectorCorridor(from, to, turnClass, center, settings, template) {
+  const start = from.position;
+  const end = to.position;
+  const signedTurn = signedAngle(from.tangent, to.tangent);
+  const portalRadius = Math.max(distance2(start, center), distance2(end, center), settings.portalDistance);
+  const turnSeverity = Math.min(1, Math.abs(signedTurn) / Math.PI);
+  const classBand = turnClass === "right"
+    ? template.rightBand
+    : turnClass === "left"
+      ? template.leftBand
+      : template.diagonalBand;
+  const corridorRadius = Math.max(
+    settings.minRadius * (1.05 + turnSeverity * 0.35),
+    portalRadius * (0.52 + classBand)
+  );
+  const tangentRunout = Math.max(
+    settings.runout * template.rampRunout * (turnClass === "right" ? 0.78 : 1),
+    settings.minRadius * 0.55
+  );
+  const entry = add2(start, scale2(from.tangent, tangentRunout));
+  const exit = sub2(end, scale2(to.tangent, tangentRunout));
+  const startAngle = angleAround(center, entry);
+  const endAngle = angleAround(center, exit);
+  const sweep = normalizeSweep(endAngle - startAngle);
+  const arcSteps = turnClass === "diagonal" ? 5 : turnClass === "left" ? 4 : 3;
+  const waypoints = [start, entry];
+
+  for (let i = 1; i <= arcSteps; i += 1) {
+    const t = i / (arcSteps + 1);
+    const angle = startAngle + sweep * t;
+    const easing = Math.sin(Math.PI * t);
+    const radius = corridorRadius + easing * settings.oneWayRoadWidth * (turnClass === "right" ? 0.7 : 1.15);
+    waypoints.push({
+      x: center.x + Math.sin(angle) * radius,
+      y: lerp(start.y, end.y, t),
+      z: center.z + Math.cos(angle) * radius
+    });
+  }
+
+  waypoints.push(exit, end);
+  return sampleCatmullRom(waypoints, settings.sampleCount);
+}
+
+function sampleThroughCorridor(from, to, settings, template) {
+  const start = from.position;
+  const end = to.position;
+  const tangentRunout = settings.runout * template.throughRunout;
+  const c1 = add2(start, scale2(from.tangent, tangentRunout));
+  const c2 = sub2(end, scale2(to.tangent, tangentRunout));
+  return sampleCubic(start, c1, c2, end, settings.sampleCount);
+}
+
+function repairConnectorGeometry(connectors, settings) {
+  for (const connector of connectors) {
+    connector.minRadius = estimateMinimumRadius(connector.horizontalAlignment.samples);
+    if (connector.minRadius >= settings.minRadius * 0.82) continue;
+    const samples = smoothPolyline(connector.horizontalAlignment.samples, 2);
+    connector.horizontalAlignment.samples = samples;
+    connector.length = polylineLength(samples);
+    connector.minRadius = estimateMinimumRadius(samples);
+  }
 }
 
 function detectPlanViewConflicts(connectors, settings) {
@@ -568,6 +749,8 @@ function detectPlanViewConflicts(connectors, settings) {
 function colorConflictGraph(conflictGraph, connectors) {
   const colors = new Map();
   const connectorIds = connectors.map((connector) => connector.id);
+  const connectorById = new Map(connectors.map((connector) => [connector.id, connector]));
+  const candidateLayers = [0, 1, 2, 3, -1, 4, -2, 5];
 
   while (colors.size < connectorIds.length) {
     const uncolored = connectorIds.filter((id) => !colors.has(id));
@@ -584,14 +767,33 @@ function colorConflictGraph(conflictGraph, connectors) {
         .map((neighbor) => colors.get(neighbor))
         .filter((color) => color !== undefined)
     );
-    let color = 0;
-    while (used.has(color)) color += 1;
+    const connector = connectorById.get(id);
+    const ideal = preferredLayer(connector);
+    let color = candidateLayers
+      .filter((layer) => !used.has(layer))
+      .sort((a, b) => layerCost(a, ideal, connector) - layerCost(b, ideal, connector))[0];
+    if (color === undefined) {
+      color = 0;
+      while (used.has(color)) color += 1;
+    }
     colors.set(id, color);
   }
+  return colors;
+}
 
-  const maxColor = Math.max(0, ...colors.values());
-  const center = Math.floor(maxColor / 2);
-  return new Map([...colors].map(([id, color]) => [id, color - center]));
+function preferredLayer(connector) {
+  if (!connector) return 0;
+  if (connector.turnClass === "through") return 0;
+  if (connector.turnClass === "right") return 0;
+  if (connector.turnClass === "left") return 1;
+  return 2;
+}
+
+function layerCost(layer, ideal, connector) {
+  const earthworkPenalty = layer < 0 ? 8 : 0;
+  const mainlinePenalty = connector?.turnClass === "through" && layer !== 0 ? 14 : 0;
+  const rightTurnPenalty = connector?.turnClass === "right" && layer !== 0 ? 6 : 0;
+  return Math.abs(layer - ideal) * 10 + Math.abs(layer) * 2 + earthworkPenalty + mainlinePenalty + rightTurnPenalty;
 }
 
 function applyLayers(connectors, layers, settings) {
@@ -843,6 +1045,81 @@ function sampleCubic(start, c1, c2, end, count) {
   return samples;
 }
 
+function sampleCatmullRom(points, count) {
+  if (points.length <= 2) {
+    return points.length === 2 ? sampleLinear(points[0], points[1], count) : [...points];
+  }
+
+  const samples = [];
+  const segmentCount = points.length - 1;
+  for (let i = 0; i < count; i += 1) {
+    const globalT = (i / (count - 1)) * segmentCount;
+    const segment = Math.min(segmentCount - 1, Math.floor(globalT));
+    const t = globalT - segment;
+    const p0 = points[Math.max(0, segment - 1)];
+    const p1 = points[segment];
+    const p2 = points[segment + 1];
+    const p3 = points[Math.min(points.length - 1, segment + 2)];
+    samples.push(catmullRomPoint(p0, p1, p2, p3, t));
+  }
+  return samples;
+}
+
+function sampleLinear(start, end, count) {
+  const samples = [];
+  for (let i = 0; i < count; i += 1) {
+    const t = i / (count - 1);
+    samples.push({
+      x: lerp(start.x, end.x, t),
+      y: lerp(start.y ?? 0, end.y ?? 0, t),
+      z: lerp(start.z, end.z, t)
+    });
+  }
+  return samples;
+}
+
+function catmullRomPoint(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: 0.5 * (
+      2 * p1.x +
+      (-p0.x + p2.x) * t +
+      (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+      (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+    ),
+    y: 0.5 * (
+      2 * (p1.y ?? 0) +
+      (-(p0.y ?? 0) + (p2.y ?? 0)) * t +
+      (2 * (p0.y ?? 0) - 5 * (p1.y ?? 0) + 4 * (p2.y ?? 0) - (p3.y ?? 0)) * t2 +
+      (-(p0.y ?? 0) + 3 * (p1.y ?? 0) - 3 * (p2.y ?? 0) + (p3.y ?? 0)) * t3
+    ),
+    z: 0.5 * (
+      2 * p1.z +
+      (-p0.z + p2.z) * t +
+      (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
+      (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3
+    )
+  };
+}
+
+function smoothPolyline(samples, iterations) {
+  let current = samples.map((sample) => ({ ...sample }));
+  for (let pass = 0; pass < iterations; pass += 1) {
+    current = current.map((sample, index) => {
+      if (index === 0 || index === current.length - 1) return sample;
+      const previous = current[index - 1];
+      const next = current[index + 1];
+      return {
+        x: sample.x * 0.5 + (previous.x + next.x) * 0.25,
+        y: sample.y * 0.5 + ((previous.y ?? 0) + (next.y ?? 0)) * 0.25,
+        z: sample.z * 0.5 + (previous.z + next.z) * 0.25
+      };
+    });
+  }
+  return current;
+}
+
 function firstPolylineConflict(a, b, settings) {
   const aSamples = a.horizontalAlignment.samples;
   const bSamples = b.horizontalAlignment.samples;
@@ -997,6 +1274,18 @@ function polylineLength(samples) {
 
 function signedAngle(a, b) {
   return Math.atan2(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z);
+}
+
+function angleAround(center, point) {
+  return Math.atan2(point.x - center.x, point.z - center.z);
+}
+
+function normalizeSweep(angle) {
+  const twoPi = Math.PI * 2;
+  let sweep = angle;
+  while (sweep <= -Math.PI) sweep += twoPi;
+  while (sweep > Math.PI) sweep -= twoPi;
+  return sweep;
 }
 
 function bearingFromVector(vector) {

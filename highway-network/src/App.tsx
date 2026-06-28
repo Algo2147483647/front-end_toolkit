@@ -20,6 +20,7 @@ type DebugState = {
   conflicts?: number;
   structures?: number;
   layers?: number[];
+  templates?: string[];
   sceneObjects?: ReturnType<HighwayRenderer["countSceneObjects"]>;
   canvasPixels?: ReturnType<HighwayRenderer["sampleCanvasPixels"]>;
 };
@@ -161,6 +162,7 @@ export default function App() {
       conflicts: result.network.interchanges.reduce((sum, item) => sum + item.conflicts.length, 0),
       structures: result.network.structures.length,
       layers: [...new Set(connectors.map((connector) => connector.layer))],
+      templates: result.network.interchanges.map((interchange) => interchange.template?.id ?? "unknown"),
       sceneObjects: renderer.countSceneObjects(),
       canvasPixels: renderer.sampleCanvasPixels()
     });
