@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_OPTIONS,
   SAMPLE_GRAPHS,
@@ -61,6 +61,16 @@ function runGeneration(graphText: string, options: GeneratorOptions) {
   return generateHighwayNetwork(graph, createOptions(options));
 }
 
+function parseGraphInput(graphText: string): InputGraph | null {
+  try {
+    const graph = JSON.parse(graphText) as InputGraph;
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
+    return graph;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const [sampleKey, setSampleKey] = useState("stack4");
   const [graphInput, setGraphInput] = useState(() => formatGraph(SAMPLE_GRAPHS.stack4));
@@ -71,7 +81,7 @@ export default function App() {
   const [visibility, setVisibility] = useState<VisibilityState>({
     validation: true,
     structures: true,
-    laneGraph: true
+    laneGraph: false
   });
   const [debugState, setDebugState] = useState<DebugState>({});
 
@@ -79,6 +89,7 @@ export default function App() {
     () => result.network.interchanges.flatMap((interchange) => interchange.connectors),
     [result]
   );
+  const editableGraph = useMemo(() => parseGraphInput(graphInput), [graphInput]);
 
   const stats = useMemo(() => {
     const layers = new Set(connectors.map((connector) => connector.layer));
@@ -124,10 +135,21 @@ export default function App() {
   }
 
   function updateSample(key: string) {
+    if (!SAMPLE_GRAPHS[key]) {
+      setSampleKey("custom");
+      return;
+    }
     const nextGraph = formatGraph(SAMPLE_GRAPHS[key]);
     setSampleKey(key);
     setGraphInput(nextGraph);
     generate(nextGraph, options);
+  }
+
+  function updateGraphFromEditor(nextGraph: InputGraph) {
+    const nextGraphText = formatGraph(nextGraph);
+    setSampleKey("custom");
+    setGraphInput(nextGraphText);
+    generate(nextGraphText, options);
   }
 
   const updateRendererDebug = useCallback((renderer: HighwayRenderer) => {
@@ -156,11 +178,13 @@ export default function App() {
           <div className="section-heading">
             <h2>Input Graph</h2>
             <select value={sampleKey} aria-label="Example graph" onChange={(event) => updateSample(event.target.value)}>
+              <option value="custom">Custom graph</option>
               <option value="stack4">4-way stack</option>
               <option value="turbine5">5-way urban hub</option>
               <option value="directional3">3-way directional T</option>
             </select>
           </div>
+          <GraphEditor graph={editableGraph} onChange={updateGraphFromEditor} />
           <textarea
             value={graphInput}
             spellCheck={false}
@@ -328,6 +352,124 @@ function SelectionDetails({ connector }: { connector: Connector | null }) {
   );
 }
 
+function GraphEditor({ graph, onChange }: { graph: InputGraph | null; onChange: (graph: InputGraph) => void }) {
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const width = 312;
+  const height = 220;
+  const padding = 28;
+
+  const projection = useMemo(() => {
+    if (!graph?.nodes.length) return null;
+    const lats = graph.nodes.map((node) => node.lat);
+    const lons = graph.nodes.map((node) => node.lon);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    const latSpan = Math.max(maxLat - minLat, 0.0001);
+    const lonSpan = Math.max(maxLon - minLon, 0.0001);
+
+    return {
+      point(node: { lat: number; lon: number }) {
+        return {
+          x: padding + ((node.lon - minLon) / lonSpan) * (width - padding * 2),
+          y: padding + ((maxLat - node.lat) / latSpan) * (height - padding * 2)
+        };
+      },
+      coords(x: number, y: number) {
+        const nextX = Math.max(padding, Math.min(width - padding, x));
+        const nextY = Math.max(padding, Math.min(height - padding, y));
+        return {
+          lon: minLon + ((nextX - padding) / (width - padding * 2)) * lonSpan,
+          lat: maxLat - ((nextY - padding) / (height - padding * 2)) * latSpan
+        };
+      }
+    };
+  }, [graph]);
+
+  function pointerToSvg(event: ReactPointerEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * width,
+      y: ((event.clientY - rect.top) / rect.height) * height
+    };
+  }
+
+  function moveNode(event: ReactPointerEvent<SVGSVGElement>) {
+    if (!graph || !projection || !draggingNodeId) return;
+    const point = pointerToSvg(event);
+    if (!point) return;
+    const coords = projection.coords(point.x, point.y);
+    onChange({
+      ...graph,
+      nodes: graph.nodes.map((node) => (
+        node.id === draggingNodeId
+          ? { ...node, lat: Number(coords.lat.toFixed(6)), lon: Number(coords.lon.toFixed(6)) }
+          : node
+      ))
+    });
+  }
+
+  if (!graph || !projection) {
+    return <div className="graph-editor empty">Invalid graph JSON</div>;
+  }
+
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+
+  return (
+    <svg
+      ref={svgRef}
+      className="graph-editor"
+      viewBox={`0 0 ${width} ${height}`}
+      role="application"
+      aria-label="Draggable input graph"
+      onPointerMove={moveNode}
+      onPointerUp={() => setDraggingNodeId(null)}
+      onPointerLeave={() => setDraggingNodeId(null)}
+    >
+      <rect className="graph-editor-bg" x="0" y="0" width={width} height={height} rx="7" />
+      {graph.edges.map((edge) => {
+        const from = nodeById.get(edge.from);
+        const to = nodeById.get(edge.to);
+        if (!from || !to) return null;
+        const fromPoint = projection.point(from);
+        const toPoint = projection.point(to);
+        return (
+          <line
+            className="graph-edge"
+            key={edge.id}
+            x1={fromPoint.x}
+            y1={fromPoint.y}
+            x2={toPoint.x}
+            y2={toPoint.y}
+          />
+        );
+      })}
+      {graph.nodes.map((node) => {
+        const point = projection.point(node);
+        const isDragging = node.id === draggingNodeId;
+        return (
+          <g
+            className={`graph-node${isDragging ? " dragging" : ""}`}
+            key={node.id}
+            transform={`translate(${point.x} ${point.y})`}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              setDraggingNodeId(node.id);
+            }}
+          >
+            <circle r="10" />
+            <text y="-16">{node.id}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function SceneView({
   result,
   visibility,
@@ -360,8 +502,11 @@ function SceneView({
     const renderer = rendererRef.current;
     if (!renderer) return;
     renderer.renderNetwork(result);
+    renderer.setVisibility("validation", visibility.validation);
+    renderer.setVisibility("structures", visibility.structures);
+    renderer.setVisibility("laneGraph", visibility.laneGraph);
     onRendered(renderer);
-  }, [onRendered, result]);
+  }, [onRendered, result, visibility]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

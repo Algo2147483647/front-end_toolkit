@@ -153,7 +153,7 @@ h2 {
 
 textarea {
   width: 100%;
-  min-height: 16rem;
+  min-height: 12rem;
   resize: vertical;
   border: 1px solid var(--panel-border);
   border-radius: 7px;
@@ -163,6 +163,66 @@ textarea {
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 0.78rem;
   line-height: 1.45;
+}
+
+.graph-editor {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 13rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+  background: #101516;
+  touch-action: none;
+  user-select: none;
+}
+
+.graph-editor.empty {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.graph-editor-bg {
+  fill: #111719;
+}
+
+.graph-edge {
+  stroke: #5d7479;
+  stroke-linecap: round;
+  stroke-width: 4;
+}
+
+.graph-node {
+  cursor: grab;
+}
+
+.graph-node.dragging {
+  cursor: grabbing;
+}
+
+.graph-node circle {
+  fill: #f0b35a;
+  stroke: #f4f0e7;
+  stroke-width: 2;
+}
+
+.graph-node.dragging circle {
+  fill: #72d28f;
+}
+
+.graph-node text {
+  fill: var(--text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #101516;
+  stroke-width: 4;
+  text-anchor: middle;
 }
 
 .compact label {
